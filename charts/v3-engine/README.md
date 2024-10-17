@@ -1,68 +1,50 @@
 # v3-engine Helm Chart
 
-This chart deploys the v3-engine service.
+This chart deploys the v3-engine service. Refer to the pre-requisites section [here](../../README.md#get-started)
 
-## Build Source and render manifests and apply
+## Install Chart
+
+See all [configuration](#parameters) below.
+
 ```bash
-helm dep update
-
 # EXAMPLES:
 
 # helm template and apply manifests via kubectl (example)
-helm template --release-name <release name> --set image.repository="my_repo/v3-engine" --set image.tag="my_custom_image_tag" . | kubectl apply -f -
-
-# helm upgrade --install (with overrides)
-helm upgrade --install <release name> -f overrides.yaml .
+helm template \
+  --set image.repository="my_repo/v3-engine" \
+  --set image.tag="my_custom_image_tag" \
+  hasura-ddn/v3-engine | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
-helm upgrade --install <release name> --set image.repository="my_repo/v3-engine" --set image.tag="my_custom_image_tag" .
+helm upgrade --install <release-name> \
+  --set image.repository="my_repo/v3-engine" \
+  --set image.tag="my_custom_image_tag" \
+  hasura-ddn/v3-engine
 
 # helm upgrade --install (with OTEL variabes)
-helm upgrade --install <release name> --set image.repository="my_repo/v3-engine" --set image.tag="my_custom_image_tag" --set otel.dataPlaneID=<data-plane-id> --set otel.dataPlaneKey=<data-plane-key> --set otel.hasuraCanonicalHost=<project-name>.<fqdn> .
+helm upgrade --install <release-name> \
+  --set image.repository="my_repo/v3-engine" \
+  --set image.tag="my_custom_image_tag" \
+  --set otel.deployOtelCollector="true" \  
+  --set otel.dataPlaneID=<data-plane-id> \
+  --set otel.dataPlaneKey=<data-plane-key> \
+  --set otel.hasuraCanonicalHost=<project-name>.<fqdn> \
+  hasura-ddn/v3-engine
 ```
-
-## Packaged Helm chart
-
-You can pick the tarball for this Helm chart under https://storage.googleapis.com/hasura-ee-charts/v3-engine-<helm-chart-version\>.tgz
-
-## Prerequisites
-
-1. Helm (preferably v3) installed – instructions are [here](https://helm.sh/docs/intro/install/).
-2. Hasura helm repo configured.
-  
-```bash
-helm repo add hasura https://hasura.github.io/helm-charts
-helm repo update
-```
-
-> You can change the repo name `hasura` to another one if getting conflicts.
-
-## Get Started
-
-```bash
-helm install [RELEASE_NAME] v3-engine
-```
-See [configuration](#parameters) below.
-
-See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation.
 
 ## Enabling git-sync
 
-To enable git-sync to read engine and connector config files from a git repository, follow the below steps,
+Follow the pre-requisite [here](../../README.md#using-git-for-metadata-files) which has to be done once and deployed on the cluster.
 
-Create a SSH key and grant it *read* access to the repository. It can also be a deploy key, see [set up deploy keys] https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#set-up-deploy-keys
-
-Create a known hosts file, to add GitHub’s SSH host key to your known_hosts file to prevent SSH from asking for confirmation during the connection:
-```bash
-ssh-keyscan github.com >> ~/.ssh/known_hosts
-```
-
-Create a kubernetes secret using the below command,
+Replace org and repo placeholders in the below command to suit your git repository
 
 ```bash
-kubectl create secret generic git-creds \
-  --from-file=ssh=~/.ssh/id_rsa \
-  --from-file=known_hosts=~/.ssh/known_hosts
+helm upgrade --install v1 \
+  --set initContainers.gitSync.enabled="true" \
+  --set initContainers.gitSync.repo="git@github.com:<org>/<repo>" \
+  --set openDDPath="/work-dir/<repo>/output/open_dd.json" \
+  --set authnConfigPath="/work-dir/<repo>/output/auth_config.json" \
+  hasura-ddn/v3-engine
 ```
 
 ## Parameters 

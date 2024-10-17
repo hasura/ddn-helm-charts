@@ -4,7 +4,7 @@ additionalAnnotations: |
 
 image:
   # Full path to custom created image
-  repository: ghcr.io/hasura/v3-engine"
+  repository: ghcr.io/hasura/v3-engine
   tag: "latest"
   pullPolicy: Always
   otelCollectorRepository: otel/opentelemetry-collector-contrib
@@ -13,7 +13,7 @@ image:
 initContainers:
   gitSync:    
     enabled: false
-    repo: "git@github.com:hasura/ddn-example"
+    repo: "git@github.com:<org>/<repo>"
     branch: "main"
 
 healthChecks:
@@ -40,7 +40,7 @@ hpa:
           averageUtilization: 80  # Target 80% memory utilization per pod
 
 otel:
-  deployOtelCollector: true
+  deployOtelCollector: false
   endpoint: https://gateway.otlp.hasura.io:443
   dataPlaneID: ""
   dataPlaneKey: ""
@@ -103,10 +103,10 @@ otel:
 openDDPath: /md/open_dd.json
 authnConfigPath: /md/auth_config.json
 
-# Configure as below when using git-sync; here ddn-example is the repo name
-# openDDPath: /work-dir/ddn-example/output/open_dd.json
+# Configure as below when using git-sync; here repo is the repo name
+# openDDPath: /work-dir/<repo>/output/open_dd.json
 # Path to auth_config.json
-# authnConfigPath: /work-dir/ddn-example/output/auth_config.json
+# authnConfigPath: /work-dir/<repo>/output/auth_config.json
 # Enable CORS by sending appropriate headers
 enableCors: true
 
