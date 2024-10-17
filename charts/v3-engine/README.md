@@ -10,25 +10,21 @@ See all [configuration](#parameters) below.
 # EXAMPLES:
 
 # helm template and apply manifests via kubectl (example)
-helm template \
+helm template <release-name> \
   --set image.repository="my_repo/v3-engine" \
   --set image.tag="my_custom_image_tag" \
+  --set observability.hostName="observability_hostname" \
+  --set dataPlane.id="data_plane_id" \
+  --set dataPlane.key="data_plane_key" \
   hasura-ddn/v3-engine | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/v3-engine" \
   --set image.tag="my_custom_image_tag" \
-  hasura-ddn/v3-engine
-
-# helm upgrade --install (with OTEL variabes)
-helm upgrade --install <release-name> \
-  --set image.repository="my_repo/v3-engine" \
-  --set image.tag="my_custom_image_tag" \
-  --set otel.deployOtelCollector="true" \  
-  --set otel.dataPlaneID=<data-plane-id> \
-  --set otel.dataPlaneKey=<data-plane-key> \
-  --set otel.hasuraCanonicalHost=<project-name>.<fqdn> \
+  --set observability.hostName="observability_hostname" \
+  --set dataPlane.id="data_plane_id" \
+  --set dataPlane.key="data_plane_key" \
   hasura-ddn/v3-engine
 ```
 
