@@ -1,4 +1,4 @@
-V3-engine Helm Chart Deployment
+Ndc-nodejs-lambda Helm Chart Deployment
 
 1. Deployment Information:
    - Release Name: {{ .Release.Name }}
@@ -20,6 +20,3 @@ V3-engine Helm Chart Deployment
 4. Clean Up:
    - To uninstall/delete the deployment, run:
      helm uninstall {{ .Release.Name }}
-
-5. Next steps:
-   - You may now want to add connector(s) into your deployment stack.  Perform a "helm search repo hasura-ddn" to see what connector Helm charts are available for installation
