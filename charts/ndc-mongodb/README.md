@@ -1,45 +1,42 @@
 # ndc-mongodb Helm Chart
 
-This chart deploys the ndc-mongodb connector.
+This chart deploys the ndc-mongodb connector. Refer to the pre-requisites section [here](../../README.md#get-started)
 
-## Build Source, render manifests and apply
+## Install Chart
+
+See all [configuration](#parameters) below.
+
 ```bash
-helm dep update
+# EXAMPLES:
 
 # helm template and apply manifests via kubectl (example)
-helm template --set global.containerRegistry="my_docker_registry" --set global.namespace="my_namespace" --set image.repository="my_custom_image" --set image.tag="my_custom_image_tag" --set connector.MONGODB_DATABASE_URI="db_connection_string" --set connector.HASURA_SERVICE_TOKEN_SECRET="token" . | kubectl apply -f -
+helm template \
+  --set image.repository="my_repo/ndc-mongodb" \
+  --set image.tag="my_custom_image_tag" \
+  --set connector.MONGODB_DATABASE_URI="db_connection_string" \
+  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  hasura-ddn/ndc-mongodb | kubectl apply -f-
 
-# helm install (with overrides) - WIP
-helm install <release name\> TBD/ndc-mongodb -f overrides.yaml
+# helm upgrade --install (pass configuration via command line)
+helm upgrade --install <release-name> \
+  --set image.repository="my_repo/ndc-mongodb" \
+  --set image.tag="my_custom_image_tag" \
+  --set connector.MONGODB_DATABASE_URI="db_connection_string" \
+  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  hasura-ddn/ndc-mongodb
 
-# helm install (pass configuration via command line) - WIP
-helm install <release name\> TBD/ndc-mongodb --set global.containerRegistry="my_docker_registry" --set global.namespace="my_namespace" --set image.repository="my_custom_image" --set image.tag="my_custom_image_tag" --set connector.MONGODB_DATABASE_URI="db_connection_string" --set connector.HASURA_SERVICE_TOKEN_SECRET="token"
+# helm upgrade --install (with OTEL variabes)
+helm upgrade --install <release-name> \
+  --set image.repository="my_repo/ndc-mongodb" \
+  --set image.tag="my_custom_image_tag" \
+  --set connector.MONGODB_DATABASE_URI="db_connection_string" \
+  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set otel.deployOtelCollector="true" \  
+  --set otel.dataPlaneID=<data-plane-id> \
+  --set otel.dataPlaneKey=<data-plane-key> \
+  --set otel.hasuraCanonicalHost=<project-name>.<fqdn> \
+  hasura-ddn/ndc-mongodb
 ```
-
-## Packaged Helm chart
-
-You can pick the tarball for this Helm chart under https://storage.googleapis.com/hasura-ee-charts/ndc-mongodb-<helm-chart-version\>.tgz
-
-## Prerequisites
-
-1. Helm (preferably v3) installed – instructions are [here](https://helm.sh/docs/intro/install/).
-2. Hasura helm repo configured.
-  
-```bash
-helm repo add hasura https://hasura.github.io/helm-charts
-helm repo update
-```
-
-> You can change the repo name `hasura` to another one if getting conflicts.
-
-## Get Started
-
-```bash
-helm install [RELEASE_NAME] TBD/ndc-mongodb
-```
-See [configuration](#parameters) below.
-
-See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation.
 
 ## Parameters 
 

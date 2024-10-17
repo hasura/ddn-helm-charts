@@ -42,7 +42,7 @@ hpa:
           averageUtilization: 80  # Target 80% memory utilization per pod  
 
 otel:
-  deployOtelCollector: true
+  deployOtelCollector: false
   endpoint: https://gateway.otlp.hasura.io:443
   dataPlaneID: ""
   dataPlaneKey: ""

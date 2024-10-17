@@ -1,4 +1,4 @@
-# v3-engine Helm Chart
+# V3-engine Helm Chart
 
 This chart deploys the v3-engine service. Refer to the pre-requisites section [here](../../README.md#get-started)
 
@@ -39,7 +39,7 @@ Follow the pre-requisite [here](../../README.md#using-git-for-metadata-files) wh
 Replace org and repo placeholders in the below command to suit your git repository
 
 ```bash
-helm upgrade --install v1 \
+helm upgrade --install <release-name> \
   --set initContainers.gitSync.enabled="true" \
   --set initContainers.gitSync.repo="git@github.com:<org>/<repo>" \
   --set openDDPath="/work-dir/<repo>/output/open_dd.json" \

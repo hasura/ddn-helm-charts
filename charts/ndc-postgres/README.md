@@ -1,50 +1,47 @@
-# ndc-postgres Helm Chart
+# Ndc-Postgres Helm Chart
 
-This chart deploys the ndc-postgres connector.
+This chart deploys the ndc-postgres connector. Refer to the pre-requisites section [here](../../README.md#get-started)
 
-## Build Source, render manifests and apply
+## Install Chart
+
+See all [configuration](#parameters) below.
+
 ```bash
-helm dep update
+# EXAMPLES:
 
 # helm template and apply manifests via kubectl (example)
-helm template --release-name <release name> --set image.repository="my_custom_image" --set image.tag="my_custom_image_tag" --set connector.CONNECTION_URI="db_connection_string" --set connector.HASURA_SERVICE_TOKEN_SECRET="token" . | kubectl apply -f -
+helm template \
+  --set image.repository="my_repo/ndc-postgres" \
+  --set image.tag="my_custom_image_tag" \
+  --set connector.CONNECTION_URI="db_connection_string" \
+  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  hasura-ddn/ndc-postgres | kubectl apply -f-
 
-# helm install (with overrides) - WIP
-helm upgrade --install <release name\> TBD/ndc-postgres -f overrides.yaml
+# helm upgrade --install (pass configuration via command line)
+helm upgrade --install <release-name> \
+  --set image.repository="my_repo/ndc-postgres" \
+  --set image.tag="my_custom_image_tag" \
+  --set connector.CONNECTION_URI="db_connection_string" \
+  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  hasura-ddn/ndc-postgres
 
-# helm install (pass configuration via command line) - WIP
-helm upgrade --install <release name\> TBD/ndc-postgres --set image.repository="my_custom_image" --set image.tag="my_custom_image_tag" --set connector.CONNECTION_URI="db_connection_string" --set connector.HASURA_SERVICE_TOKEN_SECRET="token"
+# helm upgrade --install (with OTEL variabes)
+helm upgrade --install <release-name> \
+  --set image.repository="my_repo/ndc-postgres" \
+  --set image.tag="my_custom_image_tag" \
+  --set connector.CONNECTION_URI="db_connection_string" \
+  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \  
+  --set otel.deployOtelCollector="true" \  
+  --set otel.dataPlaneID=<data-plane-id> \
+  --set otel.dataPlaneKey=<data-plane-key> \
+  --set otel.hasuraCanonicalHost=<project-name>.<fqdn> \
+  hasura-ddn/ndc-postgres
 ```
-
-## Packaged Helm chart
-
-You can pick the tarball for this Helm chart under https://storage.googleapis.com/hasura-ee-charts/ndc-postgres-<helm-chart-version\>.tgz
-
-## Prerequisites
-
-1. Helm (preferably v3) installed – instructions are [here](https://helm.sh/docs/intro/install/).
-2. Hasura helm repo configured.
-  
-```bash
-helm repo add hasura https://hasura.github.io/helm-charts
-helm repo update
-```
-
-> You can change the repo name `hasura` to another one if getting conflicts.
-
-## Get Started
-
-```bash
-helm install [RELEASE_NAME] TBD/ndc-postgres
-```
-See [configuration](#parameters) below.
-
-See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation.
 
 ## Parameters 
 
 | Name                                              | Description                                                                                                | Value                           |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |               |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | `image.repository`                                | Image repository containing custom created ndc-postgres                                                    | `""`                            |
 | `image.tag`                                       | Image tag to use for custom created ndc-postgres                                                           | `""`                            |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
