@@ -53,14 +53,6 @@ helm upgrade --install <release-name> \
 | `image.tag`                                       | Image tag to use for custom created v3-engine                                                             | `""`                            |
 | `image.otelCollectorRepository`                   | OTEL collector image repository                                                                            | `otel/opentelemetry-collector`        |
 | `image.otelCollectorTag`                          | OTEL collector image tag                                                                                   | `0.104.0`                              |
-| `healthChecks.enabled`                            | Enable health check for v3-engine container                                                               | `true`                         |
-| `healthChecks.livenessProbePath`                  | Health check liveness Probe path v3-engine container                                                      | `"/health"`                       |
-| `healthChecks.readinessProbePath`                 | Health check readiness Probe path v3-engine container                                                     | `"/health"`                       |
-| `hpa.enabled`                                     | Enable HPA for mongo-connector.  Ensure metrics cluster is configured when enabling                        | `false`                       |
-| `hpa.minReplicas`                                 | minReplicas setting for HPA                                                                                | `2`                       |
-| `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                       |
-| `hpa.metrics.resource.name`                       | Resource name to autoscale on                                                                              | ``                       |
-| `hpa.metrics.resource.target.averageUtilization`  | Utilization target on specific resource type                                                               | ``                       |
 | `openDDPath`                                      | Path to `opendd.json`                                                                                      | `/md/open_dd.json`              |
 | `authnConfigPath`                                 | Path to `auth_config.json`                                                                                 | `/md/auth_config.json`          |
 | `metadataPath`                                    | Path to `metadata.json`                                                                                    | `/md/metadata.json`             |
@@ -78,3 +70,11 @@ helm upgrade --install <release-name> \
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                             |
 | `resources`                                       | Resource requests and limits of v3-engine container                                                       | `{}`                               |
 | `env`                                             | Env variable section for v3-engine                                                                        | `[]`                               |
+| `healthChecks.enabled`                            | Enable health check for v3-engine container                                                               | `true`                         |
+| `healthChecks.livenessProbePath`                  | Health check liveness Probe path v3-engine container                                                      | `"/health"`                       |
+| `healthChecks.readinessProbePath`                 | Health check readiness Probe path v3-engine container                                                     | `"/health"`                       |
+| `hpa.enabled`                                     | Enable HPA for mongo-connector.  Ensure metrics cluster is configured when enabling                        | `false`                       |
+| `hpa.minReplicas`                                 | minReplicas setting for HPA                                                                                | `2`                       |
+| `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                       |
+| `hpa.metrics.resource.name`                       | Resource name to autoscale on                                                                              | ``                       |
+| `hpa.metrics.resource.target.averageUtilization`  | Utilization target on specific resource type                                                               | ``                       |

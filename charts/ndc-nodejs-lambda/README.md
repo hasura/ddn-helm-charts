@@ -28,7 +28,13 @@ helm upgrade --install <release-name> \
   hasura-ddn/nodejs-lambda
 ```
 
-## Parameters 
+## Connector ENV Inputs
+
+| Name                                              | Description                                                                                                | Value                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                            |
+
+## Additional Parameters 
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
@@ -38,6 +44,15 @@ helm upgrade --install <release-name> \
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
 | `image.otelCollectorRepository`                   | OTEL collector image repository                                                                            | `otel/opentelemetry-collector`  |
 | `image.otelCollectorTag`                          | OTEL collector image tag                                                                                   | `0.104.0`                       |
+| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `true`                          |
+| `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
+| `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
+| `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
+| `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
+| `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-nodejs-lambda pod                               | `[]`                            |
+| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-nodejs-lambda pod                            | `[]`                               |                               |
+| `resources`                                       | Resource requests and limits of ndc-nodejs-lambda container                                                     | `{}`                            |
+| `env`                                             | Env variable section for ndc-nodejs-lambda                                                                      | `[]`                            |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                             |
 | `wsInactiveExpiryMins`                            | To be documented                                                                                           | `1`                             |
 | `securityContext`                                 | Define privilege and access control settings for a Pod or Container                                        | `{}`                            |
@@ -49,18 +64,3 @@ helm upgrade --install <release-name> \
 | `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                             |
 | `hpa.metrics.resource.name`                       | Resource name to autoscale on                                                                              | ``                              |
 | `hpa.metrics.resource.target.averageUtilization`  | Utilization target on specific resource type                                                               | ``                              |
-| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `true`                          |
-| `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
-| `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
-| `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
-| `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
-| `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-nodejs-lambda pod                               | `[]`                            |
-| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-nodejs-lambda pod                            | `[]`                               |                               |
-| `resources`                                       | Resource requests and limits of ndc-nodejs-lambda container                                                     | `{}`                            |
-| `env`                                             | Env variable section for ndc-nodejs-lambda                                                                      | `[]`                            |
-
-## Connector ENV Inputs
-
-| Name                                              | Description                                                                                                | Value                           |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                            |
