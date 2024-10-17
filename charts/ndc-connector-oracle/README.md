@@ -13,24 +13,24 @@ See all [configuration](#parameters) below.
 helm template \
   --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.JDBC_URL="jdbc_url" \ 
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.JDBC_URL="jdbc_url" \ 
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-connector-oracle | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.JDBC_URL="jdbc_url" \ 
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.JDBC_URL="jdbc_url" \ 
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-connector-oracle
 
 # helm upgrade --install (with OTEL variabes)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.JDBC_URL="jdbc_url" \ 
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \ 
+  --set connectorEnvVars.JDBC_URL="jdbc_url" \ 
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \ 
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
@@ -71,6 +71,6 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connector.HASURA_SERVICE_TOKEN_SECRET`           | Hasura Service Token Secret (Required)                                                                     | `""`                                 |
-| `connector.JDBC_URL`                              | The JDBC URL to connect to the database (Required)                                                                         | `""`                                 |
-| `connector.JDBC_SCHEMAS`                          | A comma-separated list of schemas to include in the metadata (Optional)                                                                         | `""`                                 |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                                 |
+| `connectorEnvVars.JDBC_URL`                       | The JDBC URL to connect to the database (Required)                                                                         | `""`                                 |
+| `connectorEnvVars.JDBC_SCHEMAS`                   | A comma-separated list of schemas to include in the metadata (Optional)                                                                         | `""`                                 |

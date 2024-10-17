@@ -13,24 +13,24 @@ See all [configuration](#parameters) below.
 helm template \
   --set image.repository="my_repo/ndc-graphql" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-graphql | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-graphql" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-graphql
 
 # helm upgrade --install (with OTEL variabes)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-graphql" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \ 
+  --set connectorEnvVars.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \ 
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
@@ -71,5 +71,5 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connector.HASURA_SERVICE_TOKEN_SECRET`           | Hasura Service Token Secret (Required)                                                                     | `""`                            |
-| `connector.GRAPHQL_ENDPOINT`                      | The GraphQL Endpoint (Required)                                                                            | `""`                            |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                            |
+| `connectorEnvVars.GRAPHQL_ENDPOINT`               | The GraphQL Endpoint (Required)                                                                            | `""`                            |

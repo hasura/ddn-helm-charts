@@ -129,7 +129,7 @@ resources: |
     cpu: "1"
     memory: "1Gi"
 
-connector:
+connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
   JDBC_URL: ""
   JDBC_SCHEMAS: ""
@@ -148,11 +148,11 @@ env: |
       secretKeyRef:
         key: JDBC_URL
         name: {{ printf "%s-secret" (include "common.name" .) }}
-  {{- if .Values.connector.JDBC_SCHEMAS }}
+  {{- if .Values.connectorEnvVars.JDBC_SCHEMAS }}
   - name: JDBC_SCHEMAS
-    value: {{ .Values.connector.JDBC_SCHEMAS | quote }}
+    value: {{ .Values.connectorEnvVars.JDBC_SCHEMAS | quote }}
   {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
   - name: HASURA_CONFIGURATION_DIRECTORY
-    value: {{ .Values.connector.configDirectory }}
+    value: {{ .Values.connectorEnvVars.configDirectory }}

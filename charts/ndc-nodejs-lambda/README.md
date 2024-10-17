@@ -13,21 +13,21 @@ See all [configuration](#parameters) below.
 helm template \
   --set image.repository="my_repo/ndc-nodejs-lambda" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/nodejs-lambda | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-nodejs-lambda" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/nodejs-lambda
 
 # helm upgrade --install (with OTEL variabes)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-nodejs-lambda" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
@@ -68,4 +68,4 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connector.HASURA_SERVICE_TOKEN_SECRET`           | Hasura Service Token Secret (Required)                                                                     | `""`                            |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                            |

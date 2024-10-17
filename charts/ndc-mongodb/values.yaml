@@ -129,7 +129,7 @@ resources: |
     cpu: "1"
     memory: "1Gi"
 
-connector:
+connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
   MONGODB_DATABASE_URI: ""
   configDirectory: /etc/connector
@@ -150,4 +150,4 @@ env: |
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
   - name: HASURA_CONFIGURATION_DIRECTORY
-    value: {{ .Values.connector.configDirectory }}
+    value: {{ .Values.connectorEnvVars.configDirectory }}

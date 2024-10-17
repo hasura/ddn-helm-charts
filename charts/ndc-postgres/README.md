@@ -13,24 +13,24 @@ See all [configuration](#parameters) below.
 helm template \
   --set image.repository="my_repo/ndc-postgres" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.CONNECTION_URI="db_connection_string" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-postgres | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-postgres" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.CONNECTION_URI="db_connection_string" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-postgres
 
 # helm upgrade --install (with OTEL variabes)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-postgres" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.CONNECTION_URI="db_connection_string" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \  
+  --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \  
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
@@ -71,8 +71,8 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connector.HASURA_SERVICE_TOKEN_SECRET`           | Hasura Service Token Secret (Required)                                                                     | `""`                            |
-| `connector.CONNECTION_URI`                        | Database Connection URI (Required)                                                                         | `""`                            |
-| `connector.CLIENT_CERT`                           | Database Client cert (Optional)                                                                            | `""`                            |
-| `connector.CLIENT_KEY`                            | Database Client key (Optional)                                                                             | `""`                            |
-| `connector.ROOT_CERT`                             | Database Root cert (Optional)                                                                              | `""`                            |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                            |
+| `connectorEnvVars.CONNECTION_URI`                 | Database Connection URI (Required)                                                                         | `""`                            |
+| `connectorEnvVars.CLIENT_CERT`                    | Database Client cert (Optional)                                                                            | `""`                            |
+| `connectorEnvVars.CLIENT_KEY`                     | Database Client key (Optional)                                                                             | `""`                            |
+| `connectorEnvVars.ROOT_CERT`                      | Database Root cert (Optional)                                                                              | `""`                            |

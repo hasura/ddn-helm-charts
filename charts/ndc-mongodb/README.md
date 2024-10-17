@@ -13,24 +13,24 @@ See all [configuration](#parameters) below.
 helm template \
   --set image.repository="my_repo/ndc-mongodb" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.MONGODB_DATABASE_URI="db_connection_string" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-mongodb | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-mongodb" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.MONGODB_DATABASE_URI="db_connection_string" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-mongodb
 
 # helm upgrade --install (with OTEL variabes)
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-mongodb" \
   --set image.tag="my_custom_image_tag" \
-  --set connector.MONGODB_DATABASE_URI="db_connection_string" \
-  --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
@@ -51,7 +51,7 @@ helm upgrade --install <release-name> \
 | `securityContext`                                 | Define privilege and access control settings for a Pod or Container                                        | `{}`                                |
 | `healthChecks.enabled`                            | Enable health check for ndc-mongodb container                                                              | `false`                             |
 | `healthChecks.livenessProbePath`                  | Health check liveness Probe path ndc-mongodb container                                                     | `"/healthz"`                        |
-| `healthChecks.readinessProbePath`                 | Health check readiness Probe path mongo-connector container                                                | `"/healthz"`                        |
+| `healthChecks.readinessProbePath`                 | Health check readiness Probe path ndc-mongodb container                                                    | `"/healthz"`                        |
 | `hpa.enabled`                                     | Enable HPA for ndc-mongodb.  Ensure metrics cluster is configured when enabling                            | `false`                             |
 | `hpa.minReplicas`                                 | minReplicas setting for HPA                                                                                | `2`                                 |
 | `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                                 |
@@ -71,5 +71,5 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connector.HASURA_SERVICE_TOKEN_SECRET`           | Hasura Service Token Secret (Required)                                                                     | `""`                                 |
-| `connector.MONGODB_DATABASE_URI`                  | Database Connection URI (Required)                                                                         | `""`                                 |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                                 |
+| `connectorEnvVars.MONGODB_DATABASE_URI`           | Database Connection URI (Required)                                                                         | `""`                                 |

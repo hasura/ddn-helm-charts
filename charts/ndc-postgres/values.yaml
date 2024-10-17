@@ -129,7 +129,7 @@ resources: |
     cpu: "1"
     memory: "1Gi"
 
-connector:
+connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
   CONNECTION_URI: ""
   CLIENT_CERT: ""
@@ -147,17 +147,26 @@ env: |
       secretKeyRef:
         key: CONNECTION_URI
         name: {{ printf "%s-secret" (include "common.name" .) }}
-  {{- if .Values.connector.CLIENT_CERT }}
+  {{- if .Values.connectorEnvVars.CLIENT_CERT }}
   - name: CLIENT_CERT
-    value: {{ .Values.connector.CLIENT_CERT | quote }}
+    valueFrom:
+      secretKeyRef:
+        key: CLIENT_CERT
+        name: {{ printf "%s-secret" (include "common.name" .) }}
   {{- end }}
-  {{- if .Values.connector.CLIENT_KEY }}
+  {{- if .Values.connectorEnvVars.CLIENT_KEY }}
   - name: CLIENT_KEY
-    value: {{ .Values.connector.CLIENT_KEY | quote }}
+    valueFrom:
+      secretKeyRef:
+        key: CLIENT_KEY
+        name: {{ printf "%s-secret" (include "common.name" .) }}
   {{- end }}
-  {{- if .Values.connector.ROOT_CERT }}
+  {{- if .Values.connectorEnvVars.ROOT_CERT }}
   - name: ROOT_CERT
-    value: {{ .Values.connector.ROOT_CERT | quote }}
+    valueFrom:
+      secretKeyRef:
+        key: ROOT_CERT
+        name: {{ printf "%s-secret" (include "common.name" .) }}
   {{- end }}    
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
