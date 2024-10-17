@@ -1,4 +1,6 @@
+namespace: "default"
 useReleaseName: true
+
 additionalAnnotations: |
   checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
 

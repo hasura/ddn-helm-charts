@@ -1,3 +1,4 @@
+namespace: "default"
 useReleaseName: true
 
 additionalAnnotations: |

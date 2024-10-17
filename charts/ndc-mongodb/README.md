@@ -41,6 +41,7 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                               |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------|
+| `namespace`                                       | Namespace to deploy to                                                                                     | `"default"`                     |
 | `image.repository`                                | Image repository containing custom created ndc-mongodb                                                     | `""`                                |
 | `image.tag`                                       | Image tag to use for custom created ndc-mongodb                                                            | `""`                                |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                            |

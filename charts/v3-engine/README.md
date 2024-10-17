@@ -51,6 +51,7 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `namespace`                                       | Namespace to deploy to                                                                                     | `"default"`                     |
 | `image.repository`                                | Image repository + image name containing custom created v3-engine                                          | `""`                            |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
 | `image.tag`                                       | Image tag to use for custom created v3-engine                                                             | `""`                            |
