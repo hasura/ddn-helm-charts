@@ -10,11 +10,13 @@ See all [configuration](#parameters) below.
 # EXAMPLES:
 
 # helm template and apply manifests via kubectl (example)
-helm template \
+helm template <release-name> \
   --set image.repository="my_repo/ndc-postgres" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set dataPlane.id="data_plane_id" \
+  --set dataPlane.key="data_plane_key" \
   hasura-ddn/ndc-postgres | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
@@ -23,17 +25,8 @@ helm upgrade --install <release-name> \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
-  hasura-ddn/ndc-postgres
-
-# helm upgrade --install (with OTEL variabes)
-helm upgrade --install <release-name> \
-  --set image.repository="my_repo/ndc-postgres" \
-  --set image.tag="my_custom_image_tag" \
-  --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
-  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \  
-  --set otel.deployOtelCollector="true" \  
-  --set otel.dataPlaneID=<data-plane-id> \
-  --set otel.dataPlaneKey=<data-plane-key> \
+  --set dataPlane.id="data_plane_id" \
+  --set dataPlane.key="data_plane_key" \
   hasura-ddn/ndc-postgres
 ```
 
@@ -58,11 +51,11 @@ helm upgrade --install <release-name> \
 | `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                             |
 | `hpa.metrics.resource.name`                       | Resource name to autoscale on                                                                              | ``                              |
 | `hpa.metrics.resource.target.averageUtilization`  | Utilization target on specific resource type                                                               | ``                              |
-| `otel.deployOtelCollector`                        | Deploy OTEL collector as sidecar to ndc-postgres container                                                 | `true`                          |
-| `otel.endpoint`                                   | OTEL endpoint under Hasura                                                                                 | `https://gateway.otlp.hasura.io:443`                         |
-| `otel.dataPlaneID`                                | Oauth Client ID for pushing telemetry data to endpoint                                                     | `""`                         |
-| `otel.dataPlaneKey`                               | Oauth Client Secret for pushing telemetry data to endpoint                                                 | `""`                         |
-| `otel.oauthTokenEndpoint`                         | Oauth Token URL                                                                                            | `""`                         |
+| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `true`                          |
+| `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
+| `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
+| `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
+| `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
 | `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-postgres pod                               | `[]`                            |
 | `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-postgres pod                            | `[]`                               |                               |
 | `resources`                                       | Resource requests and limits of ndc-postgres container                                                     | `{}`                            |
