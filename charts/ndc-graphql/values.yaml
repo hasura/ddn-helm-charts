@@ -130,6 +130,7 @@ resources: |
     memory: "1Gi"
 
 connector:
+  HASURA_SERVICE_TOKEN_SECRET: ""
   GRAPHQL_ENDPOINT: ""
 
 env: |

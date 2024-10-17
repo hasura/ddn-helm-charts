@@ -150,10 +150,7 @@ env: |
         name: {{ printf "%s-secret" (include "common.name" .) }}
   {{- if .Values.connector.JDBC_SCHEMAS }}
   - name: JDBC_SCHEMAS
-    valueFrom:
-      secretKeyRef:
-        key: JDBC_SCHEMAS
-        name: {{ printf "%s-secret" (include "common.name" .) }}
+    value: {{ .Values.connector.JDBC_SCHEMAS | quote }}
   {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317

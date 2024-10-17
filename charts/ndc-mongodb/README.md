@@ -1,4 +1,4 @@
-# ndc-mongodb Helm Chart
+# Ndc-mongodb Helm Chart
 
 This chart deploys the ndc-mongodb connector. Refer to the pre-requisites section [here](../../README.md#get-started)
 
@@ -34,7 +34,6 @@ helm upgrade --install <release-name> \
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
-  --set otel.hasuraCanonicalHost=<project-name>.<fqdn> \
   hasura-ddn/ndc-mongodb
 ```
 
@@ -42,9 +41,6 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                               |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------|
-| `global.containerRegistry`                        | Global container image registry                                                                            | `""`                                |
-| `global.namespace`                                | Namespace to deploy to                                                                                     | `"default"`                         |
-| `labels.app`                                      | Common label for ndc-mongodb                                                                               | `"ndc-mongodb"`                     |
 | `image.repository`                                | Image repository containing custom created ndc-mongodb                                                     | `""`                                |
 | `image.tag`                                       | Image tag to use for custom created ndc-mongodb                                                            | `""`                                |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                            |

@@ -1,4 +1,4 @@
-# ndc-connector-oracle Helm Chart
+# Ndc-connector-oracle Helm Chart
 
 This chart deploys the ndc-connector-oracle connector. Refer to the pre-requisites section [here](../../README.md#get-started)
 
@@ -11,35 +11,32 @@ See all [configuration](#parameters) below.
 
 # helm template and apply manifests via kubectl (example)
 helm template \
-  --set image.repository="my_repo/ndc-postgres" \
+  --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
   --set connector.JDBC_URL="jdbc_url" \ 
-  --set connector.JDBC_SCHEMAS="jdbc_schemas" \
   --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-connector-oracle | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
-  --set image.repository="my_repo/ndc-postgres" \
+  --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
   --set connector.JDBC_URL="jdbc_url" \ 
-  --set connector.JDBC_SCHEMAS="jdbc_schemas" \
   --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-connector-oracle
 
 # helm upgrade --install (with OTEL variabes)
 helm upgrade --install <release-name> \
-  --set image.repository="my_repo/ndc-postgres" \
+  --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
   --set connector.JDBC_URL="jdbc_url" \ 
-  --set connector.JDBC_SCHEMAS="jdbc_schemas" \
   --set connector.HASURA_SERVICE_TOKEN_SECRET="token" \ 
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
-  --set otel.hasuraCanonicalHost=<project-name>.<fqdn> \
   hasura-ddn/ndc-connector-oracle
 ```
+
 ## Parameters 
 
 | Name                                              | Description                                                                                                | Value                               |

@@ -34,7 +34,6 @@ helm upgrade --install <release-name> \
   --set otel.deployOtelCollector="true" \  
   --set otel.dataPlaneID=<data-plane-id> \
   --set otel.dataPlaneKey=<data-plane-key> \
-  --set otel.hasuraCanonicalHost=<project-name>.<fqdn> \
   hasura-ddn/ndc-postgres
 ```
 
