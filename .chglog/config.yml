@@ -1,0 +1,25 @@
+style: github
+template: CHANGELOG.tpl.md
+info:
+  title: CHANGELOG
+  repository_url: https://github.com/hasura/helm-charts
+options:
+  commits:
+    filters:
+      Type:
+        - fix
+        - feat
+        - feature
+        - deprecate
+        - remove
+        - security
+  commit_groups:
+    title_maps: {}
+  header:
+    pattern: "^((\\w+):?\\s.*)$"
+    pattern_maps:
+      - Subject
+      - Type
+  notes:
+    keywords:
+      - BREAKING CHANGE

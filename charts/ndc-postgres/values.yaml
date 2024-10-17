@@ -1,0 +1,163 @@
+useReleaseName: true
+
+additionalAnnotations: |
+  checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+
+# Container Configs
+image:
+  repository: "ghcr.io/hasura/ndc-postgres"
+  tag: "latest"
+  pullPolicy: Always
+  otelCollectorRepository: otel/opentelemetry-collector-contrib
+  otelCollectorTag: 0.104.0
+replicas: "1"
+wsInactiveExpiryMins: "1"
+securityContext:
+  runAsNonRoot: true
+  runAsGroup: 1000
+  runAsUser: 100
+  fsGroup: 1000
+
+healthChecks:
+  enabled: false
+  livenessProbePath: "/healthz"
+  readinessProbePath: "/healthz"
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  metrics: 
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50  # Target 50% CPU utilization per pod
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Target 80% memory utilization per pod  
+
+otel:
+  deployOtelCollector: true
+  endpoint: https://gateway.otlp.hasura.io:443
+  dataPlaneID: ""
+  dataPlaneKey: ""
+  oauthTokenEndpoint: https://ddn-oauth.pro.hasura.io/oauth2/token
+  config: |
+    extensions:
+      oauth2client:
+        client_id: {{ .Values.otel.dataPlaneID }}
+        client_secret: {{ .Values.otel.dataPlaneKey }}
+        token_url: {{ .Values.otel.oauthTokenEndpoint }}
+        scopes: ["opentelemetry:write"]
+        endpoint_params:
+          audience: https://ddn.hasura.io
+    exporters:
+      otlp/oauth:
+        endpoint: {{ .Values.otel.endpoint }}
+        auth:
+          authenticator: oauth2client
+    processors:
+      batch: {}
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    service:
+      extensions: [oauth2client]
+      pipelines:
+        logs:
+          exporters:
+            - otlp/oauth
+          processors:
+            - batch
+          receivers:
+            - otlp
+        metrics:
+          exporters:
+            - otlp/oauth
+          processors:
+            - batch
+          receivers:
+            - otlp
+        traces:
+          exporters:
+            - otlp/oauth
+          processors:
+            - batch
+          receivers:
+            - otlp  
+
+extraVolumes: |
+  {{- if .Values.otel.deployOtelCollector }}
+  - name: otel-config
+    secret:
+      secretName: {{ printf "%s-secret" (include "common.name" .) }} 
+      items:
+        - key: otel-collector-config.yaml
+          path: otel-collector-config.yaml
+  {{- end }}
+
+extraContainers: |
+  {{- if .Values.otel.deployOtelCollector }}
+  - name: "otel-collector"
+    command:
+      - --config=/etc/otel-collector-config.yaml 
+    command: 
+    image: {{ template "common.image" (dict "Values" $.Values "repository" .Values.image.otelCollectorRepository "tag" .Values.image.otelCollectorTag) }} 
+    env:
+    - name: "OTEL_ENDPOINT"
+      value: "{{ .Values.otel.endpoint }}"      
+    volumeMounts:
+      - name: otel-config
+        mountPath: "/etc/otelcol-contrib/config.yaml" 
+        subPath: otel-collector-config.yaml
+  {{- end }}
+
+resources: |
+  requests:
+    cpu: "500m"
+    memory: "500Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+connector:
+  HASURA_SERVICE_TOKEN_SECRET: ""
+  CONNECTION_URI: ""
+  CLIENT_CERT: ""
+  CLIENT_KEY: ""
+  ROOT_CERT: ""
+
+env: |
+  - name: HASURA_SERVICE_TOKEN_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: HASURA_SERVICE_TOKEN_SECRET
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  - name: CONNECTION_URI
+    valueFrom:
+      secretKeyRef:
+        key: CONNECTION_URI
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- if .Values.connector.CLIENT_CERT }}
+  - name: CLIENT_CERT
+    value: {{ .Values.connector.CLIENT_CERT | quote }}
+  {{- end }}
+  {{- if .Values.connector.CLIENT_KEY }}
+  - name: CLIENT_KEY
+    value: {{ .Values.connector.CLIENT_KEY | quote }}
+  {{- end }}
+  {{- if .Values.connector.ROOT_CERT }}
+  - name: ROOT_CERT
+    value: {{ .Values.connector.ROOT_CERT | quote }}
+  {{- end }}    
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://localhost:4317
