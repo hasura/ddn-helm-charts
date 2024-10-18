@@ -20,7 +20,7 @@ securityContext:
   fsGroup: 1000
 
 initContainers:
-  gitSync:    
+  gitSync:
     enabled: false
     repo: "git@github.com:hasura/ddn-example"
     branch: "main"
@@ -34,7 +34,7 @@ hpa:
   enabled: false
   minReplicas: 2
   maxReplicas: 4
-  metrics: 
+  metrics:
     - type: Resource
       resource:
         name: cpu
@@ -46,9 +46,9 @@ hpa:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 80  # Target 80% memory utilization per pod  
+          averageUtilization: 80  # Target 80% memory utilization per pod
 
-# Observability defaults are tuned for Hasura hosted Control Plane 
+# Observability defaults are tuned for Hasura hosted Control Plane
 # Enable observability
 observability:
   enabled: true
@@ -66,8 +66,8 @@ otel:
   config: |
     extensions:
       oauth2client:
-        client_id: {{ .Values.dataPlane.id }}
-        client_secret: {{ .Values.dataPlane.key }}
+        client_id: {{ required "Error: .Values.dataPlane.id is required!" .Values.dataPlane.id }}
+        client_secret: {{ required "Error: .Values.dataPlane.key is required!" .Values.dataPlane.key }}
         token_url: {{ .Values.controlPlane.oauthTokenEndpoint }}
         scopes: ["opentelemetry:write"]
         endpoint_params:
@@ -109,13 +109,13 @@ otel:
           processors:
             - batch
           receivers:
-            - otlp  
+            - otlp
 
 extraVolumes: |
   {{- if .Values.observability.enabled }}
   - name: otel-config
     secret:
-      secretName: {{ printf "%s-secret" (include "common.name" .) }} 
+      secretName: {{ printf "%s-secret" (include "common.name" .) }}
       items:
         - key: otel-collector-config.yaml
           path: otel-collector-config.yaml
@@ -125,15 +125,15 @@ extraContainers: |
   {{- if .Values.observability.enabled }}
   - name: "otel-collector"
     command:
-      - --config=/etc/otel-collector-config.yaml 
-    command: 
-    image: {{ template "common.image" (dict "Values" $.Values "repository" .Values.image.otelCollectorRepository "tag" .Values.image.otelCollectorTag) }} 
+      - --config=/etc/otel-collector-config.yaml
+    command:
+    image: {{ template "common.image" (dict "Values" $.Values "repository" .Values.image.otelCollectorRepository "tag" .Values.image.otelCollectorTag) }}
     env:
     - name: "OTEL_ENDPOINT"
-      value: "{{ .Values.controlPlane.otlpEndpoint }}"      
+      value: "{{ .Values.controlPlane.otlpEndpoint }}"
     volumeMounts:
       - name: otel-config
-        mountPath: "/etc/otelcol-contrib/config.yaml" 
+        mountPath: "/etc/otelcol-contrib/config.yaml"
         subPath: otel-collector-config.yaml
   {{- end }}
 

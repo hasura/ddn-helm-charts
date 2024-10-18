@@ -40,7 +40,7 @@ helm upgrade --install <release-name> \
 | `connectorEnvVars.CLIENT_KEY`                     | Database Client key (Optional)                                                                             | `""`                            |
 | `connectorEnvVars.ROOT_CERT`                      | Database Root cert (Optional)                                                                              | `""`                            |
 
-## Additional Parameters 
+## Additional Parameters
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |

@@ -37,7 +37,7 @@ helm upgrade --install <release-name> \
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                                 |
 | `connectorEnvVars.MONGODB_DATABASE_URI`           | Database Connection URI (Required)                                                                         | `""`                                 |
 
-## Additional Parameters 
+## Additional Parameters
 
 | Name                                              | Description                                                                                                | Value                               |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------|
@@ -53,7 +53,7 @@ helm upgrade --install <release-name> \
 | `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
 | `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
 | `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-mongodb pod                                | `[]`                                |
-| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-mongodb pod                             | `[]`                                | 
+| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-mongodb pod                             | `[]`                                |
 | `resources`                                       | Resource requests and limits of ndc-mongodb container                                                      | `{}`                                |
 | `env`                                             | Env variable section for ndc-mongodb                                                                       | `[]`                                |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                                 |

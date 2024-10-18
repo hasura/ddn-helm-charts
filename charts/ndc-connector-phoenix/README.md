@@ -13,7 +13,7 @@ See all [configuration](#parameters) below.
 helm template <release-name> \
   --set image.repository="my_repo/ndc-jvm-phoenix" \
   --set image.tag="my_custom_image_tag" \
-  --set connectorEnvVars.JDBC_URL="jdbc_url" \ 
+  --set connectorEnvVars.JDBC_URL="jdbc_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set dataPlane.id="data_plane_id" \
   --set dataPlane.key="data_plane_key" \
@@ -23,7 +23,7 @@ helm template <release-name> \
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-jvm-phoenix" \
   --set image.tag="my_custom_image_tag" \
-  --set connectorEnvVars.JDBC_URL="jdbc_url" \ 
+  --set connectorEnvVars.JDBC_URL="jdbc_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set dataPlane.id="data_plane_id" \
   --set dataPlane.key="data_plane_key" \
@@ -37,7 +37,7 @@ helm upgrade --install <release-name> \
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                                 |
 | `connectorEnvVars.JDBC_URL`                       | The JDBC URL to connect to the database (Required)                                                                         | `""`                                 |
 
-## Additional Parameters 
+## Additional Parameters
 
 | Name                                              | Description                                                                                                | Value                               |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------|
@@ -53,7 +53,7 @@ helm upgrade --install <release-name> \
 | `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
 | `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
 | `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-connector-phoenix pod                                | `[]`                                |
-| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-connector-phoenix pod                             | `[]`                                | 
+| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-connector-phoenix pod                             | `[]`                                |
 | `resources`                                       | Resource requests and limits of ndc-connector-phoenix container                                                      | `{}`                                |
 | `env`                                             | Env variable section for ndc-connector-phoenix                                                                      | `[]`                                |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                                 |

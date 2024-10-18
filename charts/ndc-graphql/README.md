@@ -13,7 +13,7 @@ See all [configuration](#parameters) below.
 helm template <release-name> \
   --set image.repository="my_repo/ndc-graphql" \
   --set image.tag="my_custom_image_tag" \
-  --set connectorEnvVars.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
+  --set connectorEnvVars.GRAPHQL_ENDPOINT="graphql_endpoint" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set dataPlane.id="data_plane_id" \
   --set dataPlane.key="data_plane_key" \
@@ -23,7 +23,7 @@ helm template <release-name> \
 helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-graphql" \
   --set image.tag="my_custom_image_tag" \
-  --set connectorEnvVars.GRAPHQL_ENDPOINT="graphql_endpoint" \ 
+  --set connectorEnvVars.GRAPHQL_ENDPOINT="graphql_endpoint" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set dataPlane.id="data_plane_id" \
   --set dataPlane.key="data_plane_key" \
@@ -37,7 +37,7 @@ helm upgrade --install <release-name> \
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                            |
 | `connectorEnvVars.GRAPHQL_ENDPOINT`               | The GraphQL Endpoint (Required)                                                                            | `""`                            |
 
-## Additional Parameters 
+## Additional Parameters
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
