@@ -4,6 +4,22 @@ entries:
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-10-22T11:41:21.619496382Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.6
+    description: (DDN) A Helm chart for deploying ndc-connector-oracle
+    digest: 53d99d8926772d16c300a56b892f8059f4d36476e84aeb21ee83d67ada3b71f1
+    name: ndc-connector-oracle
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-oracle@v2024.10.22/ndc-connector-oracle-v2024.10.22.tgz
+    version: v2024.10.22
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
     appVersion: 1.16.0
     created: "2024-10-17T08:26:19.838309421Z"
     dependencies:
@@ -18,6 +34,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-oracle@0.3.0/ndc-connector-oracle-0.3.0.tgz
     version: 0.3.0
   ndc-connector-phoenix:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-10-22T11:41:21.802404818Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.6
+    description: (DDN) A Helm chart for deploying ndc-connector-phoenix
+    digest: 88df129ac4816374c702dbedc6c1a5cdc8dd33adc1b1475d1e676ebb44ada97b
+    name: ndc-connector-phoenix
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-phoenix@v2024.10.22/ndc-connector-phoenix-v2024.10.22.tgz
+    version: v2024.10.22
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -38,6 +70,22 @@ entries:
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-10-22T11:41:22.0326958Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.5
+    description: (DDN) A Helm chart for deploying ndc-graphql
+    digest: 3a1a48ced07acd3ff53ce2cecfd06904c36bea30c84798cacdebfa1e179dad94
+    name: ndc-graphql
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-graphql@v2024.10.22/ndc-graphql-v2024.10.22.tgz
+    version: v2024.10.22
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
     appVersion: 1.16.0
     created: "2024-10-17T08:26:20.11780381Z"
     dependencies:
@@ -52,6 +100,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-graphql@0.3.0/ndc-graphql-0.3.0.tgz
     version: 0.3.0
   ndc-mongodb:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-10-22T11:41:22.227305923Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.6
+    description: (DDN) A Helm chart for deploying ndc-mongodb
+    digest: ee08ecc9303376f137cd682aa98d5bfbc6f592a392d711c7d95eb9b896b8a42e
+    name: ndc-mongodb
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-mongodb@v2024.10.22/ndc-mongodb-v2024.10.22.tgz
+    version: v2024.10.22
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -72,6 +136,22 @@ entries:
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-10-22T11:41:22.409090755Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.5
+    description: (DDN) A Helm chart for deploying ndc-nodejs-lambda
+    digest: bbe0cb871554feb53f6e8e56c4812b475f507497bd784f1312266953c1edbc70
+    name: ndc-nodejs-lambda
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-nodejs-lambda@v2024.10.22/ndc-nodejs-lambda-v2024.10.22.tgz
+    version: v2024.10.22
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
     appVersion: 1.16.0
     created: "2024-10-17T08:26:20.38766573Z"
     dependencies:
@@ -86,6 +166,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-nodejs-lambda@0.3.0/ndc-nodejs-lambda-0.3.0.tgz
     version: 0.3.0
   ndc-postgres:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-10-22T11:41:22.600655488Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.5
+    description: (DDN) A Helm chart for deploying ndc-postgres
+    digest: 732a6f119a3c89b5d7c66342ba0b7d332534d7b004c5726bc898bf845e1459fb
+    name: ndc-postgres
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-postgres@v2024.10.22/ndc-postgres-v2024.10.22.tgz
+    version: v2024.10.22
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -106,6 +202,22 @@ entries:
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-10-22T11:41:22.794561804Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.6
+    description: (DDN) A Helm chart for deploying v3-engine
+    digest: e8f303e202b916fb4e02713c873a1532e268868a7ca4c4b0332b2b1bee100132
+    name: v3-engine
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@v2024.10.22/v3-engine-v2024.10.22.tgz
+    version: v2024.10.22
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
     appVersion: 1.16.0
     created: "2024-10-17T08:26:20.626001355Z"
     dependencies:
@@ -119,4 +231,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2024-10-17T08:26:20.626013687Z"
+generated: "2024-10-22T11:41:22.794593082Z"
