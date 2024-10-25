@@ -6,7 +6,7 @@ additionalAnnotations: |
 
 # Container Configs
 image:
-  repository: "ghcr.io/hasura/ndc-graphql"
+  repository: "ghcr.io/hasura/ndc-elasticsearch"
   tag: "latest"
   pullPolicy: Always
   otelCollectorRepository: otel/opentelemetry-collector-contrib
