@@ -1,5 +1,6 @@
 ndc-connector-oracle
 ndc-connector-phoenix
+ndc-elasticsearch
 ndc-graphql
 ndc-mongodb
 ndc-nodejs-lambda
