@@ -1,6 +1,6 @@
 apiVersion: v2
-name: ndc-connector-oracle
-description: (DDN) A Helm chart for deploying ndc-connector-oracle
+name: ndc-elasticsearch
+description: (DDN) A Helm chart for deploying ndc-elasticsearch
 
 # A chart can be either an 'application' or a 'library' chart.
 #
