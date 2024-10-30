@@ -11,6 +11,7 @@ See all [configuration](#parameters) below.
 
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
+  --set namespace="default" \
   --set image.repository="my_repo/ndc-elasticsearch" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.ELASTICSEARCH_URL="elasticsearch_url" \
@@ -23,6 +24,7 @@ helm template <release-name> \
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
+  --set namespace="default" \
   --set image.repository="my_repo/ndc-elasticsearch" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.ELASTICSEARCH_URL="elasticsearch_url" \

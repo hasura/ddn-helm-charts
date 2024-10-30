@@ -6,8 +6,8 @@ additionalAnnotations: |
 
 image:
   # Full path to custom created image
-  repository: ghcr.io/hasura/v3-engine
-  tag: "latest"
+  repository: ""
+  tag: ""
   pullPolicy: Always
   otelCollectorRepository: otel/opentelemetry-collector-contrib
   otelCollectorTag: 0.104.0
