@@ -6,8 +6,8 @@ additionalAnnotations: |
 
 # Container Configs
 image:
-  repository: "ghcr.io/hasura/ndc-postgres"
-  tag: "latest"
+  repository: ""
+  tag: ""
   pullPolicy: Always
   otelCollectorRepository: otel/opentelemetry-collector-contrib
   otelCollectorTag: 0.104.0
