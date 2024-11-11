@@ -358,6 +358,23 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-nodejs-lambda@0.3.0/ndc-nodejs-lambda-0.3.0.tgz
     version: 0.3.0
+  ndc-open-api-lambda:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2024-11-11T18:30:16.188355764Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.8
+    description: (DDN) A Helm chart for deploying ndc-open-api-lambda
+    digest: 2eb28b8e22fa874d789e06a85421d9bdc79790562df71ddd802d641efb6a9ab7
+    name: ndc-open-api-lambda
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-open-api-lambda@v2024.11.11/ndc-open-api-lambda-v2024.11.11.tgz
+    version: v2024.11.11
   ndc-postgres:
   - annotations:
       artifacthub.io/changes: ""
@@ -472,4 +489,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2024-11-06T19:38:57.476458071Z"
+generated: "2024-11-11T18:30:16.531006007Z"
