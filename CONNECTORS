@@ -4,4 +4,5 @@ ndc-elasticsearch
 ndc-graphql
 ndc-mongodb
 ndc-nodejs-lambda
+ndc-open-api-lambda
 ndc-postgres
