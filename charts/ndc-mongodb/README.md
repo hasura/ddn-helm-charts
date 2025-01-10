@@ -15,9 +15,6 @@ helm template <release-name> \
   --set image.repository="my_repo/ndc-mongodb" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
-  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
-  --set dataPlane.id="data_plane_id" \
-  --set dataPlane.key="data_plane_key" \
   hasura-ddn/ndc-mongodb | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
@@ -26,9 +23,6 @@ helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-mongodb" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
-  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
-  --set dataPlane.id="data_plane_id" \
-  --set dataPlane.key="data_plane_key" \
   hasura-ddn/ndc-mongodb
 ```
 
@@ -36,7 +30,7 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Required)                                                                     | `""`                                 |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Optional)                                                                     | `""`                                 |
 | `connectorEnvVars.MONGODB_DATABASE_URI`           | Database Connection URI (Required)                                                                         | `""`                                 |
 
 ## Additional Parameters
@@ -49,7 +43,7 @@ helm upgrade --install <release-name> \
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                            |
 | `image.otelCollectorRepository`                   | OTEL collector image repository                                                                            | `otel/opentelemetry-collector`      |
 | `image.otelCollectorTag`                          | OTEL collector image tag                                                                                   | `0.104.0`                           |
-| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `true`                          |
+| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `false`                          |
 | `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
 | `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
 | `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |

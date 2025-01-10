@@ -43,9 +43,8 @@ hpa:
           averageUtilization: 80  # Target 80% memory utilization per pod
 
 # Observability defaults are tuned for Hasura hosted Control Plane
-# Enable observability
 observability:
-  enabled: true
+  enabled: false
 
 # Required (when observability.enabled is set to true)
 dataPlane:
@@ -147,11 +146,13 @@ connectorEnvVars:
   # configDirectory: /work-dir/ddn-example/app/connector/mongodb
 
 env: |
+  {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
   - name: HASURA_SERVICE_TOKEN_SECRET
     valueFrom:
       secretKeyRef:
         key: HASURA_SERVICE_TOKEN_SECRET
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
   - name: MONGODB_DATABASE_URI
     valueFrom:
       secretKeyRef:
