@@ -19,6 +19,12 @@ securityContext:
   runAsUser: 100
   fsGroup: 1000
 
+initContainers:
+  gitSync:
+    enabled: false
+    repo: "git@github.com:<org>/<repo>"
+    branch: "main"
+
 healthChecks:
   enabled: false
   livenessProbePath: "/healthz"
@@ -143,8 +149,6 @@ connectorEnvVars:
   JDBC_URL: ""
   JDBC_SCHEMAS: ""
   configDirectory: /etc/connector
-# Configure as below when using git-sync w here ddn-example is the repo name
-  # configDirectory: /work-dir/ddn-example/app/connector/mongodb
 
 env: |
   {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
