@@ -171,4 +171,3 @@ env: |
     value: http://localhost:4317
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
-    
