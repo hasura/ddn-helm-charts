@@ -27,16 +27,21 @@ helm search repo hasura-ddn
 For more information, have a look at the [Using Helm](https://helm.sh/docs/intro/using_helm/#helm-repo-working-with-repositories) documentation.
 
 ### Using git for metadata files
-To enable git-sync to read engine and connector config files from a git repository, follow the below steps,
+To enable git-sync to read engine or connector config files from a git repository, follow the below steps.
 
-Create a SSH key and grant it *read* access to the repository. It can also be a deploy key, see [set up deploy keys] https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#set-up-deploy-keys
+1. Create a Git repository.  Depending on your use case, you can create it as `public` or `private` repo
 
-Create a known hosts file, to add GitHub’s SSH host key to your known_hosts file to prevent SSH from asking for confirmation during the connection:
+2. If you create it as a `public` repository and you want to use an `https` based checkout, you have completed your base setup.  In other cases, proceed to the next step.
+
+3. Create a SSH key and grant it *read* access to the repository. It can also be a deploy key (See [set up deploy keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#set-up-deploy-keys))
+
+4. Create a known hosts file, to add GitHub’s SSH host key to your known_hosts file to prevent SSH from asking for confirmation during the connection:
+
 ```bash
 ssh-keyscan github.com >> ~/.ssh/known_hosts
 ```
 
-Create a kubernetes secret using the below command,
+5. Create a kubernetes secret using the below command
 
 ```bash
 kubectl create secret generic git-creds \
