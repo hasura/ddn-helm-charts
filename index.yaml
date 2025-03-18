@@ -22,6 +22,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-03-18T13:20:08.018486083Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.8
+    description: (DDN) A Helm chart for deploying ndc-connector-oracle
+    digest: ee5cbf4e248877caf0d5810a5f514360d5ecbf0208ea1a1d7eb8538470c3e86a
+    name: ndc-connector-oracle
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-oracle@v2025.03.18/ndc-connector-oracle-v2025.03.18.tgz
+    version: v2025.03.18
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-01-16T13:57:39.050000643Z"
     dependencies:
     - name: common
@@ -602,4 +618,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-01-16T13:57:39.411525642Z"
+generated: "2025-03-18T13:20:08.431899887Z"
