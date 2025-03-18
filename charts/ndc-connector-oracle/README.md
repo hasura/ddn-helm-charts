@@ -54,6 +54,9 @@ helm upgrade --install <release-name> \
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Optional)                                                                     | `""`                                 |
 | `connectorEnvVars.JDBC_URL`                       | The JDBC URL to connect to the database (Required)                                                                         | `""`                                 |
 | `connectorEnvVars.JDBC_SCHEMAS`                   | A comma-separated list of schemas to include in the metadata (Optional)                                                                         | `""`                                 |
+| `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (traces) (Optional)                                                                         | `""`                                 |
+| `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (metrics)(Optional)                                                                         | `""`                                 |
+| `connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING`                   | Enable or disable tracing for JDBC connections (Optional)                                                                         | `false`                                 |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) | `"/etc/connector"`                   |
 
 ## Additional Parameters

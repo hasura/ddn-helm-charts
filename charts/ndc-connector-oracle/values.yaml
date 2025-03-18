@@ -148,6 +148,9 @@ connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
   JDBC_URL: ""
   JDBC_SCHEMAS: ""
+  QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ""
+  QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: ""
+  QUARKUS_DATASOURCE_JDBC_TRACING: ""
   configDirectory: /etc/connector
 
 env: |
@@ -166,6 +169,18 @@ env: |
   {{- if .Values.connectorEnvVars.JDBC_SCHEMAS }}
   - name: JDBC_SCHEMAS
     value: {{ .Values.connectorEnvVars.JDBC_SCHEMAS | quote }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT }}
+  - name: QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT }}
+  - name: QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING }}
+  - name: QUARKUS_DATASOURCE_JDBC_TRACING
+    value: {{ .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING }}
   {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
