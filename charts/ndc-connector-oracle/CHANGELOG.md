@@ -1,8 +1,11 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ndc-connector-oracle@v2025.03.18"></a>
+## [ndc-connector-oracle@v2025.03.18] - 2025-03-17
+
 <a name="ndc-connector-oracle@v2025.01.14"></a>
-## [ndc-connector-oracle@v2025.01.14] - 2025-01-14
+## [ndc-connector-oracle@v2025.01.14] - 2025-01-16
 
 <a name="ndc-connector-oracle@v2025.01.10"></a>
 ## [ndc-connector-oracle@v2025.01.10] - 2025-01-10
