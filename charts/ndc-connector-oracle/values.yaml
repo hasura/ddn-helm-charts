@@ -180,7 +180,7 @@ env: |
   {{- end }}
   {{- if .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING }}
   - name: QUARKUS_DATASOURCE_JDBC_TRACING
-    value: {{ .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING }}
+    value: {{ .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING | quote }}
   {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
