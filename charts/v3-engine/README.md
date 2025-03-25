@@ -34,7 +34,9 @@ helm upgrade --install <release-name> \
 
 Follow the pre-requisite [here](../../README.md#using-git-for-metadata-files) which has to be done once and deployed on the cluster.
 
-Replace org and repo placeholders in the below command to suit your git repository
+Replace `org` and `repo` placeholders in the below command to suit your git repository.
+
+Under `openDDPath` and `authnConfigPath`, `repo` is appended with `.git`.  An example of a value for `openDDPath` would be: `/work-dir/mycode.git/output/open_dd.json`.
 
 ```bash
 helm upgrade --install <release-name> \
