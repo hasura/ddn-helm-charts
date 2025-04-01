@@ -1,8 +1,11 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ndc-mongodb@v2025.04.01"></a>
+## [ndc-mongodb@v2025.04.01] - 2025-04-01
+
 <a name="ndc-mongodb@v2025.01.14"></a>
-## [ndc-mongodb@v2025.01.14] - 2025-01-14
+## [ndc-mongodb@v2025.01.14] - 2025-01-16
 
 <a name="ndc-mongodb@v2025.01.10"></a>
 ## [ndc-mongodb@v2025.01.10] - 2025-01-10

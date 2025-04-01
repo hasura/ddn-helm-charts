@@ -1,6 +1,9 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ndc-connector-phoenix@v2025.04.01"></a>
+## [ndc-connector-phoenix@v2025.04.01] - 2025-04-01
+
 <a name="ndc-connector-phoenix@v2024.11.06"></a>
 ## [ndc-connector-phoenix@v2024.11.06] - 2024-11-06
 
