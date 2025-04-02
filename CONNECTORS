@@ -3,7 +3,11 @@ ndc-connector-oracle
 ndc-connector-phoenix
 ndc-elasticsearch
 ndc-graphql
+ndc-jvm-mysql
+ndc-jvm-mysql-jdbc
 ndc-mongodb
 ndc-nodejs-lambda
 ndc-open-api-lambda
 ndc-postgres
+ndc-snowflake
+ndc-snowflake-jdbc

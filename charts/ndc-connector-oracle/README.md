@@ -15,6 +15,7 @@ helm template <release-name> \
   --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.JDBC_URL="jdbc_url" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-connector-oracle | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
@@ -23,6 +24,7 @@ helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.JDBC_URL="jdbc_url" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-connector-oracle
 ```
 
@@ -32,7 +34,7 @@ Follow the pre-requisite [here](../../README.md#using-git-for-metadata-files) wh
 
 Replace `git_domain`, `org` and `repo` placeholders in the below command to suit your git repository.
 
-Additionally, ensure that `connectorEnvVars.configDirectory` is set to the given path below, providing that you are also replacing `repo` and `connector-name` placeholders within it.  For clarity, `connector-name` is the name that was given to your connector (ie. Check `app/connector` under your Supergraph) and `repo` is appended with `.git`.  An example of a value for `connectorEnvVars.configDirectory` would be: `/work-dir/mycode.git/app/connector/mypostgres`.
+Additionally, ensure that `connectorEnvVars.configDirectory` is set to the given path below, providing that you are also replacing `repo` and `connector-name` placeholders within it.  For clarity, `connector-name` is the name that was given to your connector (ie. Check `app/connector` under your Supergraph) and `repo` is appended with `.git`.  An example of a value for `connectorEnvVars.configDirectory` would be: `/work-dir/mycode.git/app/connector/myoracle`.
 
 Note: For `https` based checkout, a typical URL format for `initContainers.gitSync.repo` will be `https://<git_domain>/<org>/<repo>`.  For `ssh` based checkout, a typical URL format will be `git@<git_domain>:<org>/<repo>`
 
@@ -42,12 +44,17 @@ helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-jvm-oracle" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.JDBC_URL="jdbc_url" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set initContainers.gitSync.enabled="true" \
   --set initContainers.gitSync.repo="git@<git_domain>:<org>/<repo>" \
   --set initContainers.gitSync.branch="main" \
   --set connectorEnvVars.configDirectory="/work-dir/<repo>/app/connector/<connector-name>" \
   hasura-ddn/ndc-connector-oracle
 ```
+
+## Committing code to git
+
+When you enable git-sync, the code will be fetched from the repository specified in `initContainers.gitSync.repo`, using the branch defined in `initContainers.gitSync.branch`.
 
 ## Connector ENV Inputs
 
@@ -59,7 +66,7 @@ helm upgrade --install <release-name> \
 | `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (traces) (Optional)                                                                         | `""`                                 |
 | `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (metrics)(Optional)                                                                         | `""`                                 |
 | `connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING`                   | Enable or disable tracing for JDBC connections (Optional)                                                                         | `false`                                 |
-| `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) | `"/etc/connector"`                   |
+| `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 
 ## Additional Parameters
 

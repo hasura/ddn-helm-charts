@@ -150,7 +150,7 @@ connectorEnvVars:
   CLIENT_CERT: ""
   CLIENT_KEY: ""
   ROOT_CERT: ""
-  configDirectory: /etc/connector
+  configDirectory: ""
 
 env: |
   {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
@@ -188,5 +188,7 @@ env: |
   {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
+  {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
