@@ -19,6 +19,12 @@ securityContext:
   runAsUser: 100
   fsGroup: 1000
 
+initContainers:
+  gitSync:
+    enabled: false
+    repo: "git@github.com:<org>/<repo>"
+    branch: "main"
+
 healthChecks:
   enabled: false
   livenessProbePath: "/healthz"
@@ -43,9 +49,8 @@ hpa:
           averageUtilization: 80  # Target 80% memory utilization per pod
 
 # Observability defaults are tuned for Hasura hosted Control Plane
-# Enable observability
 observability:
-  enabled: true
+  enabled: false
 
 # Required (when observability.enabled is set to true)
 dataPlane:
@@ -145,13 +150,16 @@ connectorEnvVars:
   NDC_OAS_BASE_URL: ""
   NDC_OAS_LAMBDA_PRETTY_LOGS: "true"
   NDC_OAS_FILE_OVERWRITE: "false"
+  configDirectory: ""
 
 env: |
+  {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
   - name: HASURA_SERVICE_TOKEN_SECRET
     valueFrom:
       secretKeyRef:
         key: HASURA_SERVICE_TOKEN_SECRET
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
   {{- if .Values.connectorEnvVars.NDC_OAS_DOCUMENT_URI }}
   - name: NDC_OAS_DOCUMENT_URI
     valueFrom:
@@ -176,3 +184,7 @@ env: |
         name: {{ printf "%s-secret" (include "common.name" .) }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
+  {{- if .Values.connectorEnvVars.configDirectory }}
+  - name: HASURA_CONFIGURATION_DIRECTORY
+    value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}

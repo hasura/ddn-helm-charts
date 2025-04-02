@@ -151,7 +151,7 @@ connectorEnvVars:
   QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ""
   QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: ""
   QUARKUS_DATASOURCE_JDBC_TRACING: ""
-  configDirectory: /etc/connector
+  configDirectory: ""
 
 env: |
   {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
@@ -184,5 +184,7 @@ env: |
   {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://localhost:4317
+  {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}

@@ -15,6 +15,7 @@ helm template <release-name> \
   --set image.repository="my_repo/ndc-postgres" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-postgres | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
@@ -23,6 +24,7 @@ helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-postgres" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   hasura-ddn/ndc-postgres
 ```
 
@@ -42,12 +44,17 @@ helm upgrade --install <release-name> \
   --set image.repository="my_repo/ndc-postgres" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.CONNECTION_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set initContainers.gitSync.enabled="true" \
   --set initContainers.gitSync.repo="git@<git_domain>:<org>/<repo>" \
   --set initContainers.gitSync.branch="main" \
   --set connectorEnvVars.configDirectory="/work-dir/<repo>/app/connector/<connector-name>" \
   hasura-ddn/ndc-postgres
 ```
+
+## Committing code to git
+
+When you enable git-sync, the code will be fetched from the repository specified in `initContainers.gitSync.repo`, using the branch defined in `initContainers.gitSync.branch`.
 
 ## Connector ENV Inputs
 
@@ -58,7 +65,7 @@ helm upgrade --install <release-name> \
 | `connectorEnvVars.CLIENT_CERT`                    | Database Client cert (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.CLIENT_KEY`                     | Database Client key (Optional)                                                                             | `""`                            |
 | `connectorEnvVars.ROOT_CERT`                      | Database Root cert (Optional)                                                                              | `""`                            |
-| `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) | `"/etc/connector"`                   |
+| `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 
 ## Additional Parameters
 
