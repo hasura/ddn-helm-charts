@@ -5,6 +5,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:57.530767138Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-bigquery
+    digest: a2b7bab0b75f1e122ff656f8d03dfb493b82f0f11048eeddfe47fcc720bb317a
+    name: ndc-bigquery
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-bigquery@v2025.04.03/ndc-bigquery-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:09.64614719Z"
     dependencies:
     - name: common
@@ -50,6 +66,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-bigquery@v2024.12.05/ndc-bigquery-v2024.12.05.tgz
     version: v2024.12.05
   ndc-connector-oracle:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-03T02:47:57.639204485Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-connector-oracle
+    digest: e4104c701a48a86f71e929721a7612ab126caeb5c18002cf8ee1f4ac7370bb74
+    name: ndc-connector-oracle
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-oracle@v2025.04.03/ndc-connector-oracle-v2025.04.03.tgz
+    version: v2025.04.03
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -215,6 +247,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:57.763426421Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-connector-phoenix
+    digest: 9f1cbea2a1d19f2b72e8f8353f8c8ac2658a993599d9d4dfa7066d50ebbb5262
+    name: ndc-connector-phoenix
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-phoenix@v2025.04.03/ndc-connector-phoenix-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:09.933953727Z"
     dependencies:
     - name: common
@@ -312,6 +360,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:57.892615669Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-elasticsearch
+    digest: 30fedf13209b906c85d81c80b1dca9a2c9ec92a8e6102312e3a5d5ddca72d50a
+    name: ndc-elasticsearch
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-elasticsearch@v2025.04.03/ndc-elasticsearch-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:10.06538904Z"
     dependencies:
     - name: common
@@ -373,6 +437,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-elasticsearch@v2024.10.28/ndc-elasticsearch-v2024.10.28.tgz
     version: v2024.10.28
   ndc-graphql:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-03T02:47:57.998538105Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-graphql
+    digest: 8e08a0c1235b54f69e068e6c9b1ad79f7af5300a11b33c620a395d5044ff5561
+    name: ndc-graphql
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-graphql@v2025.04.03/ndc-graphql-v2025.04.03.tgz
+    version: v2025.04.03
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -474,6 +554,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:58.303819891Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-jvm-mysql
+    digest: 4761a1a58a20157a55c01e3ac2d7ac3b4c8517018adec4dbc8f6c6f9d2814dbd
+    name: ndc-jvm-mysql
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-mysql@v2025.04.03/ndc-jvm-mysql-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:10.501498866Z"
     dependencies:
     - name: common
@@ -491,6 +587,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:58.149291002Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-jvm-mysql-jdbc
+    digest: 9de3718797afddefaf48acfc566a35e1d4fac2122ee5c9a8ef3ef1b1f93973be
+    name: ndc-jvm-mysql-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-mysql-jdbc@v2025.04.03/ndc-jvm-mysql-jdbc-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:10.343696242Z"
     dependencies:
     - name: common
@@ -504,6 +616,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-mysql-jdbc@v2025.04.02/ndc-jvm-mysql-jdbc-v2025.04.02.tgz
     version: v2025.04.02
   ndc-mongodb:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-03T02:47:58.434892399Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-mongodb
+    digest: 3ba83608d8b67b7373ce31de063108101c43db868c2d0283754dae5cc19fa108
+    name: ndc-mongodb
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-mongodb@v2025.04.03/ndc-mongodb-v2025.04.03.tgz
+    version: v2025.04.03
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -637,6 +765,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:58.607394596Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-nodejs-lambda
+    digest: 0bcf5b55b6857e171c575e3148cf6a1289c60ce01d83eefa560cfaf240a7327f
+    name: ndc-nodejs-lambda
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-nodejs-lambda@v2025.04.03/ndc-nodejs-lambda-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:10.839678464Z"
     dependencies:
     - name: common
@@ -734,6 +878,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:58.716999302Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-open-api-lambda
+    digest: d5e7ccf3a7e0a431d52fb6e6b506ebd1554b5b9e3593afc88038f68e4f2c611b
+    name: ndc-open-api-lambda
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-open-api-lambda@v2025.04.03/ndc-open-api-lambda-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:10.988471573Z"
     dependencies:
     - name: common
@@ -779,6 +939,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-open-api-lambda@v2024.11.11/ndc-open-api-lambda-v2024.11.11.tgz
     version: v2024.11.11
   ndc-postgres:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-03T02:47:58.831936453Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-postgres
+    digest: a35c13c86162cd2d8eed5bce6a36d26dc530a9ad2b29ea413a362d26e35a7698
+    name: ndc-postgres
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-postgres@v2025.04.03/ndc-postgres-v2025.04.03.tgz
+    version: v2025.04.03
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -912,6 +1088,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-03T02:47:59.076234532Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-snowflake
+    digest: fd744abe3532f8cc21217a5d6a1b6b2558e8387e19c3970766ca24cde15cd211
+    name: ndc-snowflake
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-snowflake@v2025.04.03/ndc-snowflake-v2025.04.03.tgz
+    version: v2025.04.03
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-02T12:29:11.561863421Z"
     dependencies:
     - name: common
@@ -925,6 +1117,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-snowflake@v2025.04.02/ndc-snowflake-v2025.04.02.tgz
     version: v2025.04.02
   ndc-snowflake-jdbc:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-03T02:47:58.95654703Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-snowflake-jdbc
+    digest: 3162b6632013ab52d5a9d4bf4a19457b054ecd9557e244b977550f8bb3bd49ee
+    name: ndc-snowflake-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-snowflake-jdbc@v2025.04.03/ndc-snowflake-jdbc-v2025.04.03.tgz
+    version: v2025.04.03
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -990,4 +1198,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-04-02T12:29:11.562010033Z"
+generated: "2025-04-03T02:47:59.076501484Z"
