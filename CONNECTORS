@@ -9,5 +9,6 @@ ndc-mongodb
 ndc-nodejs-lambda
 ndc-open-api-lambda
 ndc-postgres
+ndc-postgres-jdbc
 ndc-snowflake
 ndc-snowflake-jdbc
