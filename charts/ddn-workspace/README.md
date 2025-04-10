@@ -94,6 +94,14 @@ Note that when you pass the password via `--set`, you will need to escape `$` as
 The DDN Workspace Helm chart is configured by default to fetch from Hasura's own private registry.  You will need to obtain an image pull secret in order to pull from this registry or otherwise
 contact the Hasura engineering team in order to obtain alternate methods for fetching the image.
 
+## Accessing DDN Workspace (Native Runtime) and next steps
+
+After installation, you can access the DDN Workspace (Native Runtime) via the ingress URL. To find the hostname needed for connecting, run the following command: `kubectl get ingress`.
+
+For detailed instructions on the DDN Workspace (Native Runtime) workflow and to get started, refer to the [Getting Started Documentation](https://ddn-cp-docs.hasura.io/data-plane/ddn-workspace-workflow/).
+
+To explore the release notes, which include details on connector support and other features, visit the DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/data-plane/release-notes/#ddn-workspace-release-notes).
+
 ## Parameters
 
 | Name                                              | Description                                                                                                | Value                           |
