@@ -13,7 +13,7 @@ See all [configuration](#parameters) below.
 helm template <release-name> \
   --set namespace="workspace" \
   --set global.domain="my-dp.domain.com" \
-  --set global.tag="2.6.1" \
+  --set global.tag="image_tag" \
   --set consoleUrl="https://console.my-cp.domain.com" \
   --set secrets.password="argon2id_hashed_password" \
   hasura-ddn/ddn-workspace | kubectl apply -f-
@@ -22,7 +22,7 @@ helm template <release-name> \
 helm upgrade --install <release-name> \
   --set namespace="workspace" \
   --set global.domain="my-dp.domain.com" \
-  --set global.tag="2.6.1" \
+  --set global.tag="image_tag" \
   --set consoleUrl="https://console.my-cp.domain.com" \
   --set secrets.password="argon2id_hashed_password" \
   hasura-ddn/ddn-workspace
@@ -85,7 +85,7 @@ helm upgrade --install <release-name> \
 The value being passed to `secrets.password` needs to be an `Argo2id` hashed password.  You can use a tool like [this](https://argon2.online/) to generate the appropriate hash from a given password.
 When you generate a password, make sure you choose `Argon2id` as the mode/variant (This is the recommended approach per [RFC 9106](https://datatracker.ietf.org/doc/html/rfc9106)).
 
-You can also use [this](https://github.com/hasura/ddn-helm-charts/tree/main/scripts/argon2id.py) Python script provided that you installed the `argon2-cffi` package via `pip install argon2-cffi`.
+You can also use [this](https://github.com/hasura/ddn-helm-charts/blob/main/scripts/argo2id.py) Python script provided that you installed the `argon2-cffi` package via `pip install argon2-cffi`.
 
 Note that when you pass the password via `--set`, you will need to escape `$` as well as `,` that are contained within the password.  If you are using an overrides file, you do not need to escape.
 
@@ -93,6 +93,10 @@ Note that when you pass the password via `--set`, you will need to escape `$` as
 
 The DDN Workspace Helm chart is configured by default to fetch from Hasura's own private registry.  You will need to obtain an image pull secret in order to pull from this registry or otherwise
 contact the Hasura engineering team in order to obtain alternate methods for fetching the image.
+
+## Images
+
+Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/ddn-workspace/release-notes/#ddn-workspace-release-notes).
 
 ## Accessing DDN Workspace (Native Runtime) and next steps
 
