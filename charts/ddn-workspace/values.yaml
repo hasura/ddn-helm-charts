@@ -5,10 +5,10 @@ global:
   certIssuer: "letsencrypt-prod"
   uriScheme: "https"
   persistence:
-    enabled: true  
+    enabled: true
   serviceCatalog:
     - name: data
-      port: 8080            
+      port: 8080
     - name: ddn-cps-engine
       port: 3000
   serviceAccount:
@@ -20,13 +20,13 @@ additionalLabels:
   group: ddn-workspace
 
 networkPolicy:
-  ingress: 
+  ingress:
     enabled: true
-  egress: 
+  egress:
     enabled: true
     allowedApps:
       - data
-      - ddn-cps-engine    
+      - ddn-cps-engine
 
 useReleaseName: true
 
@@ -62,7 +62,7 @@ resources: |
   limits:
     memory: 2048Mi
 
-hostAliases: 
+hostAliases:
   - ip: "127.0.0.1"
     hostnames:
       - "local.hasura.dev"
@@ -78,26 +78,26 @@ secrets:
 env: |
   - name: CODE_SERVER_PORT
     value: "8123"
-  - name: HASHED_PASSWORD 
+  - name: HASHED_PASSWORD
     valueFrom:
       secretKeyRef:
         name: {{ include "common.secretsName" $ }}
-        key: WORKSPACE_PASSWORD  
+        key: WORKSPACE_PASSWORD
   - name: HASURA_DDN_INSECURE_SKIP_TLS_VERIFY
-    value: {{ .Values.skipTlsVerify | quote }}      
+    value: {{ .Values.skipTlsVerify | quote }}
   {{- if .Values.setControlPlaneUrls }}
   - name: HASURA_DDN_CONSOLE_HOST
-    value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}      
+    value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}
   - name: HASURA_DDN_CONTROL_PLANE_HOST
-    value: {{ required "Data URL is required" .Values.dataHost | quote }}                   
+    value: {{ required "Data URL is required" .Values.dataHost | quote }}
   - name: HASURA_DDN_CONNECTOR_HUB_REGISTRY_HOST
-    value: {{ required "DDN CPS Engine URL is required" .Values.ddnCpsEngineHost | quote }}                  
+    value: {{ required "DDN CPS Engine URL is required" .Values.ddnCpsEngineHost | quote }}
   {{- end }}
 
 
 extraVolumes: |
   - name: ddn-workspace-data
-  {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}  
+  {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}
     persistentVolumeClaim:
       claimName: {{ include "common.name" . }}-data
   {{- else }}
