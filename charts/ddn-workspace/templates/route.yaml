@@ -1,0 +1,2 @@
+# route.yaml
+{{- template "common.route" . -}}
