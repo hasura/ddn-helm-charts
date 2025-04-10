@@ -96,7 +96,7 @@ contact the Hasura engineering team in order to obtain alternate methods for fet
 
 ## Images
 
-Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/data-plane/release-notes/#ddn-workspace-release-notes).
+Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/ddn-workspace/release-notes/#ddn-workspace-release-notes).
 
 ## Accessing DDN Workspace (Native Runtime) and next steps
 
