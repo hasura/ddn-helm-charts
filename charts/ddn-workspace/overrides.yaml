@@ -1,0 +1,28 @@
+global:
+  certIssuer: "letsencrypt-prod"
+  uriScheme: "https"
+  domain: "tom-dp.domain.com"
+  namespace: "tom-dp"
+  subDomain: true
+  serviceAccount:
+    enabled: false
+  securityContext:
+    disabled: false
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    additionalAnnotations: |
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+consoleUrl: "https://console.my-cp.domain.com"
+skipTlsVerify: false
+
+image:
+  tag: "2.6.1"
+
+secrets:
+  # Hashed password for code server (Argon2id hash)
+  # This was generated using a dummy password
+  password: "$argon2id$v=19$m=102400,t=3,p=2$EppQqbahsNaDpfhhSU/7kg$Jbk9CCRzsFtncwUEYALsM3We/reeyHAd++BxKHhOnhU"
