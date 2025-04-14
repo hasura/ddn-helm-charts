@@ -62,6 +62,7 @@ When you enable git-sync, the code will be fetched from the repository specified
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Optional)                                                                     | `""`                            |
 | `connectorEnvVars.JDBC_URL`                 | The JDBC URL to connect to the database (Required)                                                                         | `""`                            |
+| `connectorEnvVars.JDBC_SCHEMAS`                   | A comma-separated list of schemas to include in the metadata (Optional)                                                                         | `""`                                 |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 
 ## Additional Parameters
