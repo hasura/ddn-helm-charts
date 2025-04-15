@@ -67,6 +67,7 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (metrics)(Optional)                                                                         | `""`                                 |
 | `connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING`                   | Enable or disable tracing for JDBC connections (Optional)                                                                         | `false`                                 |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
+| `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
 
 ## Additional Parameters
 
@@ -76,15 +77,6 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `image.repository`                                | Image repository containing custom created ndc-connector-oracle                                                     | `""`                                |
 | `image.tag`                                       | Image tag to use for custom created ndc-connector-oracle                                                            | `""`                                |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                            |
-| `image.otelCollectorRepository`                   | OTEL collector image repository                                                                            | `otel/opentelemetry-collector`      |
-| `image.otelCollectorTag`                          | OTEL collector image tag                                                                                   | `0.104.0`                           |
-| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `false`                          |
-| `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
-| `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
-| `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
-| `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
-| `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-connector-oracle pod                                | `[]`                                |
-| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-connector-oracle pod                             | `[]`                                |
 | `resources`                                       | Resource requests and limits of ndc-connector-oracle container                                                      | `{}`                                |
 | `env`                                             | Env variable section for ndc-connector-oracle                                                                       | `[]`                                |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                                 |

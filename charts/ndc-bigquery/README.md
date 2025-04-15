@@ -71,6 +71,7 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.HASURA_BIGQUERY_PROJECT_ID`     | The BigQuery project ID/name (Required)                                                                    | `""`                            |
 | `connectorEnvVars.HASURA_BIGQUERY_DATASET_ID`     | The BigQuery dataset ID/name (Required)                                                                    | `""`                            |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
+| `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
 
 ## Additional Parameters
 
@@ -80,15 +81,6 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `image.repository`                                | Image repository containing custom created ndc-bigquery                                                    | `""`                            |
 | `image.tag`                                       | Image tag to use for custom created ndc-bigquery                                                           | `""`                            |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
-| `image.otelCollectorRepository`                   | OTEL collector image repository                                                                            | `otel/opentelemetry-collector`  |
-| `image.otelCollectorTag`                          | OTEL collector image tag                                                                                   | `0.104.0`                       |
-| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `true`                          |
-| `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
-| `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
-| `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
-| `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
-| `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-bigquery pod                               | `[]`                            |
-| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-bigquery pod                            | `[]`                               |                               |
 | `resources`                                       | Resource requests and limits of ndc-bigquery container                                                     | `{}`                            |
 | `env`                                             | Env variable section for ndc-bigquery                                                                      | `[]`                            |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                             |
