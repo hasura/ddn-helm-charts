@@ -777,6 +777,23 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-mongodb@0.3.0/ndc-mongodb-0.3.0.tgz
     version: 0.3.0
+  ndc-mysql-jdbc:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-15T15:17:48.012950544Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-mysql-jdbc
+    digest: 0ff9a0118f13a93518e6fd05e64c245015f866465f5e9871b2b159788f9e56c6
+    name: ndc-mysql-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-mysql-jdbc@v2025.04.14/ndc-mysql-jdbc-v2025.04.14.tgz
+    version: v2025.04.14
   ndc-nodejs-lambda:
   - annotations:
       artifacthub.io/changes: ""
@@ -1215,4 +1232,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-04-10T13:40:54.286721717Z"
+generated: "2025-04-15T15:17:48.013097549Z"
