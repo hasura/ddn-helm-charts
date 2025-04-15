@@ -65,7 +65,7 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 | `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (traces) (Optional)                                                                         | `"http://dp-otel-collector:4317"`                                 |
 | `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (metrics)(Optional)                                                                         | `"http://dp-otel-collector:4317"`                                 |
-| `connectorEnvVars.QUARKUS_OTEL_SERVICE_NAME`           | Sets OTEL Service Name (Optional)                                                                         | `"ndc-connector-oracle"`                                 |
+| `connectorEnvVars.QUARKUS_OTEL_SERVICE_NAME`           | Sets OTEL Service Name (Optional)                                                                         | `"ndc-connector-phoenix"`                                 |
 | `connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING`                   | Enable or disable tracing for JDBC connections (Optional)                                                                         | `true`                                 |
 
 ## Additional Parameters
