@@ -1084,6 +1084,23 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-postgres@0.3.0/ndc-postgres-0.3.0.tgz
     version: 0.3.0
+  ndc-postgres-jdbc:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-15T15:42:54.627692264Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-postgres-jdbc
+    digest: 38964c949224bd09b1507d0c5fec0ad90707abe9c67c7ac96d094708eedfbc14
+    name: ndc-postgres-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-postgres-jdbc@v2025.04.15/ndc-postgres-jdbc-v2025.04.15.tgz
+    version: v2025.04.15
   ndc-snowflake:
   - annotations:
       artifacthub.io/changes: ""
@@ -1199,4 +1216,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-04-15T15:17:48.013097549Z"
+generated: "2025-04-15T15:42:54.628045183Z"
