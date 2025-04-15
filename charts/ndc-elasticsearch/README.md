@@ -76,6 +76,7 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.ELASTICSEARCH_DEFAULT_RESULT_SIZE`               | The default query size when no limit is applied. Defaults to 10,000 (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 | `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
+| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-elasticsearch`                  |
 
 ## Additional Parameters
 

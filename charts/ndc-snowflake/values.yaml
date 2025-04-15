@@ -58,7 +58,10 @@ connectorEnvVars:
   JDBC_URL: ""
   JDBC_SCHEMAS: ""
   configDirectory: ""
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
+  QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://dp-otel-collector:4317"
+  QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://dp-otel-collector:4317"
+  QUARKUS_OTEL_SERVICE_NAME: ""
+  QUARKUS_DATASOURCE_JDBC_TRACING: true
 
 env: |
   {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
@@ -77,8 +80,25 @@ env: |
   - name: JDBC_SCHEMAS
     value: {{ .Values.connectorEnvVars.JDBC_SCHEMAS | quote }}
   {{- end }}
-  - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT }}
+  - name: QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT }}
+  - name: QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_SERVICE_NAME }}
+  - name: QUARKUS_OTEL_SERVICE_NAME
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_SERVICE_NAME }}
+  {{- else }}
+  - name: QUARKUS_OTEL_SERVICE_NAME
+    value: {{ .Chart.Name }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING }}
+  - name: QUARKUS_DATASOURCE_JDBC_TRACING
+    value: {{ .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING | quote }}
+  {{- end }}
   {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}

@@ -64,7 +64,10 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.JDBC_URL`                       | The JDBC URL to connect to the database (Required)                                                                         | `""`                                 |
 | `connectorEnvVars.JDBC_SCHEMAS`                   | A comma-separated list of schemas to include in the metadata (Optional)                                                                         | `""`                                 |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
-| `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
+| `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (traces) (Optional)                                                                         | `"http://dp-otel-collector:4317"`                                 |
+| `connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`                   | Sets the OTLP endpoint to send telemetry data (metrics)(Optional)                                                                         | `"http://dp-otel-collector:4317"`                                 |
+| `connectorEnvVars.QUARKUS_OTEL_SERVICE_NAME`           | Sets OTEL Service Name (Optional)                                                                         | `"ndc-snowflake"`                                 |
+| `connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING`                   | Enable or disable tracing for JDBC connections (Optional)                                                                         | `true`                                 |
 
 ## Additional Parameters
 

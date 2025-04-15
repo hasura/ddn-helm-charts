@@ -61,6 +61,7 @@ connectorEnvVars:
   NDC_OAS_FILE_OVERWRITE: "false"
   configDirectory: ""
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
+  OTEL_SERVICE_NAME: ""
 
 env: |
   {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
@@ -94,6 +95,13 @@ env: |
         name: {{ printf "%s-secret" (include "common.name" .) }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+  {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  {{- else }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Chart.Name }}
+  {{- end }}
   {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}

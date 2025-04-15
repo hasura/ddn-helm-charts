@@ -71,7 +71,8 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.HASURA_BIGQUERY_PROJECT_ID`     | The BigQuery project ID/name (Required)                                                                    | `""`                            |
 | `connectorEnvVars.HASURA_BIGQUERY_DATASET_ID`     | The BigQuery dataset ID/name (Required)                                                                    | `""`                            |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
-| `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
+| `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"` |
+| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-bigquery`                  |
 
 ## Additional Parameters
 
