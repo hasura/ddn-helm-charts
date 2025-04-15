@@ -1,4 +1,4 @@
-Ndc-jvm-mysql Helm Chart Deployment
+Ndc-mysql-jdbc Helm Chart Deployment
 
 1. Deployment Information:
    - Release Name: {{ .Release.Name }}
