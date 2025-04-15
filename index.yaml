@@ -599,39 +599,6 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-mysql@v2025.04.02/ndc-jvm-mysql-v2025.04.02.tgz
     version: v2025.04.02
-  ndc-jvm-mysql-jdbc:
-  - annotations:
-      artifacthub.io/changes: ""
-    apiVersion: v2
-    appVersion: 3.0.0
-    created: "2025-04-03T02:47:58.149291002Z"
-    dependencies:
-    - name: common
-      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
-      version: 0.0.10
-    description: (DDN) A Helm chart for deploying ndc-jvm-mysql-jdbc
-    digest: 9de3718797afddefaf48acfc566a35e1d4fac2122ee5c9a8ef3ef1b1f93973be
-    name: ndc-jvm-mysql-jdbc
-    type: application
-    urls:
-    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-mysql-jdbc@v2025.04.03/ndc-jvm-mysql-jdbc-v2025.04.03.tgz
-    version: v2025.04.03
-  - annotations:
-      artifacthub.io/changes: ""
-    apiVersion: v2
-    appVersion: 3.0.0
-    created: "2025-04-02T12:29:10.343696242Z"
-    dependencies:
-    - name: common
-      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
-      version: 0.0.10
-    description: (DDN) A Helm chart for deploying ndc-jvm-mysql-jdbc
-    digest: a8fb72d7b13bb9cf09aabeffbe36cc551abe7a985abea4110c88ee4b1b6ee814
-    name: ndc-jvm-mysql-jdbc
-    type: application
-    urls:
-    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-mysql-jdbc@v2025.04.02/ndc-jvm-mysql-jdbc-v2025.04.02.tgz
-    version: v2025.04.02
   ndc-mongodb:
   - annotations:
       artifacthub.io/changes: ""
