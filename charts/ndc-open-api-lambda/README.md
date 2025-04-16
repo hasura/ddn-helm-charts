@@ -66,6 +66,8 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.NDC_OAS_LAMBDA_PRETTY_LOGS`     | Print logs in a human readable format instead of JSON (Optional)                                          | `"true"`                            |
 | `connectorEnvVars.NDC_OAS_FILE_OVERWRITE`         | Overwrite previously generated functions.ts file and api.ts file (Optional)                               | `"false"`                            |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
+| `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
+| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-open-api-lambda`                  |
 
 ## Additional Parameters
 
@@ -75,15 +77,6 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `image.repository`                                | Image repository containing custom created ndc-open-api-lambda                                                    | `""`                            |
 | `image.tag`                                       | Image tag to use for custom created ndc-open-api-lambda                                                           | `""`                            |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
-| `image.otelCollectorRepository`                   | OTEL collector image repository                                                                            | `otel/opentelemetry-collector`  |
-| `image.otelCollectorTag`                          | OTEL collector image tag                                                                                   | `0.104.0`                       |
-| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `true`                          |
-| `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
-| `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
-| `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
-| `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
-| `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-open-api-lambda pod                               | `[]`                            |
-| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-open-api-lambda pod                            | `[]`                               |                               |
 | `resources`                                       | Resource requests and limits of ndc-open-api-lambda container                                                     | `{}`                            |
 | `env`                                             | Env variable section for ndc-open-api-lambda                                                                      | `[]`                            |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                             |
