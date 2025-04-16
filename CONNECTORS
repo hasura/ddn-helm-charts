@@ -4,6 +4,7 @@ ndc-connector-phoenix
 ndc-elasticsearch
 ndc-graphql
 ndc-jvm-mysql
+ndc-jvm-trino
 ndc-mongodb
 ndc-mysql-jdbc
 ndc-nodejs-lambda
