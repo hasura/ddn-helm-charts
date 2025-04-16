@@ -695,6 +695,23 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-mysql@v2025.04.02/ndc-jvm-mysql-v2025.04.02.tgz
     version: v2025.04.02
+  ndc-jvm-trino:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-16T19:04:42.656097101Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-jvm-trino
+    digest: 5e6d5f33d53edad46654323bbe1b0890ea0e77afded1e271f22f8977497ef7aa
+    name: ndc-jvm-trino
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-jvm-trino@v2025.04.16/ndc-jvm-trino-v2025.04.16.tgz
+    version: v2025.04.16
   ndc-mongodb:
   - annotations:
       artifacthub.io/changes: ""
@@ -1440,4 +1457,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-04-16T18:55:43.647634014Z"
+generated: "2025-04-16T19:04:44.328924202Z"
