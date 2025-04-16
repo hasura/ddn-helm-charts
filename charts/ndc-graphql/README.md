@@ -63,6 +63,8 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Optional)                                                                     | `""`                            |
 | `connectorEnvVars.GRAPHQL_ENDPOINT`               | The GraphQL Endpoint (Required)                                                                            | `""`                            |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
+| `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
+| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-graphql`                  |
 
 ## Additional Parameters
 
@@ -72,15 +74,6 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `image.repository`                                | Image repository containing custom created ndc-graphql                                                    | `""`                            |
 | `image.tag`                                       | Image tag to use for custom created ndc-graphql                                                           | `""`                            |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
-| `image.otelCollectorRepository`                   | OTEL collector image repository                                                                            | `otel/opentelemetry-collector`  |
-| `image.otelCollectorTag`                          | OTEL collector image tag                                                                                   | `0.104.0`                       |
-| `observability.enabled`                           | Deploy OTEL collector as sidecar                                                                           | `true`                          |
-| `dataPlane.id`                                    | Data Plane ID (Required when observability.enabled is set to true)                                         | `""`                         |
-| `dataPlane.key`                                   | Data Plane Key (Required when observability.enabled is set to true)                                        | `""`                         |
-| `controlPlane.otlpEndpoint`                       | OTEL endpoint under Hasura                                                                                 | `"https://gateway.otlp.hasura.io:443"`                         |
-| `controlPlane.oauthTokenEndpoint`                 | Oauth Token URL                                                                                            | `"https://ddn-oauth.pro.hasura.io/oauth2/token"`                         |
-| `extraVolumes`                                    | Optionally specify extra list of additional volumes for the ndc-graphql pod                               | `[]`                            |
-| `extraContainers`                                 | Optionally specify extra list of additional containers for the ndc-graphql pod                            | `[]`                               |                               |
 | `resources`                                       | Resource requests and limits of ndc-graphql container                                                     | `{}`                            |
 | `env`                                             | Env variable section for ndc-graphql                                                                      | `[]`                            |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                             |

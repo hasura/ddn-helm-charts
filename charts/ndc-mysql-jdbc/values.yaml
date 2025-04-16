@@ -8,8 +8,6 @@ image:
   repository: ""
   tag: ""
   pullPolicy: Always
-  otelCollectorRepository: otel/opentelemetry-collector-contrib
-  otelCollectorTag: 0.104.0
 replicas: "1"
 wsInactiveExpiryMins: "1"
 securityContext:
@@ -47,94 +45,6 @@ hpa:
           type: Utilization
           averageUtilization: 80  # Target 80% memory utilization per pod
 
-# Observability defaults are tuned for Hasura hosted Control Plane
-observability:
-  enabled: false
-
-# Required (when observability.enabled is set to true)
-dataPlane:
-  id: ""
-  key: ""
-
-controlPlane:
-  otlpEndpoint: https://gateway.otlp.hasura.io:443
-  oauthTokenEndpoint: https://ddn-oauth.pro.hasura.io/oauth2/token
-
-otel:
-  config: |
-    extensions:
-      oauth2client:
-        client_id: {{ required "Error: .Values.dataPlane.id is required!" .Values.dataPlane.id }}
-        client_secret: {{ required "Error: .Values.dataPlane.key is required!" .Values.dataPlane.key }}
-        token_url: {{ .Values.controlPlane.oauthTokenEndpoint }}
-        scopes: ["opentelemetry:write"]
-        endpoint_params:
-          audience: https://ddn.hasura.io
-    exporters:
-      otlp/oauth:
-        endpoint: {{ .Values.controlPlane.otlpEndpoint }}
-        auth:
-          authenticator: oauth2client
-    processors:
-      batch: {}
-    receivers:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: 0.0.0.0:4317
-          http:
-            endpoint: 0.0.0.0:4318
-    service:
-      extensions: [oauth2client]
-      pipelines:
-        logs:
-          exporters:
-            - otlp/oauth
-          processors:
-            - batch
-          receivers:
-            - otlp
-        metrics:
-          exporters:
-            - otlp/oauth
-          processors:
-            - batch
-          receivers:
-            - otlp
-        traces:
-          exporters:
-            - otlp/oauth
-          processors:
-            - batch
-          receivers:
-            - otlp
-
-extraVolumes: |
-  {{- if .Values.observability.enabled }}
-  - name: otel-config
-    secret:
-      secretName: {{ printf "%s-secret" (include "common.name" .) }}
-      items:
-        - key: otel-collector-config.yaml
-          path: otel-collector-config.yaml
-  {{- end }}
-
-extraContainers: |
-  {{- if .Values.observability.enabled }}
-  - name: "otel-collector"
-    command:
-      - --config=/etc/otel-collector-config.yaml
-    command:
-    image: {{ template "common.image" (dict "Values" $.Values "repository" .Values.image.otelCollectorRepository "tag" .Values.image.otelCollectorTag) }}
-    env:
-    - name: "OTEL_ENDPOINT"
-      value: "{{ .Values.controlPlane.otlpEndpoint }}"
-    volumeMounts:
-      - name: otel-config
-        mountPath: "/etc/otelcol-contrib/config.yaml"
-        subPath: otel-collector-config.yaml
-  {{- end }}
-
 resources: |
   requests:
     cpu: "500m"
@@ -147,6 +57,8 @@ connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
   JDBC_URL: ""
   configDirectory: ""
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
+  OTEL_SERVICE_NAME: ""
 
 env: |
   {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
@@ -162,7 +74,14 @@ env: |
         key: JDBC_URL
         name: {{ printf "%s-secret" (include "common.name" .) }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: http://localhost:4317
+    value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+  {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  {{- else }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Chart.Name }}
+  {{- end }}
   {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
