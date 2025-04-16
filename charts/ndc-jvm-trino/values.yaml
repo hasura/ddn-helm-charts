@@ -1,0 +1,100 @@
+useReleaseName: true
+
+additionalAnnotations: |
+  checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+
+# Container Configs
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: Always
+replicas: "1"
+wsInactiveExpiryMins: "1"
+securityContext:
+  runAsNonRoot: true
+  runAsGroup: 1000
+  runAsUser: 100
+  fsGroup: 1000
+
+initContainers:
+  gitSync:
+    enabled: false
+    repo: "git@github.com:<org>/<repo>"
+    branch: "main"
+
+healthChecks:
+  enabled: false
+  livenessProbePath: "/healthz"
+  readinessProbePath: "/healthz"
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50  # Target 50% CPU utilization per pod
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Target 80% memory utilization per pod
+
+resources: |
+  requests:
+    cpu: "500m"
+    memory: "500Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+connectorEnvVars:
+  HASURA_SERVICE_TOKEN_SECRET: ""
+  JDBC_URL: ""
+  configDirectory: ""
+  QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://dp-otel-collector:4317"
+  QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://dp-otel-collector:4317"
+  QUARKUS_OTEL_SERVICE_NAME: ""
+  QUARKUS_DATASOURCE_JDBC_TRACING: true
+
+env: |
+  {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
+  - name: HASURA_SERVICE_TOKEN_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: HASURA_SERVICE_TOKEN_SECRET
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
+  - name: JDBC_URL
+    valueFrom:
+      secretKeyRef:
+        key: JDBC_URL
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT }}
+  - name: QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT }}
+  - name: QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_OTEL_SERVICE_NAME }}
+  - name: QUARKUS_OTEL_SERVICE_NAME
+    value: {{ .Values.connectorEnvVars.QUARKUS_OTEL_SERVICE_NAME }}
+  {{- else }}
+  - name: QUARKUS_OTEL_SERVICE_NAME
+    value: {{ .Chart.Name }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING }}
+  - name: QUARKUS_DATASOURCE_JDBC_TRACING
+    value: {{ .Values.connectorEnvVars.QUARKUS_DATASOURCE_JDBC_TRACING | quote }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.configDirectory }}
+  - name: HASURA_CONFIGURATION_DIRECTORY
+    value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
