@@ -62,6 +62,9 @@ connectorEnvVars:
   ELASTICSEARCH_CA_CERT_PATH: ""
   ELASTICSEARCH_INDEX_PATTERN: ""
   ELASTICSEARCH_DEFAULT_RESULT_SIZE: ""
+  HASURA_CREDENTIALS_PROVIDER_URI: ""
+  ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY: ""
+  ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM: ""
   configDirectory: ""
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
   OTEL_SERVICE_NAME: ""
@@ -79,16 +82,20 @@ env: |
       secretKeyRef:
         key: ELASTICSEARCH_URL
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- if .Values.connectorEnvVars.ELASTICSEARCH_USERNAME }}
   - name: ELASTICSEARCH_USERNAME
     valueFrom:
       secretKeyRef:
         key: ELASTICSEARCH_USERNAME
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.ELASTICSEARCH_PASSWORD }}
   - name: ELASTICSEARCH_PASSWORD
     valueFrom:
       secretKeyRef:
         key: ELASTICSEARCH_PASSWORD
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
   {{- if .Values.connectorEnvVars.ELASTICSEARCH_API_KEY }}
   - name: ELASTICSEARCH_API_KEY
     valueFrom:
@@ -116,6 +123,22 @@ env: |
       secretKeyRef:
         key: ELASTICSEARCH_DEFAULT_RESULT_SIZE
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI }}
+  - name: HASURA_CREDENTIALS_PROVIDER_URI
+    value: {{ .Values.connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY }}
+  - name: ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY
+    valueFrom:
+      secretKeyRef:
+        key: ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
+  {{- include "validate.elasticsearch.credentialsProvider" . }}
+  {{- if .Values.connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM }}
+  - name: ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM
+    value: {{ .Values.connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM }}
   {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
