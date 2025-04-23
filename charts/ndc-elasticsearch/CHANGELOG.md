@@ -1,8 +1,11 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ndc-elasticsearch@v2025.04.23-1"></a>
+## [ndc-elasticsearch@v2025.04.23-1] - 2025-04-23
+
 <a name="ndc-elasticsearch@v2025.04.23"></a>
-## [ndc-elasticsearch@v2025.04.23] - 2025-04-22
+## [ndc-elasticsearch@v2025.04.23] - 2025-04-23
 
 <a name="ndc-elasticsearch@v2025.04.16"></a>
 ## [ndc-elasticsearch@v2025.04.16] - 2025-04-16
