@@ -62,18 +62,38 @@ helm upgrade --install <release-name> \
 
 When you enable git-sync, the code will be fetched from the repository specified in `initContainers.gitSync.repo`, using the branch defined in `initContainers.gitSync.branch`.
 
+## Credentials provider
+
+If you have an auth service that can provide credentials to NDC Elasticsearch, you should make use of the credentials provider in the connector. The credentials provider works by requesting credentials from your auth service at the connector startup. The auth service should return a json response with the credentials present as a string in the root level credentials key and a 200 response code to be compliant with the credentials provider. Following is an example of a compliant response:
+
+```json
+{
+  "credentials": "my-api-key"
+}
+```
+
+To use credentials provider, set the following:
+
+- `connectorEnvVars.ELASTICSEARCH_URL`
+- `connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI`
+- `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY`
+- `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM`
+
 ## Connector ENV Inputs
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Optional)                                                                     | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_URL`    | The comma-separated list of Elasticsearch host addresses for connection (Required)                                                                     | `""`                            |
-| `connectorEnvVars.ELASTICSEARCH_USERNAME`               | The username for authenticating to the Elasticsearch cluster (Required)                                                                            | `""`                            |
-| `connectorEnvVars.ELASTICSEARCH_PASSWORD`               | The password for the Elasticsearch user account (Required)                                                                            | `""`                            |
+| `connectorEnvVars.ELASTICSEARCH_USERNAME`               | The username for authenticating to the Elasticsearch cluster (Optional)                                                                            | `""`                            |
+| `connectorEnvVars.ELASTICSEARCH_PASSWORD`               | The password for the Elasticsearch user account (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_API_KEY`               | The Elasticsearch API key for authenticating to the Elasticsearch cluster (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_CA_CERT_PATH`               | The path to the Certificate Authority (CA) certificate for verifying the Elasticsearch server's SSL certificate (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_INDEX_PATTERN`               | The pattern for matching Elasticsearch indices, potentially including wildcards, used by the connector (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_DEFAULT_RESULT_SIZE`               | The default query size when no limit is applied. Defaults to 10,000 (Optional)                                                                            | `""`                            |
+| `connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI`               | The webhook URI for the auth service (Optional).  See [this](https://github.com/hasura/ndc-elasticsearch/blob/main/docs/auth.md#credentials-provider) for more information                                                                          | `""`                            |
+| `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY`               | This is the key for the credentials provider (Optional).  See [this](https://github.com/hasura/ndc-elasticsearch/blob/main/docs/auth.md#credentials-provider) for more information                                                                      | `""`                            |
+| `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM`               | This is the security credential that is expected from the credential provider service. Could be `api-key` or `service-token` (Optional).  See [this](https://github.com/hasura/ndc-elasticsearch/blob/main/docs/auth.md#credentials-provider) for more information                                                                          | `""`                            |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 | `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
 | `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-elasticsearch`                  |
