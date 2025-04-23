@@ -425,6 +425,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-23T12:10:02.711088125Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-elasticsearch
+    digest: 40e768057209d46966c911d277bfa61866495a21acec7328a52cf87de3087d2f
+    name: ndc-elasticsearch
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-elasticsearch@v2025.04.23/ndc-elasticsearch-v2025.04.23.tgz
+    version: v2025.04.23
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-16T18:55:42.053579945Z"
     dependencies:
     - name: common
@@ -1457,4 +1473,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-04-16T19:04:44.328924202Z"
+generated: "2025-04-23T12:10:02.86410209Z"
