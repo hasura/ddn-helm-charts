@@ -1,0 +1,73 @@
+useReleaseName: false
+
+additionalAnnotations: |
+  checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+
+# Container Configs
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: Always
+replicas: "1"
+wsInactiveExpiryMins: "1"
+securityContext:
+  runAsNonRoot: true
+  runAsGroup: 1000
+  runAsUser: 100
+  fsGroup: 1000
+
+healthChecks:
+  enabled: false
+  livenessProbePath: "/healthz"
+  readinessProbePath: "/healthz"
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50  # Target 50% CPU utilization per pod
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Target 80% memory utilization per pod
+
+resources: |
+  requests:
+    cpu: "250m"
+    memory: "250Mi"
+  limits:
+    cpu: "500m"
+    memory: "500Mi"
+
+serviceEnvVars:
+  AUTH_WEBHOOK: ""
+  GRANT_TYPE: ""
+  CLIENT_ID: ""
+  RESOURCE: ""
+  USERNAME: ""
+  PASSWORD: ""
+
+env: |
+  - name: AUTH_WEBHOOK
+    value: {{ .Values.serviceEnvVars.AUTH_WEBHOOK | quote }}
+  - name: GRANT_TYPE
+    value: {{ .Values.serviceEnvVars.GRANT_TYPE | quote }}
+  - name: CLIENT_ID
+    value: {{ .Values.serviceEnvVars.CLIENT_ID }}
+  - name: RESOURCE
+    value: {{ .Values.serviceEnvVars.RESOURCE }}
+  - name: USERNAME
+    value: {{ .Values.serviceEnvVars.USERNAME }}
+  - name: PASSWORD
+    valueFrom:
+      secretKeyRef:
+        key: PASSWORD
+        name: {{ printf "%s-secret" (include "common.name" .) }}
