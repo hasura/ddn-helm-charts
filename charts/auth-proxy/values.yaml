@@ -48,26 +48,15 @@ resources: |
     memory: "500Mi"
 
 serviceEnvVars:
-  AUTH_WEBHOOK: ""
-  GRANT_TYPE: ""
-  CLIENT_ID: ""
+  ADFS_PROVIDER_ENDPOINT: ""
+  REGION: ""
   RESOURCE: ""
-  USERNAME: ""
-  PASSWORD: ""
 
 env: |
-  - name: AUTH_WEBHOOK
-    value: {{ .Values.serviceEnvVars.AUTH_WEBHOOK | quote }}
-  - name: GRANT_TYPE
-    value: {{ .Values.serviceEnvVars.GRANT_TYPE | quote }}
-  - name: CLIENT_ID
-    value: {{ .Values.serviceEnvVars.CLIENT_ID }}
+  - name: ADFS_PROVIDER_ENDPOINT
+    value: {{ .Values.serviceEnvVars.ADFS_PROVIDER_ENDPOINT | quote }}
+  - name: REGION
+    value: {{ .Values.serviceEnvVars.REGION | quote }}
   - name: RESOURCE
     value: {{ .Values.serviceEnvVars.RESOURCE }}
-  - name: USERNAME
-    value: {{ .Values.serviceEnvVars.USERNAME }}
-  - name: PASSWORD
-    valueFrom:
-      secretKeyRef:
-        key: PASSWORD
-        name: {{ printf "%s-secret" (include "common.name" .) }}
+

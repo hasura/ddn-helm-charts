@@ -12,27 +12,21 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-snowflake-jdbc" \
+  --set image.repository="my_repo/auth-proxy" \
   --set image.tag="my_custom_image_tag" \
-  --set serviceEnvVars.AUTH_WEBHOOK="auth_hook_url" \
-  --set serviceEnvVars.GRANT_TYPE="grant_type" \
-  --set serviceEnvVars.CLIENT_ID="client_id" \
+  --set serviceEnvVars.ADFS_PROVIDER_ENDPOINT="adfs_provider_endpoint" \
   --set serviceEnvVars.RESOURCE="resource" \
-  --set serviceEnvVars.USERNAME="username" \
-  --set serviceEnvVars.PASSWORD="password" \
+  --set serviceEnvVars.REGION="region" \
   hasura-ddn/auth-proxy | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-snowflake-jdbc" \
+  --set image.repository="my_repo/auth-proxy" \
   --set image.tag="my_custom_image_tag" \
-  --set serviceEnvVars.AUTH_WEBHOOK="auth_hook_url" \
-  --set serviceEnvVars.GRANT_TYPE="grant_type" \
-  --set serviceEnvVars.CLIENT_ID="client_id" \
+  --set serviceEnvVars.ADFS_PROVIDER_ENDPOINT="adfs_provider_endpoint" \
   --set serviceEnvVars.RESOURCE="resource" \
-  --set serviceEnvVars.USERNAME="username" \
-  --set serviceEnvVars.PASSWORD="password" \
+  --set serviceEnvVars.REGION="region" \
   hasura-ddn/auth-proxy
 ```
 
@@ -40,12 +34,9 @@ helm upgrade --install <release-name> \
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `serviceEnvVars.AUTH_WEBHOOK`                     | Auth Hook URL (Required)                                                                                   | `""`                            |
-| `serviceEnvVars.GRANT_TYPE`                       | Grant Type (Required)                                                                                      | `""`                            |
-| `serviceEnvVars.CLIENT_ID`                        | Client ID (Required)                                                                                       | `""`                            |
+| `serviceEnvVars.ADFS_PROVIDER_ENDPOINT`           | ADFS Provider Endpoint (Required)                                                                          | `""`                            |
 | `serviceEnvVars.RESOURCE`                         | Resource (Required)                                                                                        | `""`                            |
-| `serviceEnvVars.USERNAME`                         | Username (Required)                                                                                        | `""`                            |
-| `serviceEnvVars.PASSWORD`                         | Password (Required)                                                                                        | `""`                            |
+| `serviceEnvVars.REGION`                           | Region (Required)                                                                                          | `""`                            |
 
 ## Parameters
 
