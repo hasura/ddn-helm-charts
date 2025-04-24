@@ -59,4 +59,3 @@ env: |
     value: {{ .Values.serviceEnvVars.REGION | quote }}
   - name: RESOURCE
     value: {{ .Values.serviceEnvVars.RESOURCE }}
-
