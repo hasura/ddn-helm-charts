@@ -1,2 +1,3 @@
 # deployment.yaml
+{{- include "mychart.validateAuthProxyServiceEnvVars" . }}
 {{- template "common.deployment" . -}}

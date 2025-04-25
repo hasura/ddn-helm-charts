@@ -1,3 +1,8 @@
+global:
+  domain: "domain.nip.io"
+  subDomain: true
+  certIssuer: "letsencrypt-staging"
+
 useReleaseName: false
 
 additionalAnnotations: |
@@ -8,6 +13,7 @@ image:
   repository: ""
   tag: ""
   pullPolicy: Always
+httpPort: 8081
 replicas: "1"
 wsInactiveExpiryMins: "1"
 securityContext:
@@ -15,6 +21,10 @@ securityContext:
   runAsGroup: 1000
   runAsUser: 100
   fsGroup: 1000
+
+serviceAccount:
+  enabled: false
+  name: ""
 
 healthChecks:
   enabled: false
@@ -47,15 +57,21 @@ resources: |
     cpu: "500m"
     memory: "500Mi"
 
-serviceEnvVars:
+ingress:
+  enabled: false
+  hostName: '{{ template "auth-proxy.domain" . }}'
+  additionalAnnotations: '{{ template "auth-proxy.ingress.annotations" . }}'
+  path: '{{ template "auth-proxy.path" . }}'
+
+authProxyEnvVars:
   ADFS_PROVIDER_ENDPOINT: ""
   REGION: ""
   RESOURCE: ""
 
 env: |
   - name: ADFS_PROVIDER_ENDPOINT
-    value: {{ .Values.serviceEnvVars.ADFS_PROVIDER_ENDPOINT | quote }}
+    value: {{ .Values.authProxyEnvVars.ADFS_PROVIDER_ENDPOINT | quote }}
   - name: REGION
-    value: {{ .Values.serviceEnvVars.REGION | quote }}
+    value: {{ .Values.authProxyEnvVars.REGION | quote }}
   - name: RESOURCE
-    value: {{ .Values.serviceEnvVars.RESOURCE }}
+    value: {{ .Values.authProxyEnvVars.RESOURCE | quote }}

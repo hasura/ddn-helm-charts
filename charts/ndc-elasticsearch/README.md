@@ -79,6 +79,51 @@ To use credentials provider, set the following:
 - `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY`
 - `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM`
 
+**If you downstream service does not return the expected response, you can additionally deploy an `auth-proxy` via [this](https://github.com/hasura/ddn-helm-charts/tree/main/charts/auth-proxy) Helm chart.**
+
+## Credentials provider (sidecar deployment)
+
+In cases where you do not want a standalone `auth-proxy` to be deployed via [this](https://github.com/hasura/ddn-helm-charts/tree/main/charts/auth-proxy) Helm chart, you have an option to enable the `auth-service`
+to be run as a sidecar.  Below are examples how this would be accomplished:
+
+```bash
+# EXAMPLES:
+
+# helm template and apply manifests via kubectl (example)
+helm template <release-name> \
+  --set namespace="default" \
+  --set image.repository="my_repo/ndc-elasticsearch" \
+  --set image.tag="my_custom_image_tag" \
+  --set connectorEnvVars.ELASTICSEARCH_URL="elasticsearch_url" \
+  --set connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI="http://localhost:8081" \
+  --set connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY="elasticsearch_credentials_provider_key" \
+  --set connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM="api-key|service-token|bearer-token" \
+  --set authProxy.enabled=true \
+  --set authProxy.image.repository="my_repo/auth-proxy" \
+  --set authProxy.image.tag="my_custom_image_tag" \
+  --set authProxy.authProxyEnvVars.ADFS_PROVIDER_ENDPOINT="adfs_provider_endpoint" \
+  --set authProxy.authProxyEnvVars.RESOURCE="resource" \
+  --set authProxy.authProxyEnvVars.REGION="region" \
+  hasura-ddn/ndc-elasticsearch | kubectl apply -f-
+
+# helm upgrade --install (pass configuration via command line)
+helm upgrade --install <release-name> \
+  --set namespace="default" \
+  --set image.repository="my_repo/ndc-elasticsearch" \
+  --set image.tag="my_custom_image_tag" \
+  --set connectorEnvVars.ELASTICSEARCH_URL="elasticsearch_url" \
+  --set connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI="http://localhost:8081" \
+  --set connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY="elasticsearch_credentials_provider_key" \
+  --set connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM="api-key|service-token|bearer-token" \
+  --set authProxy.enabled=true \
+  --set authProxy.image.repository="my_repo/auth-proxy" \
+  --set authProxy.image.tag="my_custom_image_tag" \
+  --set authProxy.authProxyEnvVars.ADFS_PROVIDER_ENDPOINT="adfs_provider_endpoint" \
+  --set authProxy.authProxyEnvVars.RESOURCE="resource" \
+  --set authProxy.authProxyEnvVars.REGION="region" \
+  hasura-ddn/ndc-elasticsearch
+```
+
 ## Connector ENV Inputs
 
 | Name                                              | Description                                                                                                | Value                           |
@@ -91,12 +136,25 @@ To use credentials provider, set the following:
 | `connectorEnvVars.ELASTICSEARCH_CA_CERT_PATH`               | The path to the Certificate Authority (CA) certificate for verifying the Elasticsearch server's SSL certificate (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_INDEX_PATTERN`               | The pattern for matching Elasticsearch indices, potentially including wildcards, used by the connector (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_DEFAULT_RESULT_SIZE`               | The default query size when no limit is applied. Defaults to 10,000 (Optional)                                                                            | `""`                            |
-| `connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI`               | The webhook URI for the auth service (Optional).  See [this](https://github.com/hasura/ndc-elasticsearch/blob/main/docs/auth.md#credentials-provider) for more information                                                                          | `""`                            |
+| `connectorEnvVars.HASURA_CREDENTIALS_PROVIDER_URI`               | The webhook URI for the auth service (Required when `authProxy.enabled` is `true`).  See [this](https://github.com/hasura/ndc-elasticsearch/blob/main/docs/auth.md#credentials-provider) for more information                                                                          | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_KEY`               | This is the key for the credentials provider (Optional).  See [this](https://github.com/hasura/ndc-elasticsearch/blob/main/docs/auth.md#credentials-provider) for more information                                                                      | `""`                            |
 | `connectorEnvVars.ELASTICSEARCH_CREDENTIALS_PROVIDER_MECHANISM`               | This is the security credential that is expected from the credential provider service. Could be `api-key`, `service-token` or `bearer-token` (Optional).  See [this](https://github.com/hasura/ndc-elasticsearch/blob/main/docs/auth.md#credentials-provider) for more information                                                                          | `""`                            |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 | `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
 | `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-elasticsearch`                  |
+
+## auth-proxy ENV Inputs
+
+| Name                                              | Description                                                                                                | Value                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `authProxy.enabled`                               | Enable auth-proxy running as a sidecar                                                                     | `false`                         |
+| `authProxy.name`                                  | Name of service                                                                                            | `"auth-proxy"`                  |
+| `authProxy.httpPort`                              | Port that application runs under                                                                           | `"8081"`                        |
+| `authProxy.image.repository`                      | Image repository containing custom created auth-proxy                                                      | `""`                            |
+| `authProxy.image.tag`                             | Image tag to use for custom created auth-proxy                                                             | `""`                            |
+| `authProxy.authProxyEnvVars.ADFS_PROVIDER_ENDPOINT` | ADFS Provider Endpoint (Required when `authProxy.enabled` is `true`)                                     | `""`                            |
+| `authProxy.authProxyEnvVars.RESOURCE`             | Resource (Required when `authProxy.enabled` is `true`)                                                     | `""`                            |
+| `authProxy.authProxyEnvVars.REGION`               | Region (Required when `authProxy.enabled` is `true`)                                                       | `""`                            |
 
 ## Additional Parameters
 
@@ -122,3 +180,5 @@ To use credentials provider, set the following:
 | `initContainers.gitSync.enabled`                  | Enable reading connector config files from a git repository                                                | `false`                             |
 | `initContainers.gitSync.repo`                     | Git repository to read from (Used when initContainers.gitSync.enabled is set to true)                      | `git@github.com:<org>/<repo>`       |
 | `initContainers.gitSync.branch`                   | Branch to read from (Used when initContainers.gitSync.enabled is set to true)                              | `main`                              |
+| `serviceAccount.enabled`                          | Enable user of a service account for pod                                                                   | `false`                         |
+| `serviceAccount.name`                             | Name for the service account                                                                               | `""`                            |

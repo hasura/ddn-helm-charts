@@ -16,6 +16,10 @@ securityContext:
   runAsUser: 100
   fsGroup: 1000
 
+serviceAccount:
+  enabled: false
+  name: ""
+
 initContainers:
   gitSync:
     enabled: false
@@ -52,6 +56,50 @@ resources: |
   limits:
     cpu: "1"
     memory: "1Gi"
+
+authProxy:
+  enabled: false
+  name: auth-proxy
+  httpPort: 8081
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: Always
+  authProxyEnvVars:
+    ADFS_PROVIDER_ENDPOINT: ""
+    REGION: ""
+    RESOURCE: ""
+
+extraContainers: |
+  {{- if .Values.authProxy.enabled }}
+  - name: {{ .Values.authProxy.name }}
+    image: "{{ template "common.image" (dict "Values" $.Values "repository" .Values.authProxy.image.repository "tag" .Values.authProxy.image.tag) }}"
+    ports:
+      - name: {{ .Values.authProxy.name }}
+        containerPort: {{ .Values.authProxy.httpPort }}
+        protocol: TCP
+    lifecycle:
+      preStop:
+        exec:
+          command:
+          - sh
+          - -c
+          - sleep 10
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "250Mi"
+      limits:
+        cpu: "500m"
+        memory: "500Mi"
+    env:
+    - name: ADFS_PROVIDER_ENDPOINT
+      value: {{ .Values.authProxy.authProxyEnvVars.ADFS_PROVIDER_ENDPOINT | quote }}
+    - name: REGION
+      value: {{ .Values.authProxy.authProxyEnvVars.REGION | quote }}
+    - name: RESOURCE
+      value: {{ .Values.authProxy.authProxyEnvVars.RESOURCE | quote }}
+  {{- end }}
 
 connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
