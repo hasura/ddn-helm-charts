@@ -5,6 +5,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-04-28T20:30:15.329688228Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying auth-proxy
+    digest: 876c68e1ef9a9f1dfe8b220de727fe3aab49f618df214c04470394ae2a67b828
+    name: auth-proxy
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/auth-proxy@v2025.04.28/auth-proxy-v2025.04.28.tgz
+    version: v2025.04.28
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-24T14:18:26.717825177Z"
     dependencies:
     - name: common
@@ -438,6 +454,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-phoenix@0.3.0/ndc-connector-phoenix-0.3.0.tgz
     version: 0.3.0
   ndc-elasticsearch:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-04-28T20:30:15.487933509Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: (DDN) A Helm chart for deploying ndc-elasticsearch
+    digest: 45de2f74a27ddc7fb7419a2f35cf9e9264f1a3655ffd0c2e2dc6df9a14638102
+    name: ndc-elasticsearch
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-elasticsearch@v2025.04.28/ndc-elasticsearch-v2025.04.28.tgz
+    version: v2025.04.28
   - annotations:
       artifacthub.io/changes: ""
     apiVersion: v2
@@ -1520,4 +1552,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-04-24T14:18:26.848380454Z"
+generated: "2025-04-28T20:30:15.488151646Z"
