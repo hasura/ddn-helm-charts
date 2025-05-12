@@ -28,6 +28,34 @@ helm upgrade --install <release-name> \
   hasura-ddn/ddn-workspace
 ```
 
+## Install Chart (Where PromptQL services are installed under Control Plane)
+
+See all [configuration](#parameters) below.
+
+```bash
+# EXAMPLES:
+
+# helm template and apply manifests via kubectl (example)
+helm template <release-name> \
+  --set namespace="workspace" \
+  --set global.domain="my-dp.domain.com" \
+  --set global.tag="image_tag" \
+  --set consoleUrl="https://console.my-cp.domain.com" \
+  --set ddnPromptqlEndpoint="https://promptql-cp.domain.com/graphql" \
+  --set secrets.password="argon2id_hashed_password" \
+  hasura-ddn/ddn-workspace | kubectl apply -f-
+
+# helm upgrade --install (pass configuration via command line)
+helm upgrade --install <release-name> \
+  --set namespace="workspace" \
+  --set global.domain="my-dp.domain.com" \
+  --set global.tag="image_tag" \
+  --set consoleUrl="https://console.my-cp.domain.com" \
+  --set ddnPromptqlEndpoint="https://promptql-cp.domain.com/graphql" \
+  --set secrets.password="argon2id_hashed_password" \
+  hasura-ddn/ddn-workspace
+```
+
 ## Install Chart (With an overrides file)
 
 Here's an example of an overrides file, targeting `2.6.1` image tag:
@@ -72,6 +100,21 @@ secrets:
         email: "support@hasura.io"
 ```
 
+Install via the following command:
+
+```bash
+helm upgrade --install <release-name> \
+  -f overrides.yaml \
+  hasura-ddn/ddn-workspace
+```
+
+## Install Chart (With an overrides file where PromptQL services are installed under Control Plane)
+
+In addition to what is mentioned in section above, add the following into the overrides file:
+
+```yaml
+ddnPromptqlEndpoint: "https://promptql-cp.domain.com/graphql"
+```
 Install via the following command:
 
 ```bash
@@ -145,6 +188,7 @@ To explore the release notes, which include details on connector support and oth
 | `dataHost`                                        | Host URL for the data service                                                                              | `"http://data:8080"`            |
 | `ddnCpsEngineHost`                                | Host URL for the CPS engine                                                                                | `"http://ddn-cps-engine:3000"`  |
 | `consoleUrl`                                      | DDN Console URL (Uses FQDN, prefixed with scheme)                                                          | `""`                            |
+| `ddnPromptqlEndpoint`                             | DDN PromptQL Endpoint (Uses FQDN, prefixed with scheme and appended with `/graphql`).  Only set if Control Plane has PromptQL services installed                       | `""`                            |
 | `skipTlsVerify`                                   | Whether to skip TLS verification                                                                           | `false`                         |
 | `secrets.password`                                | DDN Workspace password (Argon2id hash)                                                                     | `""`                            |
 | `ingress.enabled`                                 | Enable or disable creation of ingress                                                                      | `true`                          |

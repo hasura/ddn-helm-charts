@@ -70,6 +70,7 @@ hostAliases:
 dataHost: "http://data:8080"
 ddnCpsEngineHost: "http://ddn-cps-engine:3000"
 consoleUrl: ""
+ddnPromptqlEndpoint: ""
 skipTlsVerify: false
 secrets:
   password: ""
@@ -92,6 +93,12 @@ env: |
     value: {{ required "Data URL is required" .Values.dataHost | quote }}
   - name: HASURA_DDN_CONNECTOR_HUB_REGISTRY_HOST
     value: {{ required "DDN CPS Engine URL is required" .Values.ddnCpsEngineHost | quote }}
+  {{- if .Values.ddnPromptqlEndpoint }}
+  - name: HASURA_DDN_PROMPTQL_ENDPOINT
+    value: {{ .Values.ddnPromptqlEndpoint | quote }}
+  - name: HASURA_DDN_PROMPTQL_CONSOLE_HOST
+    value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}
+  {{- end }}
   {{- end }}
 
 
