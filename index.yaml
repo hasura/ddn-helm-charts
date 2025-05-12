@@ -38,6 +38,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-05-12T19:53:28.36518115Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.10
+    description: A Helm chart for DDN Workspace (Native Runtime)
+    digest: 23321520c300357ca3d1124c14178e3d6c8d34cc93a70c028171ca9606b877cb
+    name: ddn-workspace
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ddn-workspace@v2025.05.12/ddn-workspace-v2025.05.12.tgz
+    version: v2025.05.12
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-04-10T13:40:52.247503122Z"
     dependencies:
     - name: common
@@ -1552,4 +1568,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-04-28T20:30:15.488151646Z"
+generated: "2025-05-12T19:53:28.640703502Z"
