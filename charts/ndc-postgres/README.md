@@ -2,6 +2,13 @@
 
 This chart deploys the ndc-postgres connector. Refer to the pre-requisites section [here](../../README.md#get-started)
 
+## Connector Image
+
+If you're running `docker compose build` within your Supergraph to build a custom connector image, or if you're using
+the **git-sync** option with a Hasura-provided connector image, the base image used in both cases is: `ghcr.io/hasura/ndc-postgres`
+
+To determine the specific version of the image being used, check the `connector-metadata.yaml` file located under your Supergraph at: `app/connector/<connector-name>/.hasura-connector/connector-metadata.yaml`
+
 ## Install Chart
 
 See all [configuration](#parameters) below.
@@ -60,7 +67,7 @@ When you enable git-sync, the code will be fetched from the repository specified
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret (Optional)                                                                     | `""`                            |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret.  This value comes from your Supergraph’s `.env` file and corresponds to the connector's `HASURA_SERVICE_TOKEN_SECRET` environment variable. (Optional)                                                                     | `""`                            |
 | `connectorEnvVars.CONNECTION_URI`                 | Database Connection URI (Required)                                                                         | `""`                            |
 | `connectorEnvVars.CLIENT_CERT`                    | Database Client cert (Optional)                                                                            | `""`                            |
 | `connectorEnvVars.CLIENT_KEY`                     | Database Client key (Optional)                                                                             | `""`                            |
