@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-config" (include "common.name" .) }}
+  namespace: {{ template "common.namespace" $ }}
+  labels:
+    app: {{template "common.name" .}}
+data:
+  run.sh: |
+    #!/usr/bin/env bash
+    set -eu -o pipefail
+    export NODE_PATH=/functions/node_modules
+    
+    # Currently we are unable to write to /functions directory and requires 
+    # a change to the Dockerfile
+    # Hence copy node_modules and the connector app contents for work-dir(git-sync)
+    # to a place where we have access and run from there
+    mkdir -p /tmp/app && cd /tmp/app
+    cp -r "${HASURA_CONFIGURATION_DIRECTORY}/." /tmp/app/
+    cp -r /functions/node_modules /tmp/app/
+
+
+    # Read the npm start script from package.json then exec it to ensure that
+    # it is the root process in the container, so that signals (ie SIGTERM)
+    # are propagated properly. "npm start" does not propagate SIGTERM to the
+    # actual started process
+    START_CMD=$(jq -r ".scripts.start" "package.json")
+    PATH=$PATH:/tmp/app/node_modules/.bin exec $START_CMD

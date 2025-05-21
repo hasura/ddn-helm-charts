@@ -7,13 +7,13 @@ additionalAnnotations: |
 image:
   repository: ""
   tag: ""
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 replicas: "1"
 wsInactiveExpiryMins: "1"
 securityContext:
   runAsNonRoot: true
   runAsGroup: 1000
-  runAsUser: 100
+  runAsUser: 1000
   fsGroup: 1000
 
 initContainers:
@@ -26,6 +26,20 @@ healthChecks:
   enabled: false
   livenessProbePath: "/healthz"
   readinessProbePath: "/healthz"
+
+command: |
+  - bash
+  - /scripts/run.sh
+
+extraVolumes: |
+  - name: run-script
+    configMap:
+      name: {{ printf "%s-config" (include "common.name" .) }}
+
+extraVolumeMounts: |
+  - name:  run-script
+    mountPath: /scripts/run.sh
+    subPath: run.sh
 
 hpa:
   enabled: false
