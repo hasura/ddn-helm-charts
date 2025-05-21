@@ -5,7 +5,7 @@ This chart deploys the ndc-open-api-lambda connector. Refer to the pre-requisite
 ## Connector Image
 
 If you're running `docker compose build` within your Supergraph to build a custom connector image, or if you're using
-the **git-sync** option with a Hasura-provided connector image, the base image used in both cases is: `ghcr.io/hasura/ndc-open-api-lambda`
+the **git-sync** option with a Hasura-provided connector image, the base image used in both cases is: `ghcr.io/hasura/ndc-nodejs-lambda`
 
 To determine the specific version of the image being used, check the `connector-metadata.yaml` file located under your Supergraph at: `app/connector/<connector-name>/.hasura-connector/connector-metadata.yaml`
 
@@ -19,7 +19,7 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-open-api-lambda" \
+  --set image.repository="my_repo/ndc-nodejs-lambda" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.NDC_OAS_BASE_URL="ndc_oas_base_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
@@ -28,7 +28,7 @@ helm template <release-name> \
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-open-api-lambda" \
+  --set image.repository="my_repo/ndc-nodejs-lambda" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.NDC_OAS_BASE_URL="ndc_oas_base_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
@@ -51,7 +51,7 @@ Example: If your repo is `my-repo` and your connector is `my-connector`, the pat
 ```bash
 helm upgrade --install <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-open-api-lambda" \
+  --set image.repository="my_repo/ndc-nodejs-lambda" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.NDC_OAS_BASE_URL="ndc_oas_base_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
