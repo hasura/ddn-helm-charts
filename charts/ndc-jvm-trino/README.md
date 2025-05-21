@@ -39,11 +39,14 @@ helm upgrade --install <release-name> \
 
 Follow the pre-requisite [here](../../README.md#using-git-for-metadata-files) which has to be done once and deployed on the cluster.
 
-Replace `git_domain`, `org` and `repo` placeholders in the below command to suit your git repository.
+Replace `<git_domain>`, `<org>` and `<repo>` placeholders in the below command to suit your git repository.
 
-Additionally, ensure that `connectorEnvVars.configDirectory` is set to the given path below, providing that you are also replacing `repo` and `connector-name` placeholders within it.  For clarity, `connector-name` is the name that was given to your connector (ie. Check `app/connector` under your Supergraph) and `repo` is appended with `.git`.  An example of a value for `connectorEnvVars.configDirectory` would be: `/work-dir/mycode.git/app/connector/mytrino`.
+Additionally, ensure that `connectorEnvVars.configDirectory` is set to the correct path using the format shown below. Replace `<repo>` with the name of your Git repository, and `<connector-name>` with the name of your connector (found under `app/connector` in your Supergraph repo).
 
-Note: For `https` based checkout, a typical URL format for `initContainers.gitSync.repo` will be `https://<git_domain>/<org>/<repo>`.  For `ssh` based checkout, a typical URL format will be `git@<git_domain>:<org>/<repo>`
+Example: If your repo is `my-repo` and your connector is `my-connector`, the path should be:  `/work-dir/my-repo/app/connector/my-connector`
+
+- Note: In most cases, `<repo>` should not include the `.git` suffix.  However, if the connector fails to load after installation, try re-installing with `.git` appended to the `<repo>` in the path.
+- Note: For `https` based checkout, a typical URL format for `initContainers.gitSync.repo` will be `https://<git_domain>/<org>/<repo>`.  For `ssh` based checkout, a typical URL format will be `git@<git_domain>:<org>/<repo>`
 
 ```bash
 helm upgrade --install <release-name> \
@@ -99,3 +102,4 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `initContainers.gitSync.enabled`                  | Enable reading connector config files from a git repository                                                | `false`                             |
 | `initContainers.gitSync.repo`                     | Git repository to read from (Used when initContainers.gitSync.enabled is set to true)                      | `git@github.com:<org>/<repo>`       |
 | `initContainers.gitSync.branch`                   | Branch to read from (Used when initContainers.gitSync.enabled is set to true)                              | `main`                              |
+| `initContainers.gitSync.secretName`               | Secret name for private key & known hosts (Used when initContainers.gitSync.enabled is set to true)        | `git-creds`                         |

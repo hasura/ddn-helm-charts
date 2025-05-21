@@ -1,6 +1,6 @@
 apiVersion: v2
-name: ndc-jvm-trino
-description: (DDN) A Helm chart for deploying ndc-jvm-trino
+name: ndc-python-lambda
+description: (DDN) A Helm chart for deploying ndc-python-lambda
 
 # A chart can be either an 'application' or a 'library' chart.
 #
