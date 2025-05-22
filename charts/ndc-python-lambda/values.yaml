@@ -22,11 +22,26 @@ initContainers:
     repo: "git@github.com:<org>/<repo>"
     branch: "main"
     secretName: ""
+    depsPackaged: true
 
 healthChecks:
   enabled: false
   livenessProbePath: "/healthz"
   readinessProbePath: "/healthz"
+
+command: |
+  - bash
+  - /scripts/run.sh
+
+extraVolumes: |
+  - name: run-script
+    configMap:
+      name: {{ printf "%s-config" (include "common.name" .) }}
+
+extraVolumeMounts: |
+  - name:  run-script
+    mountPath: /scripts/run.sh
+    subPath: run.sh
 
 hpa:
   enabled: false
