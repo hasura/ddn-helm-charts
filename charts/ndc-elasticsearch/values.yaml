@@ -7,13 +7,13 @@ additionalAnnotations: |
 image:
   repository: ""
   tag: ""
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 replicas: "1"
 wsInactiveExpiryMins: "1"
 securityContext:
   runAsNonRoot: true
   runAsGroup: 1000
-  runAsUser: 100
+  runAsUser: 1000
   fsGroup: 1000
 
 serviceAccount:
@@ -25,6 +25,7 @@ initContainers:
     enabled: false
     repo: "git@github.com:<org>/<repo>"
     branch: "main"
+    secretName: ""
 
 healthChecks:
   enabled: false

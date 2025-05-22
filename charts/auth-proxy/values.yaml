@@ -12,7 +12,7 @@ additionalAnnotations: |
 image:
   repository: ""
   tag: ""
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 httpPort: 8081
 replicas: "1"
 wsInactiveExpiryMins: "1"
