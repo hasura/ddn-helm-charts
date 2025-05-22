@@ -39,11 +39,10 @@ Follow the pre-requisite [here](../../README.md#using-git-for-metadata-files) wh
 
 Replace `<git_domain>`, `<org>` and `<repo>` placeholders in the below command to suit your git repository.
 
-Additionally, ensure that `connectorEnvVars.configDirectory` is set to the correct path using the format shown below. Replace `<repo>` with the name of your Git repository, and `<connector-name>` with the name of your connector (found under `app/connector` in your Supergraph repo).
+Additionally, ensure that `connectorEnvVars.configDirectory` is set to the correct path using the format shown below. Replace `<repo>` with the name of your Git repository, and `<connector-name>` with the name of your connector (found under `app/connector` in your Supergraph repo).  Ensure that you are not adding the `.git` suffix to `<repo>`.
 
 Example: If your repo is `my-repo` and your connector is `my-connector`, the path should be:  `/work-dir/my-repo/app/connector/my-connector`
 
-- Note: In most cases, `<repo>` should not include the `.git` suffix.  However, if the connector fails to load after installation, try re-installing with `.git` appended to the `<repo>` in the path.
 - Note: For `https` based checkout, a typical URL format for `initContainers.gitSync.repo` will be `https://<git_domain>/<org>/<repo>`.  For `ssh` based checkout, a typical URL format will be `git@<git_domain>:<org>/<repo>`
 
 ```bash
@@ -67,7 +66,7 @@ By **default**, the setup expects the `node_modules` directory (produced by runn
 
 If you prefer **not to commit** the `node_modules` directory to your repository, you can configure the system to use pre-packaged dependencies from a Docker image instead. To do this:
 
-- Build a custom Docker image that includes the `node_modules` directory.
+- Build a custom Docker image that includes the `node_modules` directory.  Use the `Dockerfile` which is included in your connector's `.hasura-connector` folder to build the image.
   - This directory should be located at `/functions` inside the image.
 - Install your Helm chart with `--set initContainers.gitSync.depsPackaged=false`
   - This tells the system to use the pre-packaged dependencies instead of expecting them in the Git repo.
