@@ -1,0 +1,97 @@
+global:
+  domain: ""
+  subDomain: true
+  containerRegistry: "gcr.io/hasura-ee"
+  certIssuer: "letsencrypt-prod"
+  uriScheme: "https"
+
+# Common Labels
+labels:
+  app: "ddn-cli-api"
+
+additionalAnnotations: |
+  checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+
+# Container Configs
+image:
+  repository: "ddn-cli-api"
+  tag: "v0.1.0"
+  pullPolicy: IfNotPresent
+replicas: "1"
+httpPort: 3000
+wsInactiveExpiryMins: "1"
+securityContext:
+  runAsNonRoot: true
+  runAsGroup: 1000
+  runAsUser: 1000
+  fsGroup: 1000
+
+serviceAccount:
+  enabled: false
+  name: ""
+
+healthChecks:
+  enabled: true
+  livenessProbe: |
+    httpGet:
+      path: /health
+      port: 3000
+  readinessProbe: |
+    httpGet:
+      path: /health
+      port: 3000
+
+resources: |
+  requests:
+    cpu: "200m"
+    memory: "500Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+# Ingress Configs
+# enable ingress / routes only if there is no internal network connectivity
+# between control plane and data planes
+ingress:
+  enabled: false
+  ingressClassName: nginx
+  hostName: '{{ template "ddn-cli-api.domain" . }}'
+  additionalAnnotations: '{{ template "ddn-cli-api.ingress.annotations" . }}'
+  path: '{{ template "ddn-cli-api.path" . }}'
+
+ddnCliApiEnvVars:
+  JWKS_URI: ""
+  SSO_GROUP_CLAIM_KEY: ""
+  DDN_CLI_PAT_TOKEN: ""
+  CP_GRAPHQL_ENDPOINT: ""
+  HASURA_GRAPHQL_ADMIN_SECRET: ""
+
+env: |
+  {{- if .Values.ddnCliApiEnvVars.JWKS_URI }}
+  - name: JWKS_URI
+    value: {{ .Values.ddnCliApiEnvVars.JWKS_URI }}
+  {{- end }}
+  {{- if .Values.ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY }}
+  - name: SSO_GROUP_CLAIM_KEY
+    value: {{ .Values.ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY }}
+  {{- end }}
+  {{- if .Values.ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN }}
+  - name: DDN_CLI_PAT_TOKEN
+    valueFrom:
+      secretKeyRef:
+        key: DDN_CLI_PAT_TOKEN
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
+  {{- if .Values.ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT }}
+  - name: CP_GRAPHQL_ENDPOINT
+    value: {{ .Values.ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT }}
+  - name: HASURA_DDN_CONTROL_PLANE_HOST
+    value: {{ regexReplaceAll "/v1/graphql$" .Values.ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT "" }}
+  {{- end }}
+  {{- if .Values.ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET }}
+  - name: HASURA_GRAPHQL_ADMIN_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: HASURA_GRAPHQL_ADMIN_SECRET
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
