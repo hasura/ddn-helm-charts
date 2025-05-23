@@ -84,8 +84,8 @@ See Hasura's documentation for more information.  Link will be provided here in 
 | `ingress.hostName`                             | Hostname template for ingress                      | `{{ template "ddn-cli-api.domain" . }}`                                     |                |
 | `ingress.additionalAnnotations`                | Extra annotations for ingress                      | `{{ template "ddn-cli-api.ingress.annotations" . }}`                        |                |
 | `ingress.path`                                 | Ingress path                                       | `{{ template "ddn-cli-api.path" . }}`                                       |                |
-| `ddnCliApiEnvVars.JWKS_URI`                    | URI for JWKS used in JWT validation                | `""`                                                                        |                |
-| `ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY`         | Claim key for extracting user group from JWT       | `""`                                                                        |                |
-| `ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN`           | CLI personal access token (used from secret)       | `""`                                                                        |                |
-| `ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT`         | Control plane GraphQL endpoint                     | e.g. `https://host:port/v1/graphql`                                         |                |
-| `ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET` | Hasura admin secret (used from secret)             | `""`                                                                        |                |
+| `ddnCliApiEnvVars.JWKS_URI`                    | URL of your JWKS endpoint for JWT validation       | e.g. `https://your-auth-server/.well-known/jwks.json`                       |                |
+| `ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY`         | JWT claim field containing role information        | e.g. `roles` or `groups`                                                    |                |
+| `ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN`           | Personal Access Token for CLI authentication       | `""`                                                                        |                |
+| `ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT`         | Control Plane GraphQL API endpoint                 | e.g. `https://data.<domain>/v1/graphql`                                     |                |
+| `ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET` | Admin secret for Control Plane API access          | `""`                                                                        |                |
