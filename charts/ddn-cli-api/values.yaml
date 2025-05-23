@@ -65,6 +65,7 @@ ddnCliApiEnvVars:
   DDN_CLI_PAT_TOKEN: ""
   CP_GRAPHQL_ENDPOINT: ""
   HASURA_GRAPHQL_ADMIN_SECRET: ""
+  HASURA_DDN_CONTROL_PLANE_HOST:  ""
 
 env: |
   {{- if .Values.ddnCliApiEnvVars.JWKS_URI }}
@@ -85,6 +86,10 @@ env: |
   {{- if .Values.ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT }}
   - name: CP_GRAPHQL_ENDPOINT
     value: {{ .Values.ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT }}
+  {{- end }}
+  {{- if .Values.ddnCliApiEnvVars.HASURA_DDN_CONTROL_PLANE_HOST }}
+  - name: HASURA_DDN_CONTROL_PLANE_HOST
+    value: {{ .Values.ddnCliApiEnvVars.HASURA_DDN_CONTROL_PLANE_HOST }}
   {{- end }}
   {{- if .Values.ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET }}
   - name: HASURA_GRAPHQL_ADMIN_SECRET
