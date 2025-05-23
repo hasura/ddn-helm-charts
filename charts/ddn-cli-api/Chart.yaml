@@ -1,0 +1,10 @@
+apiVersion: v2
+name: ddn-cli-api
+description: A Helm chart for ddn-cli-api
+type: application
+version: v2025.05.23
+appVersion: "3.0.0"
+dependencies:
+- name: common
+  version: 0.0.11
+  repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
