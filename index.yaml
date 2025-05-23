@@ -49,6 +49,23 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/auth-proxy@v2025.04.24/auth-proxy-v2025.04.24.tgz
     version: v2025.04.24
+  ddn-cli-api:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-05-23T16:10:52.341544981Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.11
+    description: A Helm chart for ddn-cli-api
+    digest: 76e7c0f0e2d2a889e3ae46be6c43d5bd2b44728bd8f3db534c56964d42588181
+    name: ddn-cli-api
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ddn-cli-api@v2025.05.23/ddn-cli-api-v2025.05.23.tgz
+    version: v2025.05.23
   ddn-workspace:
   - annotations:
       artifacthub.io/changes: ""
@@ -1840,4 +1857,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-05-22T22:42:30.52999549Z"
+generated: "2025-05-23T16:10:54.661998583Z"
