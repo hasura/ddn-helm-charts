@@ -1,6 +1,6 @@
-# Ddn-workspace Helm Chart
+# Ddn-cli-api Helm Chart
 
-This chart deploys DDN Workspace (Native Runtime).
+This chart deploys ddn-cli-api.
 
 ## Install Chart
 
@@ -11,126 +11,30 @@ See all [configuration](#parameters) below.
 
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
-  --set namespace="workspace" \
-  --set global.domain="my-dp.domain.com" \
-  --set global.tag="image_tag" \
-  --set consoleUrl="https://console.my-cp.domain.com" \
-  --set secrets.password="argon2id_hashed_password" \
-  hasura-ddn/ddn-workspace | kubectl apply -f-
+  --set namespace="<namespace>" \
+  --set global.containerRegistry="gcr.io/hasura-ee" \
+  --set image.repository="ddn-cli-api" \
+  --set image.tag="v0.1.0" \
+  --set ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN="<pat-token>" \
+  --set ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET="<admin-secret>" \
+  --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
+  --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
+  hasura-ddn/ddn-cli-api | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
-  --set namespace="workspace" \
-  --set global.domain="my-dp.domain.com" \
-  --set global.tag="image_tag" \
-  --set consoleUrl="https://console.my-cp.domain.com" \
-  --set secrets.password="argon2id_hashed_password" \
-  hasura-ddn/ddn-workspace
+  --set namespace="<namespace>" \
+  --set global.containerRegistry="gcr.io/hasura-ee" \
+  --set image.repository="ddn-cli-api" \
+  --set image.tag="v0.1.0" \
+  --set ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN="<pat-token>" \
+  --set ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET="<admin-secret>" \
+  --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
+  --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
+  hasura-ddn/ddn-cli-api
 ```
-
-## Install Chart (Where PromptQL services are installed under Control Plane)
-
-See all [configuration](#parameters) below.
-
-```bash
-# EXAMPLES:
-
-# helm template and apply manifests via kubectl (example)
-helm template <release-name> \
-  --set namespace="workspace" \
-  --set global.domain="my-dp.domain.com" \
-  --set global.tag="image_tag" \
-  --set consoleUrl="https://console.my-cp.domain.com" \
-  --set ddnPromptqlEndpoint="https://promptql-cp.domain.com/graphql" \
-  --set secrets.password="argon2id_hashed_password" \
-  hasura-ddn/ddn-workspace | kubectl apply -f-
-
-# helm upgrade --install (pass configuration via command line)
-helm upgrade --install <release-name> \
-  --set namespace="workspace" \
-  --set global.domain="my-dp.domain.com" \
-  --set global.tag="image_tag" \
-  --set consoleUrl="https://console.my-cp.domain.com" \
-  --set ddnPromptqlEndpoint="https://promptql-cp.domain.com/graphql" \
-  --set secrets.password="argon2id_hashed_password" \
-  hasura-ddn/ddn-workspace
-```
-
-## Install Chart (With an overrides file)
-
-Here's an example of an overrides file, targeting `2.6.1` image tag:
-
-```yaml
-global:
-  certIssuer: "letsencrypt-prod"
-  uriScheme: "https"
-  domain: "hasura-dp.domain.com"
-  namespace: "default"
-  subDomain: true
-  serviceAccount:
-    enabled: true
-  securityContext:
-    disabled: false
-
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    additionalAnnotations: |
-      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-      service.beta.kubernetes.io/aws-load-balancer-type: nlb
-
-consoleUrl: "https://console.my-cp.domain.com"
-skipTlsVerify: false
-
-image:
-  tag: "2.6.1"
-
-secrets:
-  # Hashed password for code server (Argon2id hash)
-  # This was generated using a dummy password
-  password: "$argon2id$v=19$m=16,t=2,p=1$TGY1cnNQblpGNmlCSnV4VQ$1/DpAKkaZhEtHDyVBqpF9A"
-
-  imagePullSecret:
-    auths:
-      gcr.io:
-        username: "_json_key"
-        # Below content should be replaced with "company-sa.json" file content which is shared by the Hasura team, ensuring that it's indented correctly.
-        password: |
-          {}
-        email: "support@hasura.io"
-```
-
-Install via the following command:
-
-```bash
-helm upgrade --install <release-name> \
-  -f overrides.yaml \
-  hasura-ddn/ddn-workspace
-```
-
-## Install Chart (With an overrides file where PromptQL services are installed under Control Plane)
-
-In addition to what is mentioned in section above, add the following into the overrides file:
-
-```yaml
-ddnPromptqlEndpoint: "https://promptql-cp.domain.com/graphql"
-```
-Install via the following command:
-
-```bash
-helm upgrade --install <release-name> \
-  -f overrides.yaml \
-  hasura-ddn/ddn-workspace
-```
-
-## Argo2id Password
-
-The value being passed to `secrets.password` needs to be an `Argo2id` hashed password.  You can use a tool like [this](https://argon2.online/) to generate the appropriate hash from a given password.
-When you generate a password, make sure you choose `Argon2id` as the mode/variant (This is the recommended approach per [RFC 9106](https://datatracker.ietf.org/doc/html/rfc9106)).
-
-You can also use [this](https://github.com/hasura/ddn-helm-charts/blob/main/scripts/argo2id.py) Python script provided that you installed the `argon2-cffi` package via `pip install argon2-cffi`.
-
-Note that when you pass the password via `--set`, you will need to escape `$` as well as `,` that are contained within the password.  If you are using an overrides file, you do not need to escape.
 
 ## Image pull secret
 
@@ -139,61 +43,49 @@ contact the Hasura engineering team in order to obtain alternate methods for fet
 
 ## Images
 
-Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/ddn-workspace/release-notes/#ddn-workspace-release-notes).
+Contact Hasura engineering team for this information.
 
-## Accessing DDN Workspace (Native Runtime) and next steps
+## Post-Install
 
-After installation, you can access the DDN Workspace (Native Runtime) via the ingress URL. To find the hostname needed for connecting, run the following command: `kubectl get ingress`.
-
-For detailed instructions on the DDN Workspace (Native Runtime) workflow and to get started, refer to the [Getting Started Documentation](https://ddn-cp-docs.hasura.io/data-plane/ddn-workspace-workflow/).
-
-To explore the release notes, which include details on connector support and other features, visit the DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/data-plane/release-notes/#ddn-workspace-release-notes).
+See Hasura's documentation for more information.  Link will be provided here in the near future.
 
 ## Parameters
 
-| Name                                              | Description                                                                                                | Value                           |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `global.domain`                                   | Base domain for DDN Workspace                                                                              | `""`                            |
-| `global.subDomain`                                | Use a subdomain for DDN Workspace                                                                          | `true`                          |
-| `global.certIssuer`                               | Cert issuer to use for ingress                                                                             | `letsencrypt-prod`              |
-| `global.uriScheme`                                | URI Scheme for DDN Workspace                                                                               | `https`                         |
-| `global.containerRegistry`                        | Container registry to pull image from                                                                      | `gcr.io/hasura-ee`              |
-| `global.persistence.enabled`                      | Create a PVC for persisting `/workspace` directory within the DDN Workspace                                | `true`                          |
-| `global.serviceCatalog`                           | Defines outgoing (egress) to specific pods based on labels                                                 | `[{'name': 'data', 'port': 8080}, {'name': 'ddn-cps-engine', 'port': 3000}]` |
-| `global.serviceAccount.enabled`                   | Create SA (hasura-image-pull)                                                                              | `true`                          |
-| `global.routes.enabled`                           | Enable routes (For OpenShift)                                                                              | `false`                         | 
-| `additionalLabels.group`                          | Assigns given value to label group                                                                         | `ddn-workspace`                 |
-| `networkPolicy.ingress.enabled`                   | Allow or disallow incoming network traffic                                                                 | `true`                          |
-| `networkPolicy.egress.enabled`                    | Alow or disallow egress network traffic                                                                    | `true`                          |
-| `networkPolicy.egress.allowedApps`                | List of allow apps for egress                                                                              | `['data', 'ddn-cps-engine']`    |
-| `useReleaseName`                                  | Use Release Name                                                                                           | `true`                          |
-| `image.repository`                                | Image name                                                                                                 | `ddn-native-workspace`          |
-| `image.tag`                                       | Image tag                                                                                                  | `""`                            |
-| `replicas`                                        | Replica count                                                                                              | `1`                             |
-| `httpPort`                                        | HTTP port which service run on                                                                             | `8123`                          |
-| `setControlPlaneUrls`                             | Sets necessary Control Plane URLs                                                                          | `true`                          |
-| `persistence.enabled`                             | Create a PVC for persisting `/workspace` directory within the DDN Workspace                                | `true`                          |
-| `persistence.size`                                | PVC size                                                                                                   | `10Gi`                          |
-| `healthChecks.enabled`                            | Enable Health checks                                                                                       | `true`                          |
-| `healthChecks.livenessProbe`                      | Health check liveness probe                                                                                | `httpGet:\n  path: /healthz\n  port: 8123\n` |
-| `healthChecks.readinessProbe`                     | Health check readiness probe                                                                               | `httpGet:\n  path: /healthz\n  port: 8123\n` |
-| `securityContext.runAsUser`                       | Security context runAsUser                                                                                 | `10001`                         |
-| `securityContext.fsGroup`                         | Security context file system group ID                                                                      | `10001`                         |
-| `securityContext.runAsNonRoot`                    | Security context runAsNonRoot                                                                              | `true`                          |
-| `resources.requests.cpu`                          | CPU requested for the container                                                                            | `500m`                          |
-| `resources.requests.memory`                       | Memory requested for the container                                                                         | `2048Mi`                        |
-| `resources.limits.memory`                         | Maximum memory allowed for the container                                                                   | `2048Mi`                        |
-| `hostAliases[0].ip`                               | IP address to alias in `/etc/hosts`                                                                        | `"127.0.0.1"`                   |
-| `hostAliases[0].hostnames[0]`                     | Hostname mapped to the alias IP                                                                            | `"local.hasura.dev"`            |
-| `dataHost`                                        | Host URL for the data service                                                                              | `"http://data:8080"`            |
-| `ddnCpsEngineHost`                                | Host URL for the CPS engine                                                                                | `"http://ddn-cps-engine:3000"`  |
-| `consoleUrl`                                      | DDN Console URL (Uses FQDN, prefixed with scheme)                                                          | `""`                            |
-| `ddnPromptqlEndpoint`                             | DDN PromptQL Endpoint (Uses FQDN, prefixed with scheme and appended with `/graphql`).  Only set if Control Plane has PromptQL services installed                       | `""`                            |
-| `skipTlsVerify`                                   | Whether to skip TLS verification                                                                           | `false`                         |
-| `secrets.password`                                | DDN Workspace password (Argon2id hash)                                                                     | `""`                            |
-| `ingress.enabled`                                 | Enable or disable creation of ingress                                                                      | `true`                          |
-| `ingress.ingressClassName`                        | Ingress class name                                                                                         | `nginx`                         |
-| `ingress.hostName`                                | Ingress override hostname                                                                                  | `""`                            |
-| `ingress.additionalAnnotations`                   | Ingress additional annotations                                                                             | `""`                            |
-| `ingress.path`                                    | Ingress override path                                                                                      | `""`                            |
-| `routes.enabled`                                  | Enable routes (For OpenShift)                                                                              | `false`                         |      
+| Name                                           | Description                                        | Value                                                                       |                |
+| ---------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------- | -------------- |
+| `global.domain`                                | Base domain for ingress host generation            | `""`                                                                        |                |
+| `global.subDomain`                             | Toggle to use a subdomain in routing               | `true`                                                                      |                |
+| `global.containerRegistry`                     | Docker registry for pulling images                 | `gcr.io/hasura-ee`                                                          |                |
+| `global.certIssuer`                            | Certificate issuer for TLS                         | `letsencrypt-prod`                                                          |                |
+| `global.uriScheme`                             | URI scheme (http or https)                         | `https`                                                                     |                |
+| `labels.app`                                   | Application label for K8s resources                | `ddn-cli-api`                                                               |                |
+| `additionalAnnotations`                        | Custom annotations like config checksums           | \`checksum/config: {{ include (print \$.Template.BasePath "/secret.yaml") . | sha256sum }}\` |
+| `image.repository`                             | Container image name                               | `ddn-cli-api`                                                               |                |
+| `image.tag`                                    | Container image version tag                        | `v0.1.0`                                                                    |                |
+| `image.pullPolicy`                             | Image pull policy                                  | `IfNotPresent`                                                              |                |
+| `replicas`                                     | Number of pod replicas                             | `"1"`                                                                       |                |
+| `httpPort`                                     | HTTP port exposed by the container                 | `3000`                                                                      |                |
+| `wsInactiveExpiryMins`                         | Inactive WebSocket timeout in minutes              | `"1"`                                                                       |                |
+| `securityContext.runAsNonRoot`                 | Enforce non-root user execution                    | `true`                                                                      |                |
+| `securityContext.runAsGroup`                   | Group ID for running container                     | `1000`                                                                      |                |
+| `securityContext.runAsUser`                    | User ID for running container                      | `1000`                                                                      |                |
+| `securityContext.fsGroup`                      | Filesystem group for mounted volumes               | `1000`                                                                      |                |
+| `serviceAccount.enabled`                       | Toggle to use a Kubernetes service account         | `false`                                                                     |                |
+| `serviceAccount.name`                          | Name of the service account to use                 | `""`                                                                        |                |
+| `healthChecks.enabled`                         | Enable liveness and readiness probes               | `true`                                                                      |                |
+| `healthChecks.livenessProbe`                   | Liveness probe config                              | `GET /health on port 3000`                                                  |                |
+| `healthChecks.readinessProbe`                  | Readiness probe config                             | `GET /health on port 3000`                                                  |                |
+| `resources.requests.cpu`                       | Minimum CPU resources requested                    | `200m`                                                                      |                |
+| `resources.requests.memory`                    | Minimum memory requested                           | `500Mi`                                                                     |                |
+| `resources.limits.cpu`                         | Maximum CPU limit                                  | `1`                                                                         |                |
+| `resources.limits.memory`                      | Maximum memory limit                               | `1Gi`                                                                       |                |
+| `ingress.enabled`                              | Enable ingress resource creation                   | `false`                                                                     |                |
+| `ingress.ingressClassName`                     | Ingress class name (e.g., nginx)                   | `nginx`                                                                     |                |
+| `ingress.hostName`                             | Hostname template for ingress                      | `{{ template "ddn-cli-api.domain" . }}`                                     |                |
+| `ingress.additionalAnnotations`                | Extra annotations for ingress                      | `{{ template "ddn-cli-api.ingress.annotations" . }}`                        |                |
+| `ingress.path`                                 | Ingress path                                       | `{{ template "ddn-cli-api.path" . }}`                                       |                |
+| `ddnCliApiEnvVars.JWKS_URI`                    | URI for JWKS used in JWT validation                | `""`                                                                        |                |
+| `ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY`         | Claim key for extracting user group from JWT       | `""`                                                                        |                |
+| `ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN`           | CLI personal access token (used from secret)       | `""`                                                                        |                |
+| `ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT`         | Control plane GraphQL endpoint                     | e.g. `https://host:port/v1/graphql`                                         |                |
+| `ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET` | Hasura admin secret (used from secret)             | `""`                                                                        |                |

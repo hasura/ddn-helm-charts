@@ -7,7 +7,7 @@ global:
 
 # Common Labels
 labels:
-  app: "data"
+  app: "ddn-cli-api"
 
 additionalAnnotations: |
   checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
