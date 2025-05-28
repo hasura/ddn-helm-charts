@@ -2,9 +2,9 @@ apiVersion: v2
 name: ddn-workspace
 description: A Helm chart for DDN Workspace (Native Runtime)
 type: application
-version: v2025.05.22
+version: v2025.05.28
 appVersion: "3.0.0"
 dependencies:
 - name: common
-  version: 0.0.11
+  version: 0.0.12
   repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
