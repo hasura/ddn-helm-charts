@@ -2,6 +2,13 @@ useReleaseName: true
 
 additionalAnnotations: |
   checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+  app.kubernetes.io/access-group: connector
+
+networkPolicy:
+  ingress:
+    enabled: true
+    allowedApps:
+      - v3-server
 
 # Container Configs
 image:

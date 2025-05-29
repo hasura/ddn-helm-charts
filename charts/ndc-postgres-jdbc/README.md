@@ -81,6 +81,11 @@ When you enable git-sync, the code will be fetched from the repository specified
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | `namespace`                                       | Namespace to deploy to                                                                                     | `"default"`                     |
+| `additionalAnnotations.checksum/config`           | Adds a checksum annotation for the `secret.yaml` file to force rollout on changes                          | `{{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}`                     |
+| `additionalAnnotations.app.kubernetes.io/access-group` | Labels resources with an access group for organizational or access control purposes                   | `connector`                     |
+| `networkPolicy.ingress.enabled`                   | Enables ingress network policy rules                                                                       | `true`                          |
+| `networkPolicy.ingress.allowedApps`               | Specifies which applications (by label) are allowed ingress access                                         | `v3-server`                     |
+| `global.networkPolicy.enabled`                    | Enables or disables rendering of networkPolicy                                                             | `false`                         |
 | `image.repository`                                | Image repository containing custom created ndc-postgres-jdbc                                                    | `""`                            |
 | `image.tag`                                       | Image tag to use for custom created ndc-postgres-jdbc                                                           | `""`                            |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
