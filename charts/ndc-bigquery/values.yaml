@@ -8,7 +8,7 @@ networkPolicy:
   ingress:
     enabled: true
     allowedApps:
-      - v3-server
+      - v3-engine
 
 # Container Configs
 image:
