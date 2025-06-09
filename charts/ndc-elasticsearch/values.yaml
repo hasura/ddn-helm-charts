@@ -50,12 +50,6 @@ hpa:
         target:
           type: Utilization
           averageUtilization: 50  # Target 50% CPU utilization per pod
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80  # Target 80% memory utilization per pod
 
 resources: |
   requests:
