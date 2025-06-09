@@ -1,4 +1,4 @@
-Ndc-nodejs-lambda Helm Chart Deployment
+Ndc-duckduckapi Helm Chart Deployment
 
 1. Deployment Information:
    - Release Name: {{ .Release.Name }}
