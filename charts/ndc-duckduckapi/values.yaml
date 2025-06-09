@@ -78,10 +78,9 @@ resources: |
 
 connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
-  NDC_OAS_DOCUMENT_URI: ""
-  NDC_OAS_BASE_URL: ""
-  NDC_OAS_LAMBDA_PRETTY_LOGS: "true"
-  NDC_OAS_FILE_OVERWRITE: "false"
+  FEATURE_PERSISTENT_DATA: "true"
+  FEATURE_MIN_INSTANCES: "1"
+  DUCKDB_PATH: "/etc/connector/persist-data/db"
   configDirectory: ""
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
   OTEL_SERVICE_NAME: ""
@@ -94,28 +93,12 @@ env: |
         key: HASURA_SERVICE_TOKEN_SECRET
         name: {{ printf "%s-secret" (include "common.name" .) }}
   {{- end }}
-  {{- if .Values.connectorEnvVars.NDC_OAS_DOCUMENT_URI }}
-  - name: NDC_OAS_DOCUMENT_URI
-    valueFrom:
-      secretKeyRef:
-        key: NDC_OAS_DOCUMENT_URI
-        name: {{ printf "%s-secret" (include "common.name" .) }}
-  {{- end }}
-  - name: NDC_OAS_BASE_URL
-    valueFrom:
-      secretKeyRef:
-        key: NDC_OAS_BASE_URL
-        name: {{ printf "%s-secret" (include "common.name" .) }}
-  - name: NDC_OAS_LAMBDA_PRETTY_LOGS
-    valueFrom:
-      secretKeyRef:
-        key: NDC_OAS_LAMBDA_PRETTY_LOGS
-        name: {{ printf "%s-secret" (include "common.name" .) }}
-  - name: NDC_OAS_FILE_OVERWRITE
-    valueFrom:
-      secretKeyRef:
-        key: NDC_OAS_FILE_OVERWRITE
-        name: {{ printf "%s-secret" (include "common.name" .) }}
+  - name: FEATURE_PERSISTENT_DATA
+    value: {{ .Values.connectorEnvVars.FEATURE_PERSISTENT_DATA }}
+  - name: FEATURE_MIN_INSTANCES
+    value: {{ .Values.connectorEnvVars.FEATURE_MIN_INSTANCES }}
+  - name: DUCKDB_PATH
+    value: {{ .Values.connectorEnvVars.DUCKDB_PATH }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
   {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}

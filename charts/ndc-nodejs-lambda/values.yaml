@@ -103,3 +103,12 @@ env: |
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
   {{- end }}
+  {{- range $key, $val := .Values.connectorCustomEnvVars }}
+  {{- if $val }}
+  - name: {{ $key }}
+    valueFrom:
+      secretKeyRef:
+        key: {{ $key }}
+        name: {{ printf "%s-secret" (include "common.name" $) }}
+  {{- end }}
+  {{- end }}

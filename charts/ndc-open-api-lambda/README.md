@@ -87,6 +87,16 @@ If you prefer **not to commit** the `node_modules` directory to your repository,
 | `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
 | `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-open-api-lambda`                  |
 
+## Connector Custom ENV Inputs
+
+You can pass custom environment variables to the connector container by defining them under `connectorCustomEnvVars`. Each key in this map is treated as the name of the environment variable, and the value is pulled from a Kubernetes Secret with the same key.
+
+> 💡 These variables are optional. Only keys with non-empty values will be injected.
+
+| Name                                              | Description                                                                                                | Value                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `connectorCustomEnvVars.MY_ENV_VAR`               | Custom environment variable to pass to the container. Value is sourced from a secret named `<release>-secret`. | `"my-env-secret"`           |
+
 ## Additional Parameters
 
 | Name                                              | Description                                                                                                | Value                           |

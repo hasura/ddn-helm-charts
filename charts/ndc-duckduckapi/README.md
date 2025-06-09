@@ -1,13 +1,13 @@
-# Ndc-nodejs-lambda Helm Chart
+# Ndc-duckduckapi Helm Chart
 
-This chart deploys the ndc-nodejs-lambda connector. Refer to the pre-requisites section [here](../../README.md#get-started)
+This chart deploys the ndc-duckduckapi connector. Refer to the pre-requisites section [here](../../README.md#get-started)
 
 ## Connector Image
 
 If you're running `docker compose build` within your Supergraph to build a custom connector image, or if you're using
-the **git-sync** option with a Hasura-provided connector image, the base image used in both cases is: `ghcr.io/hasura/ndc-nodejs-lambda`
+the **git-sync** option with a Hasura-provided connector image, the base image used in both cases is: `ghcr.io/hasura/ndc-duckduckapi`
 
-To determine the specific version of the image being used, check the `connector-metadata.yaml` file located under your Supergraph at: `app/connector/<connector-name>/.hasura-connector/connector-metadata.yaml`
+To determine the specific version of the image being used, check the `Dockerfile` file located under your Supergraph at: `app/connector/<connector-name>/.hasura-connector/Dockerfile`
 
 ## Install Chart
 
@@ -19,18 +19,18 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-nodejs-lambda" \
+  --set image.repository="my_repo/ndc-duckduckapi" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
-  hasura-ddn/ndc-nodejs-lambda | kubectl apply -f-
+  hasura-ddn/ndc-duckduckapi | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-nodejs-lambda" \
+  --set image.repository="my_repo/ndc-duckduckapi" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
-  hasura-ddn/ndc-nodejs-lambda
+  hasura-ddn/ndc-duckduckapi
 ```
 
 ## Enabling git-sync
@@ -48,14 +48,14 @@ Example: If your repo is `my-repo` and your connector is `my-connector`, the pat
 ```bash
 helm upgrade --install <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-nodejs-lambda" \
+  --set image.repository="my_repo/ndc-duckduckapi" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
   --set initContainers.gitSync.enabled="true" \
   --set initContainers.gitSync.repo="git@<git_domain>:<org>/<repo>" \
   --set initContainers.gitSync.branch="main" \
   --set connectorEnvVars.configDirectory="/work-dir/<repo>/app/connector/<connector-name>" \
-  hasura-ddn/ndc-nodejs-lambda
+  hasura-ddn/ndc-duckduckapi
 ```
 
 ## Committing code to git
@@ -76,9 +76,12 @@ If you prefer **not to commit** the `node_modules` directory to your repository,
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret.  This value comes from your Supergraph’s `.env` file and corresponds to the connector's `HASURA_SERVICE_TOKEN_SECRET` environment variable. (Optional)                                                                     | `""`                            |
+| `connectorEnvVars.FEATURE_PERSISTENT_DATA`        | Persist data in the connector deployment (Optional)                                                        | `"true"`                        |
+| `connectorEnvVars.FEATURE_MIN_INSTANCES`          | Minimum number of instances to keep running (set to 1 to keep one instance running at all times) (Optional)                                                        | `"1"`                        |
+| `connectorEnvVars.DUCKDB_PATH`                    | Path inside the docker container to store DuckDB database. Do not change this to outside the persist-data directory or data may not be persisted on connector restarts. (Optional)                                                        | `"/etc/connector/persist-data/db"`                        |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 | `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
-| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-nodejs-lambda`                  |
+| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-duckduckapi`                  |
 
 ## Connector Custom ENV Inputs
 
@@ -100,18 +103,18 @@ You can pass custom environment variables to the connector container by defining
 | `networkPolicy.ingress.enabled`                   | Enables ingress network policy rules                                                                       | `true`                          |
 | `networkPolicy.ingress.allowedApps`               | Specifies which applications (by label) are allowed ingress access                                         | `v3-engine`                     |
 | `global.networkPolicy.enabled`                    | Enables or disables rendering of networkPolicy                                                             | `false`                         |
-| `image.repository`                                | Image repository containing custom created ndc-nodejs-lambda                                                    | `""`                            |
-| `image.tag`                                       | Image tag to use for custom created ndc-nodejs-lambda                                                           | `""`                            |
+| `image.repository`                                | Image repository containing custom created ndc-duckduckapi                                                    | `""`                            |
+| `image.tag`                                       | Image tag to use for custom created ndc-duckduckapi                                                           | `""`                            |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
-| `resources`                                       | Resource requests and limits of ndc-nodejs-lambda container                                                     | `{}`                            |
-| `env`                                             | Env variable section for ndc-nodejs-lambda                                                                      | `[]`                            |
+| `resources`                                       | Resource requests and limits of ndc-duckduckapi container                                                     | `{}`                            |
+| `env`                                             | Env variable section for ndc-duckduckapi                                                                      | `[]`                            |
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                             |
 | `wsInactiveExpiryMins`                            | To be documented                                                                                           | `1`                             |
 | `securityContext`                                 | Define privilege and access control settings for a Pod or Container                                        | `{}`                            |
-| `healthChecks.enabled`                            | Enable health check for ndc-nodejs-lambda container                                                             | `false`                         |
-| `healthChecks.livenessProbePath`                  | Health check liveness Probe path ndc-nodejs-lambda container                                                    | `"/healthz"`                    |
-| `healthChecks.readinessProbePath`                 | Health check readiness Probe path ndc-nodejs-lambda container                                                   | `"/healthz"`                    |
-| `hpa.enabled`                                     | Enable HPA for ndc-nodejs-lambda.  Ensure metrics cluster is configured when enabling                           | `false`                         |
+| `healthChecks.enabled`                            | Enable health check for ndc-duckduckapi container                                                             | `false`                         |
+| `healthChecks.livenessProbePath`                  | Health check liveness Probe path ndc-duckduckapi container                                                    | `"/healthz"`                    |
+| `healthChecks.readinessProbePath`                 | Health check readiness Probe path ndc-duckduckapi container                                                   | `"/healthz"`                    |
+| `hpa.enabled`                                     | Enable HPA for ndc-duckduckapi.  Ensure metrics cluster is configured when enabling                           | `false`                         |
 | `hpa.minReplicas`                                 | minReplicas setting for HPA                                                                                | `2`                             |
 | `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                             |
 | `hpa.metrics.resource.name`                       | Resource name to autoscale on                                                                              | ``                              |
