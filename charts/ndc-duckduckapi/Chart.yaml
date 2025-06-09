@@ -1,6 +1,6 @@
 apiVersion: v2
-name: ndc-nodejs-lambda
-description: (DDN) A Helm chart for deploying ndc-nodejs-lambda
+name: ndc-duckduckapi
+description: (DDN) A Helm chart for deploying ndc-duckduckapi
 
 # A chart can be either an 'application' or a 'library' chart.
 #
