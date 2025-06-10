@@ -29,11 +29,26 @@ initContainers:
     repo: "git@github.com:<org>/<repo>"
     branch: "main"
     secretName: ""
+    depsPackaged: true
 
 healthChecks:
   enabled: false
   livenessProbePath: "/healthz"
   readinessProbePath: "/healthz"
+
+command: |
+  - bash
+  - /scripts/run.sh
+
+extraVolumes: |
+  - name: run-script
+    configMap:
+      name: {{ printf "%s-config" (include "common.name" .) }}
+
+extraVolumeMounts: |
+  - name:  run-script
+    mountPath: /scripts/run.sh
+    subPath: run.sh
 
 hpa:
   enabled: false
@@ -57,9 +72,9 @@ resources: |
 
 connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
-  HASURA_BIGQUERY_SERVICE_KEY: ""
-  HASURA_BIGQUERY_PROJECT_ID: ""
-  HASURA_BIGQUERY_DATASET_ID: ""
+  FEATURE_PERSISTENT_DATA: "true"
+  FEATURE_MIN_INSTANCES: "1"
+  DUCKDB_PATH: "/etc/connector/persist-data/db"
   configDirectory: ""
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
   OTEL_SERVICE_NAME: ""
@@ -72,21 +87,12 @@ env: |
         key: HASURA_SERVICE_TOKEN_SECRET
         name: {{ printf "%s-secret" (include "common.name" .) }}
   {{- end }}
-  - name: HASURA_BIGQUERY_SERVICE_KEY
-    valueFrom:
-      secretKeyRef:
-        key: HASURA_BIGQUERY_SERVICE_KEY
-        name: {{ printf "%s-secret" (include "common.name" .) }}
-  - name: HASURA_BIGQUERY_PROJECT_ID
-    valueFrom:
-      secretKeyRef:
-        key: HASURA_BIGQUERY_PROJECT_ID
-        name: {{ printf "%s-secret" (include "common.name" .) }}
-  - name: HASURA_BIGQUERY_DATASET_ID
-    valueFrom:
-      secretKeyRef:
-        key: HASURA_BIGQUERY_DATASET_ID
-        name: {{ printf "%s-secret" (include "common.name" .) }}
+  - name: FEATURE_PERSISTENT_DATA
+    value: {{ .Values.connectorEnvVars.FEATURE_PERSISTENT_DATA }}
+  - name: FEATURE_MIN_INSTANCES
+    value: {{ .Values.connectorEnvVars.FEATURE_MIN_INSTANCES }}
+  - name: DUCKDB_PATH
+    value: {{ .Values.connectorEnvVars.DUCKDB_PATH }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
   {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
@@ -99,4 +105,13 @@ env: |
   {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
+  {{- range $key, $val := .Values.connectorCustomEnvVars }}
+  {{- if $val }}
+  - name: {{ $key }}
+    valueFrom:
+      secretKeyRef:
+        key: {{ $key }}
+        name: {{ printf "%s-secret" (include "common.name" $) }}
+  {{- end }}
   {{- end }}

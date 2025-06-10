@@ -1,6 +1,7 @@
 ndc-bigquery
 ndc-connector-oracle
 ndc-connector-phoenix
+ndc-duckduckapi
 ndc-elasticsearch
 ndc-graphql
 ndc-jvm-mysql

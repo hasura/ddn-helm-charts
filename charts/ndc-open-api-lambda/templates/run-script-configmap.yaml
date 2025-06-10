@@ -6,6 +6,7 @@ metadata:
   labels:
     app: {{template "common.name" .}}
 data:
+  {{- if .Values.initContainers.gitSync.enabled }}
   run.sh: |
     #!/usr/bin/env bash
     set -eu -o pipefail
@@ -32,3 +33,8 @@ data:
     # actual started process
     START_CMD=$(jq -r ".scripts.start" "package.json")
     PATH=$PATH:/tmp/app/node_modules/.bin exec $START_CMD
+  {{- else }}
+  run.sh: |
+    #!/usr/bin/env bash
+    echo "git-sync is not enabled... Not executing anything within container."
+  {{- end }}

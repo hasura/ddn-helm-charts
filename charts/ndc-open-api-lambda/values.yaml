@@ -61,12 +61,6 @@ hpa:
         target:
           type: Utilization
           averageUtilization: 50  # Target 50% CPU utilization per pod
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80  # Target 80% memory utilization per pod
 
 resources: |
   requests:
@@ -128,4 +122,13 @@ env: |
   {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
+  {{- range $key, $val := .Values.connectorCustomEnvVars }}
+  {{- if $val }}
+  - name: {{ $key }}
+    valueFrom:
+      secretKeyRef:
+        key: {{ $key }}
+        name: {{ printf "%s-secret" (include "common.name" $) }}
+  {{- end }}
   {{- end }}
