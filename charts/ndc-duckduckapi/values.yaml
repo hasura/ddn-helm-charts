@@ -72,7 +72,7 @@ resources: |
 
 connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
-  FEATURE_PERSISTENT_DATA: "true"
+  FEATURE_PERSISTENT_DATA: true
   FEATURE_MIN_INSTANCES: "1"
   DUCKDB_PATH: "/etc/connector/persist-data/db"
   configDirectory: ""
@@ -88,9 +88,9 @@ env: |
         name: {{ printf "%s-secret" (include "common.name" .) }}
   {{- end }}
   - name: FEATURE_PERSISTENT_DATA
-    value: {{ .Values.connectorEnvVars.FEATURE_PERSISTENT_DATA }}
+    value: {{ .Values.connectorEnvVars.FEATURE_PERSISTENT_DATA | quote }}
   - name: FEATURE_MIN_INSTANCES
-    value: {{ .Values.connectorEnvVars.FEATURE_MIN_INSTANCES }}
+    value: {{ .Values.connectorEnvVars.FEATURE_MIN_INSTANCES | quote }}
   - name: DUCKDB_PATH
     value: {{ .Values.connectorEnvVars.DUCKDB_PATH }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
