@@ -753,6 +753,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-connector-phoenix@0.3.0/ndc-connector-phoenix-0.3.0.tgz
     version: 0.3.0
   ndc-duckduckapi:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-06-13T01:49:02.977417772Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.13
+    description: (DDN) A Helm chart for deploying ndc-duckduckapi
+    digest: eecfad951729b2f25fb476ca2088a00ef17514666c7a69995077589988e810b5
+    name: ndc-duckduckapi
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-duckduckapi@v2025.06.12/ndc-duckduckapi-v2025.06.12.tgz
+    version: v2025.06.12
   - apiVersion: v2
     appVersion: 3.0.0
     created: "2025-06-10T13:18:13.590824464Z"
@@ -2418,4 +2434,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-06-10T13:18:15.324866906Z"
+generated: "2025-06-13T01:49:02.977802081Z"
