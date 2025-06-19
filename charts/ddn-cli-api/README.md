@@ -20,6 +20,8 @@ helm template <release-name> \
   --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
   --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
+  --set ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST="<oauth_host>" \
+  --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
@@ -33,6 +35,8 @@ helm upgrade --install <release-name> \
   --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
   --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
+  --set ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST="<oauth_host>" \
+  --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api
 ```
 
@@ -89,3 +93,6 @@ See Hasura's documentation for more information.  Link will be provided here in 
 | `ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN`           | Personal Access Token for CLI authentication       | `""`                                                                        |                |
 | `ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT`         | Control Plane GraphQL API endpoint                 | e.g. `https://data.<domain>/v1/graphql`                                     |                |
 | `ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET` | Admin secret for Control Plane API access          | `""`                                                                        |                |
+| `ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST`       | Hasura DDN Oauth Host                              | e.g. `https://oauth.<domain>`                                               |                |
+| `ddnCliApiEnvVars.HASURA_DDN_OAUTH_CLIENT_ID`  | Hasura DDN Oauth Client ID                         | `"ddn-cli"`                                                                 |                |
+| `ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST`     | Hasura DDN Console Host                            | e.g. `https://console.<domain>`                                             |                |

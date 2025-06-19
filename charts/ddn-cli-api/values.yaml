@@ -65,6 +65,9 @@ ddnCliApiEnvVars:
   DDN_CLI_PAT_TOKEN: ""
   CP_GRAPHQL_ENDPOINT: ""
   HASURA_GRAPHQL_ADMIN_SECRET: ""
+  HASURA_DDN_OAUTH_HOST: ""
+  HASURA_DDN_OAUTH_CLIENT_ID: "ddn-cli"
+  HASURA_DDN_CONSOLE_HOST: ""
 
 env: |
   {{- if .Values.ddnCliApiEnvVars.JWKS_URI }}
@@ -94,4 +97,14 @@ env: |
       secretKeyRef:
         key: HASURA_GRAPHQL_ADMIN_SECRET
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
+  {{- if .Values.ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST }}
+  - name: HASURA_DDN_OAUTH_HOST
+    value: {{ .Values.ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST }}
+  {{- end }}
+  - name: HASURA_DDN_OAUTH_CLIENT_ID
+    value: {{ .Values.ddnCliApiEnvVars.HASURA_DDN_OAUTH_CLIENT_ID }}
+  {{- if .Values.ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST }}
+  - name: HASURA_DDN_CONSOLE_HOST
+    value: {{ .Values.ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST }}
   {{- end }}
