@@ -86,6 +86,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2025-06-19T01:54:03.680087334Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.13
+    description: A Helm chart for ddn-cli-api
+    digest: 9aed79519341bde59b62b34904304c89d100cb40fad22711c64effb4df8aa5e6
+    name: ddn-cli-api
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ddn-cli-api@v2025.06.18/ddn-cli-api-v2025.06.18.tgz
+    version: v2025.06.18
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-06-10T13:18:12.888126619Z"
     dependencies:
     - name: common
@@ -2434,4 +2450,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-06-13T01:49:02.977802081Z"
+generated: "2025-06-19T01:54:03.843681292Z"
