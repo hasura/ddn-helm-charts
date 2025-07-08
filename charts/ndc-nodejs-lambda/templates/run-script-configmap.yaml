@@ -36,5 +36,6 @@ data:
   {{- else }}
   run.sh: |
     #!/usr/bin/env bash
-    echo "git-sync is not enabled... Not executing anything within container."
+    echo "git-sync is not enabled. So falling back to use default start script."
+    /scripts/start.sh
   {{- end }}
