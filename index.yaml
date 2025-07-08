@@ -1624,6 +1624,22 @@ entries:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-mysql-jdbc@v2025.04.14/ndc-mysql-jdbc-v2025.04.14.tgz
     version: v2025.04.14
   ndc-nodejs-lambda:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-07-08T15:49:46.692753759Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.13
+    description: (DDN) A Helm chart for deploying ndc-nodejs-lambda
+    digest: 85fe44e9064b9076383285015193eaa2348dc71309a6d154d4b122ed57bf0826
+    name: ndc-nodejs-lambda
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-nodejs-lambda@v2025.07.08/ndc-nodejs-lambda-v2025.07.08.tgz
+    version: v2025.07.08
   - apiVersion: v2
     appVersion: 3.0.0
     created: "2025-06-10T13:18:14.558706842Z"
@@ -2450,4 +2466,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-06-19T01:54:03.843681292Z"
+generated: "2025-07-08T15:49:46.693140181Z"
