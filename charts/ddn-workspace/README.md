@@ -71,6 +71,8 @@ global:
     enabled: true
   securityContext:
     disabled: false
+  imagePullSecrets:
+    - "hasura-image-pull"
 
   ingress:
     enabled: true
