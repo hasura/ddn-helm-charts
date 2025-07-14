@@ -10,7 +10,7 @@ data:
   configuration.json: |
     {
       "headers": {
-        "hasura-m-auth": "{{ .enginePluginRateLimitAuthToken | quote }}"
+        "hasura-m-auth": "{{ .enginePluginRateLimitAuthToken }}"
      }
     }
   rate-limit.json: |
