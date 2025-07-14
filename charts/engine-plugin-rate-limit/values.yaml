@@ -44,7 +44,7 @@ extraVolumes: |
       items:
         - key: rate-limit.json
           path: rate-limit.json
-  - name: configuration
+  - name: configuration-secret
     secret:
       secretName: {{ include "common.name" . }}-secret
       items:
