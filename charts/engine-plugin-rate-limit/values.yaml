@@ -39,7 +39,6 @@ securityContext:
 
 extraVolumes: |
   - configMap:
-    defaultMode: 420
     name: rate-limit-config
   name: rate-limit-config
 extraVolumeMounts: |
