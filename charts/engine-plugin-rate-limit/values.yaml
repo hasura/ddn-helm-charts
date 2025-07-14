@@ -53,11 +53,11 @@ resources: |
     memory: 2048Mi
 
 configs:
-  deployRedis: false
+  deployRedis: true
   enginePluginRateLimitAuthToken: "randomtoken"
   enginePluginRateLimitConfig: |
     {
-    "redis_url": "redis://redis:6379",
+    "redis_url": "redis://{{ .Release.Name }}-redis:6379",
     "rate_limit": {
       "default_limit": 10,
       "time_window": 60,
