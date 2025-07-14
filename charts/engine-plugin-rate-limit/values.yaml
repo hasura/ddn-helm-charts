@@ -38,9 +38,9 @@ securityContext:
   runAsNonRoot: true
 
 extraVolumes: |
-  - configMap:
-    name: rate-limit-config
-  name: rate-limit-config
+  - name: rate-limit-config
+    configMap:
+      name: rate-limit-config
 extraVolumeMounts: |
   - mountPath: /app/config
     name: rate-limit-config
