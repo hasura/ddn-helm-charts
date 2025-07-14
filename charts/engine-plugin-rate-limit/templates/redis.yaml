@@ -1,10 +1,11 @@
+{{- $serviceName := include "common.name" . -}}
 {{- if .Values.configs.deployRedis }}
 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ .Release.Name }}-redis-data-pvc
+  name: {{ $serviceName }}-redis-data-pvc
   namespace: {{ .Release.Namespace }}
 spec:
   accessModes:
