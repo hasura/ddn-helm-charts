@@ -41,9 +41,22 @@ extraVolumes: |
   - name: rate-limit-config
     configMap:
       name: {{ .Release.Name }}-engine-plugin-rate-limit
+      items:
+        - key: configuration.json
+          path: configuration.json
+  - name: rate-limit-secret
+    secret:
+      secretName: {{ .Release.Name }}-engine-plugin-rate-limit-secret
+      items:
+        - key: rate-limit.json
+          path: rate-limit.json
 extraVolumeMounts: |
   - mountPath: /app/config
     name: rate-limit-config
+    subPath: configuration.json
+  - mountPath: /app/config
+    name: rate-limit-secret
+    subPath: rate-limit.json
 
 resources: |
   requests:
@@ -52,9 +65,11 @@ resources: |
   limits:
     memory: 2048Mi
 
+secrets:
+  enginePluginRateLimitAuthToken: "randomtoken"
+
 configs:
   deployRedis: true
-  enginePluginRateLimitAuthToken: "randomtoken"
   enginePluginRateLimitConfig:
     redisUrl: ""
     otherConfig: |

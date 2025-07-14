@@ -8,15 +8,9 @@ metadata:
   name: {{ $serviceName }}
   namespace: {{ $namespace }}
 data: 
-  configuration.json: |
-    {
-      "headers": {
-        "hasura-m-auth": "{{ .enginePluginRateLimitAuthToken }}"
-     }
-    }
   rate-limit.json: |
     {
       "redis_url": "redis://{{ $serviceName }}-redis:6379",
-      {{- .enginePluginRateLimitConfig.otherConfig | nindent 6 | trim | trimSuffix "}" }}
+      {{- .enginePluginRateLimitConfig.otherConfig | nindent 6 }}
     }
 {{- end }}
