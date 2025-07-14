@@ -45,7 +45,6 @@ configs:
   enginePluginRateLimitConfig:
     redisUrl: "redis://external-url:6379"
     otherConfig: |
-      {
       "rate_limit": {
         "default_limit": 10,
         "time_window": 60,
@@ -68,7 +67,6 @@ configs:
             "limit": 10
          }
        ]
-      }
       }
 ```
 
