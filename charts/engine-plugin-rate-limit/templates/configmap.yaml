@@ -1,10 +1,11 @@
 {{- $namespace := include "common.namespace" $ -}}
+{{- $serviceName := include "common.name" . -}}
 {{- with .Values.configs }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: rate-limit-config
+  name: {{ $serviceName }}
   namespace: {{ $namespace }}
 data: 
   configuration.json: |

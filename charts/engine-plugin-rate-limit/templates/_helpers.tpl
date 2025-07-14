@@ -1,26 +1,12 @@
-{{- define "ddn-workspace.domain" -}}
-{{- $domain := required "Error: .Values.global.domain is required!" .Values.global.domain -}}
-{{- if .Values.global.subDomain -}}      
-{{- printf "%s.%s" (include "common.name" .) .Values.global.domain -}}
+{{- define "common.name" -}}
+{{- $envOverrides := index .Values (tpl (default .Chart.Name .Values.name) .) -}}
+{{- $baseCommonValues := (default dict .Values.common) | deepCopy -}}
+{{- $values := dict "Values" (mustMergeOverwrite $baseCommonValues .Values $envOverrides) -}}
+{{- with mustMergeOverwrite . $values -}}
+{{ if and (ne .Release.Name "RELEASE-NAME") (.Values.useReleaseName) }}
+{{- printf "%s-%s" .Release.Name (default .Chart.Name .Values.name) -}}
 {{- else -}}
-{{- printf "%s" .Values.global.domain -}}
-{{- end -}}
-{{- end -}}
-
-{{- define "ddn-workspace.path" -}}   
-{{- if .Values.global.subDomain -}}      
-{{- printf "" -}}
-{{- else -}}
-{{- printf "%s(/|$)(.*)" (include "common.name" .) -}}
-{{- end -}}
-{{- end -}}
-
-{{- define "ddn-workspace.ingress.annotations" -}}   
-{{- if not .Values.global.subDomain -}}      
-{{- printf "nginx.ingress.kubernetes.io/rewrite-target: /$2" -}}
-{{- end -}}
-{{- end -}}
-
-{{- define "common.secretsName" -}}   
-{{- printf "%s-secrets" (include "common.name" .) -}}
-{{- end -}}
+{{- default .Chart.Name .Values.name -}}
+{{ end }}
+{{- end }}
+{{- end }}

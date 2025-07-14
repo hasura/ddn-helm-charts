@@ -40,7 +40,7 @@ securityContext:
 extraVolumes: |
   - name: rate-limit-config
     configMap:
-      name: rate-limit-config
+      name: {{ .Release.Name }}-engine-plugin-rate-limit
 extraVolumeMounts: |
   - mountPath: /app/config
     name: rate-limit-config
@@ -48,7 +48,7 @@ extraVolumeMounts: |
 resources: |
   requests:
     cpu: 500m
-    memory: 2048Mi
+    memory: 1048Mi
   limits:
     memory: 2048Mi
 
@@ -83,7 +83,6 @@ configs:
     }
     }
 
-# ENVs
 env: |
   - name: PORT
     value: "3000"
