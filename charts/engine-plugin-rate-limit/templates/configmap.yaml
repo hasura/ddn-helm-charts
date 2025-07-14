@@ -7,7 +7,13 @@ kind: ConfigMap
 metadata:
   name: {{ $serviceName }}
   namespace: {{ $namespace }}
-data: 
+data:
+  configuration.json: |
+    {
+      "headers": {
+        "hasura-m-auth": "${HASURA_DDN_PLUGIN_AUTH_TOKEN}"
+      }
+    }
   rate-limit.json: |
     {
       {{- if .deployRedis }}

@@ -110,3 +110,8 @@ env: |
     value: "engine-plugin-rate-limit"
   - name: HASURA_DDN_PLUGIN_CONFIG_PATH
     value: "/app/config"
+  - name: HASURA_DDN_PLUGIN_AUTH_TOKEN
+    valueFrom:
+      secretKeyRef:
+        key: HASURA_DDN_PLUGIN_AUTH_TOKEN
+        name: {{ printf "%s-secret" (include "common.name" .) }}
