@@ -1,4 +1,4 @@
-Ddn-workspace Helm Chart Deployment
+engine-plugin-rate-limit Helm Chart Deployment
 
 1. Deployment Information:
    - Release Name: {{ .Release.Name }}

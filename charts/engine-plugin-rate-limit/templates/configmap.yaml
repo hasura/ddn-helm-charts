@@ -10,7 +10,11 @@ metadata:
 data: 
   rate-limit.json: |
     {
+      {{- if .deployRedis }}
       "redis_url": "redis://{{ $serviceName }}-redis:6379",
+      {{- else }}
+      "redis_url": "{{ .enginePluginRateLimitConfig.redisUrl }}",
+      {{- end }}
       {{- .enginePluginRateLimitConfig.otherConfig | nindent 6 }}
     }
 {{- end }}

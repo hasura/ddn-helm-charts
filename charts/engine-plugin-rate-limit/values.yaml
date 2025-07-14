@@ -66,7 +66,7 @@ resources: |
     memory: 2048Mi
 
 secrets:
-  enginePluginRateLimitAuthToken: "randomtoken"
+  enginePluginRateLimitAuthToken: "8p6rDGqitcRzv3VH98idX7t1uLzN2hMFi2E67eMd5O0="
 
 configs:
   deployRedis: true
