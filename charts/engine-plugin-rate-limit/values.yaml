@@ -41,9 +41,22 @@ extraVolumes: |
   - name: rate-limit-config
     configMap:
       name: {{ .Release.Name }}-engine-plugin-rate-limit
+      items:
+        - key: rate-limit.json
+          path: rate-limit.json
+  - name: configuration
+    secret:
+      secretName: {{ include "common.name" . }}-secret
+      items:
+        - key: configuration.json
+          path: configuration.json
 extraVolumeMounts: |
-  - mountPath: /app/config
-    name: rate-limit-config
+  - name: rate-limit-config
+    mountPath: /app/config/rate-limit.json
+    subPath: rate-limit.json
+  - name: configuration-secret
+    mountPath: /app/config/configuration.json
+    subPath: configuration.json
 
 resources: |
   requests:
@@ -57,12 +70,6 @@ secrets:
 
 configs:
   deployRedis: true
-  enginePluginConfiguration: |
-    {
-      "headers": {
-        "hasura-m-auth": "${HASURA_DDN_PLUGIN_AUTH_TOKEN}"
-      }
-    }
   enginePluginRateLimitConfig:
     redisUrl: ""
     otherConfig: |
@@ -101,8 +108,3 @@ env: |
     value: "engine-plugin-rate-limit"
   - name: HASURA_DDN_PLUGIN_CONFIG_PATH
     value: "/app/config"
-  - name: HASURA_DDN_PLUGIN_AUTH_TOKEN
-    valueFrom:
-      secretKeyRef:
-        key: HASURA_DDN_PLUGIN_AUTH_TOKEN
-        name: {{ printf "%s-secret" (include "common.name" .) }}

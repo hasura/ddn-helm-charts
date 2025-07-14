@@ -8,8 +8,6 @@ metadata:
   name: {{ $serviceName }}
   namespace: {{ $namespace }}
 data:
-  configuration.json: |
-    {{- .enginePluginConfiguration | nindent 6 }}
   rate-limit.json: |
     {
       {{- if .deployRedis }}
