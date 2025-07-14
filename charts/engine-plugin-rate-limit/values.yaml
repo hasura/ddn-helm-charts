@@ -55,33 +55,34 @@ resources: |
 configs:
   deployRedis: true
   enginePluginRateLimitAuthToken: "randomtoken"
-  enginePluginRateLimitConfig: |
-    {
-    "redis_url": "redis://{{ .Release.Name }}-redis:6379",
-    "rate_limit": {
-      "default_limit": 10,
-      "time_window": 60,
-      "excluded_roles": [],
-      "key_config": {
-        "from_headers": [],
-        "from_session_variables": [],
-        "from_role": true
-      },
-      "unavailable_behavior": {
-        "fallback_mode": "deny"
-      },
-      "role_based_limits": [
-        {
-          "role": "user",
-          "limit": 11
+  enginePluginRateLimitConfig:
+    redisUrl: ""
+    otherConfig: |
+      {
+      "rate_limit": {
+        "default_limit": 10,
+        "time_window": 60,
+        "excluded_roles": [],
+        "key_config": {
+          "from_headers": [],
+          "from_session_variables": [],
+          "from_role": true
         },
-        {
-          "role": "admin",
-          "limit": 10
-        }
-      ]
-    }
-    }
+        "unavailable_behavior": {
+          "fallback_mode": "deny"
+        },
+        "role_based_limits": [
+          {
+            "role": "user",
+            "limit": 11
+          },
+          {
+            "role": "admin",
+            "limit": 10
+          }
+        ]
+      }
+      }
 
 env: |
   - name: PORT

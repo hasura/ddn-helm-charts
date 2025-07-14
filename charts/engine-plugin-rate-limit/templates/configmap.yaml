@@ -15,5 +15,8 @@ data:
      }
     }
   rate-limit.json: |
-{{ .enginePluginRateLimitConfig | indent 4 }}
+    {
+      "redis_url": "redis://{{ $serviceName }}-redis:6379",
+      {{- .enginePluginRateLimitConfig.otherConfig | nindent 6 | trim | trimSuffix "}" }}
+    }
 {{- end }}
