@@ -9,11 +9,7 @@ metadata:
   namespace: {{ $namespace }}
 data:
   configuration.json: |
-    {
-      "headers": {
-        "hasura-m-auth": "${HASURA_DDN_PLUGIN_AUTH_TOKEN}"
-      }
-    }
+    {{- .enginePluginConfiguration | nindent 6 }}
   rate-limit.json: |
     {
       {{- if .deployRedis }}

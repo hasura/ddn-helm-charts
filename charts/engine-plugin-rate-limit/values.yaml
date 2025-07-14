@@ -57,6 +57,12 @@ secrets:
 
 configs:
   deployRedis: true
+  enginePluginConfiguration: |
+    {
+      "headers": {
+        "hasura-m-auth": "${HASURA_DDN_PLUGIN_AUTH_TOKEN}"
+      }
+    }
   enginePluginRateLimitConfig:
     redisUrl: ""
     otherConfig: |
