@@ -16,7 +16,7 @@ healthChecks:
   enabled: true
   livenessProbe: |
     httpGet:
-      path: /healthz
+      path: /health
       port: 3000
       scheme: HTTP
     initialDelaySeconds: 15
@@ -25,7 +25,7 @@ healthChecks:
     timeoutSeconds: 10
   readinessProbe: |
     httpGet:
-      path: /healthz
+      path: /health
       port: 3000
       scheme: HTTP
     initialDelaySeconds: 15
