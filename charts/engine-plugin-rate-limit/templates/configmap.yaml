@@ -1,0 +1,18 @@
+{{- $namespace := include "common.namespace" $ -}}
+{{- with .Values.configs }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rate-limit-config
+  namespace: {{ $namespace }}
+data: 
+  configuration.json: |
+    {
+      "headers": {
+        "hasura-m-auth": "{{ .enginePluginRateLimitAuthToken | quote }}"
+     }
+    }
+  rate-limit.json: |
+{{ .enginePluginRateLimitConfig | indent 4 }}
+{{- end }}
