@@ -4,7 +4,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ .Release.Namespace }}-redis-data-pvc
+  name: {{ .Release.Name }}-redis-data-pvc
   namespace: {{ .Release.Namespace }}
 spec:
   accessModes:
@@ -17,17 +17,17 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Namespace }}-redis
+  name: {{ .Release.Name }}-redis
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: {{ .Release.Namespace }}-redis
+      app: {{ .Release.Name }}-redis
   replicas: 1
   template:
     metadata:
       labels:
-        app: {{ .Release.Namespace }}-redis
+        app: {{ .Release.Name }}-redis
     spec:
       containers:
         - name: redis
@@ -51,19 +51,19 @@ spec:
       volumes:
         - name: redis-data
           persistentVolumeClaim:
-            claimName: {{ .Release.Namespace }}-redis-data-pvc
+            claimName: {{ .Release.Name }}-redis-data-pvc
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Namespace }}-redis
+  name: {{ .Release.Name }}-redis
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
     - port: 6379
       targetPort: 6379
   selector:
-    app: {{ .Release.Namespace }}-redis
+    app: {{ .Release.Name }}-redis
 
 {{- end }}
