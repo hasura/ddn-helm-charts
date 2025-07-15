@@ -1,0 +1,21 @@
+{{- $namespace := include "common.namespace" $ -}}
+{{- $serviceName := include "common.name" . -}}
+{{- with .Values.configs }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ $namespace }}
+data:
+  config.js: |
+    export const Config = {
+      {{- if .deployRedis }}
+      redis_url: "redis://{{ $serviceName }}-redis:6379",
+      {{- else }}
+      redis_url: "{{ .enginePluginCachingConfig.redisUrl }}",
+      {{- end }}
+      otel_endpoint: "http://dp-otel-collector:4317",
+      {{- .enginePluginCachingConfig | nindent 6 }}
+    };
+{{- end }}

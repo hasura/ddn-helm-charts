@@ -1,0 +1,81 @@
+global:
+  serviceAccount:
+    enabled: true
+  imagePullSecrets:
+    - hasura-image-pull
+
+useReleaseName: true
+
+# Container Configs
+image:
+  repository: "gcr.io/hasura-ee/engine-plugin-caching"
+  tag: "v1.0.0"
+replicas: "1"
+httpPort: 8787
+healthChecks:
+  enabled: true
+  livenessProbe: |
+    httpGet:
+      path: /health
+      port: 8787
+      scheme: HTTP
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    successThreshold: 1
+    timeoutSeconds: 10
+  readinessProbe: |
+    httpGet:
+      path: /health
+      port: 8787
+      scheme: HTTP
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    successThreshold: 1
+    timeoutSeconds: 10
+securityContext:
+  runAsUser: 10001
+  fsGroup: 10001
+  runAsNonRoot: true
+
+extraVolumes: |
+  - name: caching-config
+    configMap:
+      name: {{ .Release.Name }}-engine-plugin-caching
+      items:
+        - key: config.js
+          path: config.js
+extraVolumeMounts: |
+  - name: caching-config
+    mountPath: /src/config.js
+    subPath: config.js
+
+resources: |
+  requests:
+    cpu: 500m
+    memory: 1048Mi
+  limits:
+    memory: 2048Mi
+
+configs:
+  deployRedis: true
+  enginePluginCachingConfig: |
+    headers: { "hasura-m-auth": "zZkhKqFjqXR4g5MZCsJUZCnhCcoPyZ" },
+
+    cache_key: {
+      rawRequest: {
+        query: true,
+        operationName: false,
+        variables: true,
+      },
+      session: true,
+      headers: [
+        // "X-Hasura-Unique-Cache-Key",
+      ],
+    },
+
+    queries_to_cache: [],
+    otel_headers: {},
+
+env: |
+  - name: LOG_LEVEL
+    value: "debug"

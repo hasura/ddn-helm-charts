@@ -1,0 +1,2 @@
+# pvc.yaml
+{{- template "common.pvc" . -}}
