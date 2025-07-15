@@ -1,4 +1,4 @@
-engine-plugin-rate-limit Helm Chart Deployment
+engine-plugin-caching Helm Chart Deployment
 
 1. Deployment Information:
    - Release Name: {{ .Release.Name }}
