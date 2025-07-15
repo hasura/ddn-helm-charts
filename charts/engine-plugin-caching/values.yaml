@@ -46,7 +46,7 @@ extraVolumes: |
           path: config.js
 extraVolumeMounts: |
   - name: caching-config
-    mountPath: /src/config.js
+    mountPath: /app/src/config.js
     subPath: config.js
 
 resources: |
