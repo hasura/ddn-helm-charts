@@ -16,6 +16,6 @@ data:
       redis_url: "{{ .enginePluginCachingConfig.redisUrl }}",
       {{- end }}
       otel_endpoint: "http://dp-otel-collector:4317",
-      {{- .enginePluginCachingConfig | nindent 6 }}
+      {{- .enginePluginCachingConfig.otherConfig | nindent 6 }}
     };
 {{- end }}

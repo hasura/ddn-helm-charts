@@ -58,23 +58,25 @@ resources: |
 
 configs:
   deployRedis: true
-  enginePluginCachingConfig: |
-    headers: { "hasura-m-auth": "zZkhKqFjqXR4g5MZCsJUZCnhCcoPyZ" },
+  enginePluginCachingConfig:
+    redisUrl: ""
+    otherConfig: |
+      headers: { "hasura-m-auth": "zZkhKqFjqXR4g5MZCsJUZCnhCcoPyZ" },
 
-    cache_key: {
-      rawRequest: {
-        query: true,
-        operationName: false,
-        variables: true,
+      cache_key: {
+        rawRequest: {
+          query: true,
+          operationName: false,
+          variables: true,
+        },
+        session: true,
+        headers: [
+          // "X-Hasura-Unique-Cache-Key",
+        ],
       },
-      session: true,
-      headers: [
-        // "X-Hasura-Unique-Cache-Key",
-      ],
-    },
 
-    queries_to_cache: [],
-    otel_headers: {},
+      queries_to_cache: [],
+      otel_headers: {},
 
 env: |
   - name: LOG_LEVEL
