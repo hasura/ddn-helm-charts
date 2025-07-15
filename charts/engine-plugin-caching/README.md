@@ -34,13 +34,28 @@ Here's an example of an overrides file.  Here are the key points:
 1. We are setting `randomtoken` as the Auth Token.  This is used for communication between the `v3-engine` and the plugin
 2. We are not deploying built-in Redis
 3. We are setting a custom `redisUrl` which points to an externally managed Redis
-4. A custom `rate_limit` config is provided
+4. We want to cache the following query, for 600 seconds:
+
+```yaml
+query sample_coupons {
+  coupons {
+    amount
+    code
+    createdAt
+    expirationDate
+    id
+    percentOrValue
+    updatedAt
+    userId
+  }
+}
+```
 
 ```yaml
 configs:
   deployRedis: false
   enginePluginCachingConfig:
-    redisUrl: "redis://external-url:6379"
+    redisUrl: ""
     otherConfig: |
       headers: { "hasura-m-auth": "randomtoken" },
 
@@ -57,8 +72,7 @@ configs:
       },
 
       queries_to_cache: [
-        { query: "query { Artist { Name } }", time_to_live: 60 },
-        { query: "query { Album { Artist { Name } } }", time_to_live: 120 }
+        { query: "query sample_coupons { coupons { amount code createdAt expirationDate id percentOrValue updatedAt userId }}", time_to_live: 600 }
       ],
       otel_headers: {},
 ```
