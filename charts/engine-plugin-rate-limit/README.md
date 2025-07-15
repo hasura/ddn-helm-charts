@@ -7,6 +7,8 @@ This chart deploys Engine Plugin Rate Limit.
 Check out the following [repo](https://github.com/hasura/engine-plugin-rate-limit/tree/main?tab=readme-ov-file#configuration) which includes information about what configuration
 parameters are available.  These parameters will be included within the rate-limit.json (ie.  The section which you define under `configs.enginePluginRateLimitConfig.otherConfig`).
 
+Furthermore, check out our [public doc](https://hasura.io/docs/3.0/plugins/rate-limit/how-to/) related to configuration of the rate limit plugin.
+
 ## Install Chart
 
 See all [configuration](#parameters) below.
@@ -17,11 +19,13 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="default" \
+  -f rate-limit-overrides.yaml \
   hasura-ddn/engine-plugin-rate-limit | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="default" \
+  -f rate-limit-overrides.yaml \
   hasura-ddn/engine-plugin-rate-limit
 ```
 
@@ -29,14 +33,13 @@ helm upgrade --install <release-name> \
 
 **NOTE: If you do not specify an overrides file, Redis will be deployed into the cluster and a default rate-limit.json config will be provided**
 
-Here's an example of an overrides file.  Here are the key points:
+Here's an example of a `rate-limit-overrides.yaml` file.  Here are the key points:
 
 1. We are setting `randomtoken` as the Auth Token.  This is used for communication between the `v3-engine` and the plugin
-2. We are not deploying built-in Redis
-3. We are setting a custom `redisUrl` which points to an externally managed Redis
-4. A custom `rate_limit` config is provided
+2. We are not deploying built-in Redis.  We are setting a custom `redisUrl` which points to an externally managed Redis
+3. A custom `rate_limit` config is provided
 
-```yaml
+```yaml rate-limit-overrides.yaml
 secrets:
   enginePluginRateLimitAuthToken: "randomtoken"
 
@@ -74,7 +77,7 @@ Install via the following command:
 
 ```bash
 helm upgrade --install <release-name> \
-  -f overrides.yaml \
+  -f rate-limit-overrides.yaml \
   hasura-ddn/engine-plugin-rate-limit
 ```
 

@@ -7,6 +7,8 @@ This chart deploys Engine Plugin Caching.
 Check out the following [repo](https://github.com/hasura/engine-plugin-caching/tree/main?tab=readme-ov-file#configuration) which includes information about what configuration
 parameters are available.  These parameters will be included within the config.js (ie.  The section which you define under `configs.enginePluginCachingConfig.otherConfig`).
 
+Furthermore, check out our [public doc](https://hasura.io/docs/3.0/plugins/caching/how-to/) related to configuration of the caching plugin.
+
 ## Install Chart
 
 See all [configuration](#parameters) below.
@@ -17,11 +19,13 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="default" \
+  -f caching-overrides.yaml \
   hasura-ddn/engine-plugin-caching | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="default" \
+  -f caching-overrides.yaml \
   hasura-ddn/engine-plugin-caching
 ```
 
@@ -29,12 +33,11 @@ helm upgrade --install <release-name> \
 
 **NOTE: If you do not specify an overrides file, Redis will be deployed into the cluster and a default config.js config will be provided**
 
-Here's an example of an overrides file.  Here are the key points:
+Here's an example of a `caching-overrides.yaml` file.  Here are the key points:
 
 1. We are setting `randomtoken` as the Auth Token.  This is used for communication between the `v3-engine` and the plugin
-2. We are not deploying built-in Redis
-3. We are setting a custom `redisUrl` which points to an externally managed Redis
-4. We want to cache the following query, for 600 seconds:
+2. We are not deploying built-in Redis.  We are setting a custom `redisUrl` which points to an externally managed Redis
+3. We want to cache the following query, for 600 seconds:
 
 ```yaml
 query sample_coupons {
@@ -51,7 +54,7 @@ query sample_coupons {
 }
 ```
 
-```yaml
+```yaml caching-overrides.yaml
 configs:
   deployRedis: false
   enginePluginCachingConfig:
@@ -81,7 +84,7 @@ Install via the following command:
 
 ```bash
 helm upgrade --install <release-name> \
-  -f overrides.yaml \
+  -f caching-overrides.yaml \
   hasura-ddn/engine-plugin-caching
 ```
 
