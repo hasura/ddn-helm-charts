@@ -1,0 +1,110 @@
+global:
+  serviceAccount:
+    enabled: true
+  imagePullSecrets:
+    - hasura-image-pull
+
+useReleaseName: true
+
+# Container Configs
+image:
+  repository: "gcr.io/hasura-ee/engine-plugin-rate-limit"
+  tag: "v1.0.0"
+replicas: "1"
+httpPort: 3000
+healthChecks:
+  enabled: true
+  livenessProbe: |
+    httpGet:
+      path: /health
+      port: 3000
+      scheme: HTTP
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    successThreshold: 1
+    timeoutSeconds: 10
+  readinessProbe: |
+    httpGet:
+      path: /health
+      port: 3000
+      scheme: HTTP
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    successThreshold: 1
+    timeoutSeconds: 10
+securityContext:
+  runAsUser: 10001
+  fsGroup: 10001
+  runAsNonRoot: true
+
+extraVolumes: |
+  - name: rate-limit-config
+    configMap:
+      name: {{ .Release.Name }}-engine-plugin-rate-limit
+      items:
+        - key: rate-limit.json
+          path: rate-limit.json
+  - name: configuration-secret
+    secret:
+      secretName: {{ include "common.name" . }}-secret
+      items:
+        - key: configuration.json
+          path: configuration.json
+extraVolumeMounts: |
+  - name: rate-limit-config
+    mountPath: /app/config/rate-limit.json
+    subPath: rate-limit.json
+  - name: configuration-secret
+    mountPath: /app/config/configuration.json
+    subPath: configuration.json
+
+resources: |
+  requests:
+    cpu: 500m
+    memory: 1048Mi
+  limits:
+    memory: 2048Mi
+
+secrets:
+  enginePluginRateLimitAuthToken: "8p6rDGqitcRzv3VH98idX7t1uLzN2hMFi2E67eMd5O0="
+
+configs:
+  deployRedis: true
+  enginePluginRateLimitConfig:
+    redisUrl: ""
+    otherConfig: |
+      "rate_limit": {
+        "default_limit": 10,
+        "time_window": 60,
+        "excluded_roles": [],
+        "key_config": {
+          "from_headers": [],
+          "from_session_variables": [],
+          "from_role": true
+        },
+        "unavailable_behavior": {
+          "fallback_mode": "deny"
+        },
+        "role_based_limits": [
+          {
+            "role": "user",
+            "limit": 11
+          },
+          {
+            "role": "admin",
+            "limit": 10
+          }
+        ]
+      }
+
+env: |
+  - name: PORT
+    value: "3000"
+  - name: DEBUG
+    value: "rate-limit*"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://dp-otel-collector:4317"
+  - name: OTEL_SERVICE_NAME
+    value: "engine-plugin-rate-limit"
+  - name: HASURA_DDN_PLUGIN_CONFIG_PATH
+    value: "/app/config"

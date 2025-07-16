@@ -1,0 +1,20 @@
+{{- $namespace := include "common.namespace" $ -}}
+{{- $serviceName := include "common.name" . -}}
+{{- with .Values.configs }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ $namespace }}
+data:
+  rate-limit.json: |
+    {
+      {{- if .deployRedis }}
+      "redis_url": "redis://{{ $serviceName }}-redis:6379",
+      {{- else }}
+      "redis_url": "{{ .enginePluginRateLimitConfig.redisUrl }}",
+      {{- end }}
+      {{- .enginePluginRateLimitConfig.otherConfig | nindent 6 }}
+    }
+{{- end }}

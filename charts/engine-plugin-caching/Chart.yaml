@@ -1,0 +1,10 @@
+apiVersion: v2
+name: engine-plugin-caching
+description: A Helm chart for Engine Plugin Caching
+type: application
+version: v2025.07.16
+appVersion: "3.0.0"
+dependencies:
+- name: common
+  version: 0.0.13
+  repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
