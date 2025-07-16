@@ -227,6 +227,40 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ddn-workspace@v2025.04.10/ddn-workspace-v2025.04.10.tgz
     version: v2025.04.10
+  engine-plugin-caching:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-07-16T16:05:29.491821402Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.13
+    description: A Helm chart for Engine Plugin Caching
+    digest: b606a337274eded6f64872fc3449eb04b5a560bbdd1ae0c6d7ac2f771b95a18d
+    name: engine-plugin-caching
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/engine-plugin-caching@v2025.07.16/engine-plugin-caching-v2025.07.16.tgz
+    version: v2025.07.16
+  engine-plugin-rate-limit:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-07-16T16:05:29.726946034Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.13
+    description: A Helm chart for Engine Plugin Rate Limit
+    digest: b2ea016898c8454b9d028b7df14639b92aefb672f5dde44938c888cdf8fef0bd
+    name: engine-plugin-rate-limit
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/engine-plugin-rate-limit@v2025.07.16/engine-plugin-rate-limit-v2025.07.16.tgz
+    version: v2025.07.16
   ndc-bigquery:
   - apiVersion: v2
     appVersion: 3.0.0
@@ -2466,4 +2500,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-07-08T15:49:46.693140181Z"
+generated: "2025-07-16T16:05:29.920656814Z"
