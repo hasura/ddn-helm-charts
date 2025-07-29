@@ -30,8 +30,12 @@ jobs:
             chart_name=$(basename "$chart_dir")
             chart_names+=("\"$chart_name\"")
           done
-          # Create JSON array string for output
-          chart_names_json="[${chart_names[*]}]"
+
+          # Join with commas, no trailing comma
+          chart_names_json="["
+          chart_names_json+=$(IFS=, ; echo "${chart_names[*]}")
+          chart_names_json+="]"
+
           echo "chart_names=$chart_names_json" >> $GITHUB_OUTPUT
 
 
