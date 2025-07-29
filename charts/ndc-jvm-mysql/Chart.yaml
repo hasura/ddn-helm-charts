@@ -25,5 +25,5 @@ appVersion: "3.0.0"
 
 dependencies:
 - name: common
-  version: 0.0.13
+  version: 0.0.14
   repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
