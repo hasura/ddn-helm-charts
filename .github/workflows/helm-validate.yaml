@@ -24,16 +24,23 @@ jobs:
         id: extract
         run: |
           echo "Changed files: ${{ steps.changed.outputs.all_changed_files }}"
+          # Read changed files into an array
+          mapfile -t changed_files <<< "${{ steps.changed.outputs.all_changed_files }}"
           chart_names=()
-          for file in ${{ steps.changed.outputs.all_changed_files }}; do
+          for file in "${changed_files[@]}"; do
             chart_dir=$(dirname "$file")
             chart_name=$(basename "$chart_dir")
             chart_names+=("$chart_name")
           done
-
-          # Turn into JSON array string
-          json_array=$(printf '%s\n' "${chart_names[@]}" | jq -R . | jq -s .)
-          echo "chart_names=${json_array}" >> "$GITHUB_OUTPUT"
+          # Deduplicate and sort
+          unique_sorted_chart_names=$(printf '%s\n' "${chart_names[@]}" | sort -u)
+          # Convert to JSON array
+          json_array=$(printf '%s\n' "${unique_sorted_chart_names[@]}" | jq -R . | jq -s .)
+          # Compress to one line for GitHub Actions output
+          json_array_one_line=$(echo "$json_array" | jq -c .)
+          echo "chart_names=$json_array_one_line" >> "$GITHUB_OUTPUT"
+        outputs:
+          chart_names: ${{ steps.extract.outputs.chart_names }}
 
   validate-helm-charts:
     needs: detect-changed-charts
@@ -52,6 +59,7 @@ jobs:
         run: helm lint charts/${{ matrix.chart }}
 
       - name: Run Helm Template
+        shell: bash
         run: |
           chart="${{ matrix.chart }}"
           echo "Running helm template for chart: $chart"
@@ -63,11 +71,12 @@ jobs:
                 --namespace connector-ns
               ;;
             ndc-bigquery-git-sync)
-              helm template gateway charts/ndc-bigquery \
+              helm template gateway charts/ndc-bigquery-git-sync \
                 --values tests/ndc-bigquery-git-sync-values.yaml \
                 --namespace connector-ns
               ;;
             *)
-              echo "No specific test defined for chart: $chart"
+              # Default template run for other charts
+              helm template "$chart" charts/"$chart"
               ;;
           esac
