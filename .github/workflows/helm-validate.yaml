@@ -9,7 +9,7 @@ jobs:
   detect-changed-charts:
     runs-on: ubuntu-latest
     outputs:
-      charts: ${{ steps.extract.outputs.chart_names }}
+      charts: ${{ steps.extract.outputs.chart_names }}   # <- this must be here at job level, not step level
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -24,7 +24,6 @@ jobs:
         id: extract
         run: |
           echo "Changed files: ${{ steps.changed.outputs.all_changed_files }}"
-          # Read changed files into an array
           mapfile -t changed_files <<< "${{ steps.changed.outputs.all_changed_files }}"
           chart_names=()
           for file in "${changed_files[@]}"; do
@@ -32,15 +31,10 @@ jobs:
             chart_name=$(basename "$chart_dir")
             chart_names+=("$chart_name")
           done
-          # Deduplicate and sort
           unique_sorted_chart_names=$(printf '%s\n' "${chart_names[@]}" | sort -u)
-          # Convert to JSON array
           json_array=$(printf '%s\n' "${unique_sorted_chart_names[@]}" | jq -R . | jq -s .)
-          # Compress to one line for GitHub Actions output
           json_array_one_line=$(echo "$json_array" | jq -c .)
           echo "chart_names=$json_array_one_line" >> "$GITHUB_OUTPUT"
-        outputs:
-          chart_names: ${{ steps.extract.outputs.chart_names }}
 
   validate-helm-charts:
     needs: detect-changed-charts
