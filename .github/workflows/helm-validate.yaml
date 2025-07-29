@@ -9,7 +9,7 @@ jobs:
   detect-changed-charts:
     runs-on: ubuntu-latest
     outputs:
-      charts: ${{ steps.changed.outputs.chart_names }}
+      charts: ${{ steps.extract.outputs.chart_names }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -31,9 +31,7 @@ jobs:
             chart_names+=("\"$chart_name\"")
           done
           json_array="[${chart_names[*]}]"
-          echo "chart_names=${json_array}" >> $GITHUB_OUTPUT
-        outputs:
-          chart_names: ${{ steps.extract.outputs.chart_names }}
+          echo "chart_names=${json_array}" >> "$GITHUB_OUTPUT"
 
   validate-helm-charts:
     needs: detect-changed-charts
@@ -52,7 +50,6 @@ jobs:
         run: helm lint charts/${{ matrix.chart }}
 
       - name: Run Helm Template
-        shell: bash
         run: |
           chart="${{ matrix.chart }}"
           echo "Running helm template for chart: $chart"
@@ -67,5 +64,8 @@ jobs:
               helm template gateway charts/ndc-bigquery \
                 --values tests/ndc-bigquery-git-sync-values.yaml \
                 --namespace connector-ns
+              ;;
+            *)
+              echo "No specific test defined for chart: $chart"
               ;;
           esac
