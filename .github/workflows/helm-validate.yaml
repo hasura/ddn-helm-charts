@@ -1,0 +1,71 @@
+name: Helm Validate
+
+on:
+  pull_request:
+    paths:
+      - "charts/**"
+
+jobs:
+  detect-changed-charts:
+    runs-on: ubuntu-latest
+    outputs:
+      charts: ${{ steps.changed.outputs.chart_names }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Get changed Chart.yaml files
+        id: changed
+        uses: tj-actions/changed-files@v42
+        with:
+          files: charts/*/Chart.yaml
+
+      - name: Extract chart names
+        id: extract
+        run: |
+          echo "Changed files: ${{ steps.changed.outputs.all_changed_files }}"
+          chart_names=""
+          for file in ${{ steps.changed.outputs.all_changed_files }}; do
+            chart_dir=$(dirname "$file")
+            chart_name=$(basename "$chart_dir")
+            chart_names="$chart_names $chart_name"
+          done
+          chart_names=$(echo "$chart_names" | tr ' ' '\n' | sort -u | tr '\n' ',' | sed 's/,$//')
+          echo "chart_names=$chart_names" >> $GITHUB_OUTPUT
+        outputs:
+          chart_names: ${{ steps.extract.outputs.chart_names }}
+
+  validate-helm-charts:
+    needs: detect-changed-charts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart: [${{ fromJson(needs.detect-changed-charts.outputs.charts) }}]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4.0.0
+
+      - name: Lint Helm Chart
+        run: helm lint charts/${{ matrix.chart }}
+
+      - name: Run Helm Template
+        shell: bash
+        run: |
+          chart="${{ matrix.chart }}"
+          echo "Running helm template for chart: $chart"
+
+          case "$chart" in
+            ndc-bigquery)
+              helm template connector charts/ndc-bigquery \
+                --values tests/ndc-bigquery-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-bigquery-git-sync)
+              helm template gateway charts/ndc-bigquery \
+                --values tests/ndc-bigquery-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+          esac
