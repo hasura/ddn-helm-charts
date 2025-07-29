@@ -28,9 +28,11 @@ jobs:
           for file in ${{ steps.changed.outputs.all_changed_files }}; do
             chart_dir=$(dirname "$file")
             chart_name=$(basename "$chart_dir")
-            chart_names+=("\"$chart_name\"")
+            chart_names+=("$chart_name")
           done
-          json_array="[${chart_names[*]}]"
+
+          # Turn into JSON array string
+          json_array=$(printf '%s\n' "${chart_names[@]}" | jq -R . | jq -s .)
           echo "chart_names=${json_array}" >> "$GITHUB_OUTPUT"
 
   validate-helm-charts:
