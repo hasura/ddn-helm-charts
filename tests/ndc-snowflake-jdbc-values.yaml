@@ -1,0 +1,7 @@
+image:
+  repository: "my_repo/ndc-snowflake-jdbc"
+  tag: "v1.0.0"
+
+connectorEnvVars:
+  JDBC_URL: "jdbc_url"
+  HASURA_SERVICE_TOKEN_SECRET: "token"

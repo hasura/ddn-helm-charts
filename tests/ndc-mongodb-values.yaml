@@ -1,0 +1,7 @@
+image:
+  repository: "my_repo/ndc-mongodb"
+  tag: "v1.0.0"
+
+connectorEnvVars:
+  MONGODB_DATABASE_URI: "db_connection_string"
+  HASURA_SERVICE_TOKEN_SECRET: "token"

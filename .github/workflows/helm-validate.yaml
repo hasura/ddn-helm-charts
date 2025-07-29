@@ -66,13 +66,190 @@ jobs:
 
           case "$chart" in
             ndc-bigquery)
+              echo "Rendeing ndc-bigquery"
               helm template connector charts/ndc-bigquery \
                 --values tests/ndc-bigquery-values.yaml \
                 --namespace connector-ns
-              ;;
-            ndc-bigquery-git-sync)
-              helm template gateway charts/ndc-bigquery-git-sync \
+
+              echo "Rendeing ndc-bigquery-git-sync"
+              helm template connector-git-sync charts/ndc-bigquery \
                 --values tests/ndc-bigquery-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-connector-oracle)
+              echo "Rendeing ndc-connector-oracle"
+              helm template connector charts/ndc-connector-oracle \
+                --values tests/ndc-connector-oracle-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-connector-oracle-git-sync"
+              helm template connector-git-sync charts/ndc-connector-oracle \
+                --values tests/ndc-connector-oracle-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-connector-phoenix)
+              echo "Rendeing ndc-connector-phoenix"
+              helm template connector charts/ndc-connector-phoenix \
+                --values tests/ndc-connector-phoenix-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-connector-phoenix-git-sync"
+              helm template connector-git-sync charts/ndc-connector-phoenix \
+                --values tests/ndc-connector-phoenix-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-duckduckapi)
+              echo "Rendeing ndc-duckduckapi"
+              helm template connector charts/ndc-duckduckapi \
+                --values tests/ndc-duckduckapi-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-duckduckapi-git-sync"
+              helm template connector-git-sync charts/ndc-duckduckapi \
+                --values tests/ndc-duckduckapi-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-elasticsearch)
+              echo "Rendeing ndc-elasticsearch"
+              helm template connector charts/ndc-elasticsearch \
+                --values tests/ndc-elasticsearch-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-elasticsearch-git-sync"
+              helm template connector-git-sync charts/ndc-elasticsearch \
+                --values tests/ndc-elasticsearch-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-graphql)
+              echo "Rendeing ndc-graphql"
+              helm template connector charts/ndc-graphql \
+                --values tests/ndc-graphql-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-graphql-git-sync"
+              helm template connector-git-sync charts/ndc-graphql \
+                --values tests/ndc-graphql-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-http)
+              echo "Rendeing ndc-http"
+              helm template connector charts/ndc-http \
+                --values tests/ndc-http-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-http-git-sync"
+              helm template connector-git-sync charts/ndc-http \
+                --values tests/ndc-http-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-jvm-mysql)
+              echo "Rendeing ndc-jvm-mysql"
+              helm template connector charts/ndc-jvm-mysql \
+                --values tests/ndc-jvm-mysql-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-jvm-mysql-git-sync"
+              helm template connector-git-sync charts/ndc-jvm-mysql \
+                --values tests/ndc-jvm-mysql-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-jvm-trino)
+              echo "Rendeing ndc-jvm-trino"
+              helm template connector charts/ndc-jvm-trino \
+                --values tests/ndc-jvm-trino-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-jvm-trino-git-sync"
+              helm template connector-git-sync charts/ndc-jvm-trino \
+                --values tests/ndc-jvm-trino-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-mongodb)
+              echo "Rendeing ndc-mongodb"
+              helm template connector charts/ndc-mongodb \
+                --values tests/ndc-mongodb-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-mongodb-git-sync"
+              helm template connector-git-sync charts/ndc-mongodb \
+                --values tests/ndc-mongodb-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-mysql-jdbc)
+              echo "Rendeing ndc-mysql-jdbc"
+              helm template connector charts/ndc-mysql-jdbc \
+                --values tests/ndc-mysql-jdbc-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-mysql-jdbc-git-sync"
+              helm template connector-git-sync charts/ndc-mysql-jdbc \
+                --values tests/ndc-mysql-jdbc-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-nodejs-lambda)
+              echo "Rendeing ndc-nodejs-lambda"
+              helm template connector charts/ndc-nodejs-lambda \
+                --values tests/ndc-nodejs-lambda-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-nodejs-lambda-git-sync"
+              helm template connector-git-sync charts/ndc-nodejs-lambda \
+                --values tests/ndc-nodejs-lambda-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-open-api-lambda)
+              echo "Rendeing ndc-open-api-lambda"
+              helm template connector charts/ndc-open-api-lambda \
+                --values tests/ndc-open-api-lambda-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-open-api-lambda-git-sync"
+              helm template connector-git-sync charts/ndc-open-api-lambda \
+                --values tests/ndc-open-api-lambda-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-postgres)
+              echo "Rendeing ndc-postgres"
+              helm template connector charts/ndc-postgres \
+                --values tests/ndc-postgres-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-postgres-git-sync"
+              helm template connector-git-sync charts/ndc-postgres \
+                --values tests/ndc-postgres-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-postgres-jdbc)
+              echo "Rendeing ndc-postgres-jdbc"
+              helm template connector charts/ndc-postgres-jdbc \
+                --values tests/ndc-postgres-jdbc-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-postgres-jdbc-git-sync"
+              helm template connector-git-sync charts/ndc-postgres-jdbc \
+                --values tests/ndc-postgres-jdbc-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-snowflake)
+              echo "Rendeing ndc-snowflake"
+              helm template connector charts/ndc-snowflake \
+                --values tests/ndc-snowflake-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-snowflake-git-sync"
+              helm template connector-git-sync charts/ndc-snowflake \
+                --values tests/ndc-snowflake-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-snowflake=jdbc)
+              echo "Rendeing ndc-snowflake=jdbc"
+              helm template connector charts/ndc-snowflake=jdbc \
+                --values tests/ndc-snowflake=jdbc-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendeing ndc-snowflake=jdbc-git-sync"
+              helm template connector-git-sync charts/ndc-snowflake=jdbc \
+                --values tests/ndc-snowflake=jdbc-git-sync-values.yaml \
                 --namespace connector-ns
               ;;
           esac
