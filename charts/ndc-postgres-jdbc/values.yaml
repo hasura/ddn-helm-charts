@@ -23,6 +23,10 @@ securityContext:
   runAsUser: 1000
   fsGroup: 1000
 
+serviceAccount:
+  enabled: false
+  name: ""
+
 initContainers:
   gitSync:
     enabled: false

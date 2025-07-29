@@ -74,6 +74,36 @@ If you prefer **not to commit** the `node_modules` directory to your repository,
 - Install your Helm chart with `--set initContainers.gitSync.depsPackaged=false`
   - This tells the system to use the pre-packaged dependencies instead of expecting them in the Git repo.
 
+## Private Registry Access via Image Pull Secrets
+
+To pull container images from a private registry, you can configure an image pull secret using the following example `overrides.yaml` file.  This is typically required during the installation phase when the image (e.g., a connector) resides in a restricted registry.
+
+```yaml
+global:
+  # Set to true to deploy the image pull secret defined in the `secrets` section
+  dataPlane:
+    deployImagePullSecret: true
+
+  # Reference the name of the image pull secret to be used
+  # This name must remain consistent and match the one defined in the manifest
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Enable creation of a service account and attach the image pull secret to it
+  serviceAccount:
+    enabled: true
+
+secrets:
+  imagePullSecret:
+    auths:
+      gcr.io:
+        username: "_json_key"
+        # Below content should be replaced with "company-sa.json" file content which is shared by the Hasura team, ensuring that it's indented correctly.
+        password: |
+          {}
+        email: "support@hasura.io"
+```
+
 ## Connector ENV Inputs
 
 | Name                                              | Description                                                                                                | Value                           |
@@ -128,3 +158,5 @@ You can pass custom environment variables to the connector container by defining
 | `initContainers.gitSync.branch`                   | Branch to read from (Used when initContainers.gitSync.enabled is set to true)                              | `main`                              |
 | `initContainers.gitSync.secretName`               | Secret name for private key & known hosts (Used when initContainers.gitSync.enabled is set to true)        | `git-creds`                         |
 | `initContainers.gitSync.depsPackaged`             | Whether node_modules was packaged into git repo (Used when initContainers.gitSync.enabled is set to true)  | `true`                              |
+| `serviceAccount.enabled`                          | Enable user of a service account for pod                                                                   | `false`                         |
+| `serviceAccount.name`                             | Name for the service account                                                                               | `""`                            |
