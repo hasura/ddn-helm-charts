@@ -24,14 +24,14 @@ jobs:
         id: extract
         run: |
           echo "Changed files: ${{ steps.changed.outputs.all_changed_files }}"
-          chart_names=""
+          chart_names=()
           for file in ${{ steps.changed.outputs.all_changed_files }}; do
             chart_dir=$(dirname "$file")
             chart_name=$(basename "$chart_dir")
-            chart_names="$chart_names $chart_name"
+            chart_names+=("\"$chart_name\"")
           done
-          chart_names=$(echo "$chart_names" | tr ' ' '\n' | sort -u | tr '\n' ',' | sed 's/,$//')
-          echo "chart_names=$chart_names" >> $GITHUB_OUTPUT
+          json_array="[${chart_names[*]}]"
+          echo "chart_names=${json_array}" >> $GITHUB_OUTPUT
         outputs:
           chart_names: ${{ steps.extract.outputs.chart_names }}
 
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        chart: [${{ fromJson(needs.detect-changed-charts.outputs.charts) }}]
+        chart: ${{ fromJson(needs.detect-changed-charts.outputs.charts) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
