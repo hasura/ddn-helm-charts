@@ -9,7 +9,7 @@ jobs:
   detect-changed-charts:
     runs-on: ubuntu-latest
     outputs:
-      charts: ${{ steps.extract.outputs.chart_names }}   # <- this must be here at job level, not step level
+      charts: ${{ steps.extract.outputs.chart_names }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -24,17 +24,16 @@ jobs:
         id: extract
         run: |
           echo "Changed files: ${{ steps.changed.outputs.all_changed_files }}"
-          mapfile -t changed_files <<< "${{ steps.changed.outputs.all_changed_files }}"
           chart_names=()
-          for file in "${changed_files[@]}"; do
+          for file in ${{ steps.changed.outputs.all_changed_files }}; do
             chart_dir=$(dirname "$file")
             chart_name=$(basename "$chart_dir")
-            chart_names+=("$chart_name")
+            chart_names+=("\"$chart_name\"")
           done
-          unique_sorted_chart_names=$(printf '%s\n' "${chart_names[@]}" | sort -u)
-          json_array=$(printf '%s\n' "${unique_sorted_chart_names[@]}" | jq -R . | jq -s .)
-          json_array_one_line=$(echo "$json_array" | jq -c .)
-          echo "chart_names=$json_array_one_line" >> "$GITHUB_OUTPUT"
+          # Create JSON array string for output
+          chart_names_json="[${chart_names[*]}]"
+          echo "chart_names=$chart_names_json" >> $GITHUB_OUTPUT
+
 
   validate-helm-charts:
     needs: detect-changed-charts
@@ -49,7 +48,7 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4.0.0
 
-      - name: Helm Dependency Update
+      - name: Helm dep update
         run: helm dependency update charts/${{ matrix.chart }}
 
       - name: Lint Helm Chart
