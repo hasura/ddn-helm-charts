@@ -1,13 +1,10 @@
 image:
-  repository: "my_repo/ndc-bigquery"
+  repository: "my_repo/ndc-jvm-trino"
   tag: "v1.0.0"
 
 connectorEnvVars:
-  HASURA_BIGQUERY_SERVICE_KEY: "bg_service_key"
-  HASURA_BIGQUERY_PROJECT_ID: "bg_project_id"
-  HASURA_BIGQUERY_DATASET_ID: "bq_dataset_id"
+  JDBC_URL: "jdbc_url"
   HASURA_SERVICE_TOKEN_SECRET: "token"
-  configDirectory: "/work-dir/<repo>/app/connector/<connector-name>"
 
 initContainers:
   gitSync:
