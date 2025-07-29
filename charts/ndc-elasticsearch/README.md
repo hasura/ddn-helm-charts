@@ -133,6 +133,36 @@ helm upgrade --install <release-name> \
   hasura-ddn/ndc-elasticsearch
 ```
 
+## Private Registry Access via Image Pull Secrets
+
+To pull container images from a private registry, you can configure an image pull secret using the following example `overrides.yaml` file.  This is typically required during the installation phase when the image (e.g., a connector) resides in a restricted registry.
+
+```yaml
+global:
+  # Set to true to deploy the image pull secret defined in the `secrets` section
+  dataPlane:
+    deployImagePullSecret: true
+
+  # Reference the name of the image pull secret to be used
+  # This name must remain consistent and match the one defined in the manifest
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Enable creation of a service account and attach the image pull secret to it
+  serviceAccount:
+    enabled: true
+
+secrets:
+  imagePullSecret:
+    auths:
+      gcr.io:
+        username: "_json_key"
+        # Below content should be replaced with "company-sa.json" file content which is shared by the Hasura team, ensuring that it's indented correctly.
+        password: |
+          {}
+        email: "support@hasura.io"
+```
+
 ## Connector ENV Inputs
 
 | Name                                              | Description                                                                                                | Value                           |
