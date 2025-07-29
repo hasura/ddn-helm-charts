@@ -49,6 +49,9 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4.0.0
 
+      - name: Helm Dependency Update
+        run: helm dependency update charts/${{ matrix.chart }}
+
       - name: Lint Helm Chart
         run: helm lint charts/${{ matrix.chart }}
 
@@ -68,9 +71,5 @@ jobs:
               helm template gateway charts/ndc-bigquery-git-sync \
                 --values tests/ndc-bigquery-git-sync-values.yaml \
                 --namespace connector-ns
-              ;;
-            *)
-              # Default template run for other charts
-              helm template "$chart" charts/"$chart"
               ;;
           esac
