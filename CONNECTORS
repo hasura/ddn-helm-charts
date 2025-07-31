@@ -4,6 +4,7 @@ ndc-connector-phoenix
 ndc-duckduckapi
 ndc-elasticsearch
 ndc-graphql
+ndc-http
 ndc-jvm-mysql
 ndc-jvm-trino
 ndc-mongodb

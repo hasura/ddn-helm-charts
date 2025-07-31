@@ -1,0 +1,15 @@
+image:
+  repository: "my_repo/ndc-elasticsearch"
+  tag: "v1.0.0"
+
+connectorEnvVars:
+  ELASTICSEARCH_URL: "elasticsearch_url"
+  ELASTICSEARCH_USERNAME: "elasticsearch_username"
+  ELASTICSEARCH_PASSWORD: "elasticsearch_password"
+  HASURA_SERVICE_TOKEN_SECRET: "token"
+
+initContainers:
+  gitSync:
+    enabled: true
+    repo: "git@<git_domain>:<org>/<repo>"
+    branch: "main"

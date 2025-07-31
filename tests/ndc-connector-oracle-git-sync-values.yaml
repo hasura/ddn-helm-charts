@@ -1,0 +1,14 @@
+image:
+  repository: "my_repo/ndc-connector-oracle"
+  tag: "v1.0.0"
+
+connectorEnvVars:
+  JDBC_URL: "jdbc_url"
+  HASURA_SERVICE_TOKEN_SECRET: "token"
+  configDirectory: "/work-dir/<repo>/app/connector/<connector-name>"
+
+initContainers:
+  gitSync:
+    enabled: true
+    repo: "git@<git_domain>:<org>/<repo>"
+    branch: "main"

@@ -1,0 +1,7 @@
+image:
+  repository: "my_repo/ndc-graphql"
+  tag: "v1.0.0"
+
+connectorEnvVars:
+  GRAPHQL_ENDPOINT: "graphql_endpoint"
+  HASURA_SERVICE_TOKEN_SECRET: "token"

@@ -1,0 +1,6 @@
+image:
+  repository: "my_repo/ndc-duckduckapi"
+  tag: "v1.0.0"
+
+connectorEnvVars:
+  HASURA_SERVICE_TOKEN_SECRET: "token"

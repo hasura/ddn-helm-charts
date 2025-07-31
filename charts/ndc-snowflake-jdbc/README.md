@@ -65,6 +65,52 @@ helm upgrade --install <release-name> \
 
 When you enable git-sync, the code will be fetched from the repository specified in `initContainers.gitSync.repo`, using the branch defined in `initContainers.gitSync.branch`.
 
+## Private Registry Access via Image Pull Secrets (GCR Auth Example)
+
+To pull container images from a private registry, such as when deploying connectors hosted in a restricted environment, you can configure an image pull secret using either a YAML override or Helm CLI flags.
+
+- Note: The following example demonstrates authentication using a Google Container Registry (GCR) service account with _json_key authentication.
+
+```yaml
+global:
+  # Set to true to deploy the image pull secret defined in the `secrets` section
+  dataPlane:
+    deployImagePullSecret: true
+
+  # Reference the name of the image pull secret to be used
+  # This name must remain consistent and match the one defined in the manifest
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Enable creation of a service account and attach the image pull secret to it
+  serviceAccount:
+    enabled: true
+
+secrets:
+  imagePullSecret:
+    auths:
+      gcr.io:
+        username: "_json_key"
+        # Below content should be replaced with "company-sa.json" file content which is shared by the Hasura team, ensuring that it's indented correctly.
+        password: |
+          {}
+        email: "support@hasura.io"
+```
+
+You can achieve the same configuration from the command line using the following steps:
+
+- Save the service account key (JSON) into a file, e.g., `company-sa.json`
+- Run Helm by adding the following flags:
+
+```yaml
+--set global.dataPlane.deployImagePullSecret=true \
+--set global.imagePullSecrets[0]=hasura-image-pull \
+--set global.serviceAccount.enabled=true \
+--set secrets.imagePullSecret.auths.gcr\.io.username="_json_key" \
+--set secrets.imagePullSecret.auths.gcr\.io.email="support@hasura.io" \
+--set-file secrets.imagePullSecret.auths.gcr\.io.password=company-sa.json
+```
+
 ## Connector ENV Inputs
 
 | Name                                              | Description                                                                                                | Value                           |
@@ -86,6 +132,12 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `networkPolicy.ingress.enabled`                   | Enables ingress network policy rules                                                                       | `true`                          |
 | `networkPolicy.ingress.allowedApps`               | Specifies which applications (by label) are allowed ingress access                                         | `v3-engine`                     |
 | `global.networkPolicy.enabled`                    | Enables or disables rendering of networkPolicy                                                             | `false`                         |
+| `global.dataPlane.deployImagePullSecret`          | Whether to deploy the image pull secret defined in the `secrets` section                                   | `false`                         |
+| `global.imagePullSecrets`                         | A list of image pull secret names to use. These must match what is defined in the `secrets` section        | `hasura-image-pull`             |
+| `global.serviceAccount.enabled`                   | Enable creation of a Kubernetes service account and attach the image pull secret to it                     | `false`                         |
+| `secrets.imagePullSecret.auths.gcr\.io.username`  | Username for authenticating to the container registry                                                      | `_json_key`                     |
+| `secrets.imagePullSecret.auths.gcr\.io.password`  | Points to `company-sa.json` file (via `set-file`)                                                          | `company-sa.json`               |
+| `secrets.imagePullSecret.auths.gcr\.io.email`     | Email associated with the registry authentication                                                          | `support@hasura.io`             |
 | `image.repository`                                | Image repository containing custom created ndc-snowflake-jdbc                                                     | `""`                                |
 | `image.tag`                                       | Image tag to use for custom created ndc-snowflake-jdbc                                                            | `""`                                |
 | `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                            |
@@ -106,3 +158,5 @@ When you enable git-sync, the code will be fetched from the repository specified
 | `initContainers.gitSync.repo`                     | Git repository to read from (Used when initContainers.gitSync.enabled is set to true)                      | `git@github.com:<org>/<repo>`       |
 | `initContainers.gitSync.branch`                   | Branch to read from (Used when initContainers.gitSync.enabled is set to true)                              | `main`                              |
 | `initContainers.gitSync.secretName`               | Secret name for private key & known hosts (Used when initContainers.gitSync.enabled is set to true)        | `git-creds`                         |
+| `serviceAccount.enabled`                          | Enable user of a service account for pod                                                                   | `false`                         |
+| `serviceAccount.name`                             | Name for the service account                                                                               | `""`                            |
