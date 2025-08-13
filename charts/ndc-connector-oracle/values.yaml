@@ -35,9 +35,9 @@ initContainers:
     secretName: ""
 
 healthChecks:
-  enabled: false
-  livenessProbePath: "/healthz"
-  readinessProbePath: "/healthz"
+  enabled: true
+  livenessProbePath: "/health"
+  readinessProbePath: "/health"
 
 hpa:
   enabled: false
