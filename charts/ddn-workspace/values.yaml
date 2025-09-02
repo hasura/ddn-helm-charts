@@ -72,6 +72,8 @@ ddnCpsEngineHost: "http://ddn-cps-engine:3000"
 consoleUrl: ""
 ddnPromptqlEndpoint: ""
 skipTlsVerify: false
+noAuth:
+  enabled: true
 secrets:
   password: ""
 
@@ -79,11 +81,16 @@ secrets:
 env: |
   - name: CODE_SERVER_PORT
     value: "8123"
+  {{- if not .Values.noAuth.enabled }}
   - name: HASHED_PASSWORD
     valueFrom:
       secretKeyRef:
         name: {{ include "common.secretsName" $ }}
         key: WORKSPACE_PASSWORD
+  {{- else }}
+  - name: CODE_SERVER_NO_AUTH
+    value: "true"
+  {{- end }}
   - name: HASURA_DDN_INSECURE_SKIP_TLS_VERIFY
     value: {{ .Values.skipTlsVerify | quote }}
   {{- if .Values.setControlPlaneUrls }}
