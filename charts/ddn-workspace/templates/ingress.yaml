@@ -1,2 +1,4 @@
 # ingress.yaml
+{{- if not (include "ddn-workspace.authProxy.enabled" .) }}
 {{- template "common.ingress" . -}}
+{{- end }}

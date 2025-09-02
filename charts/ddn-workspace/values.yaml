@@ -91,6 +91,9 @@ env: |
   - name: CODE_SERVER_NO_AUTH
     value: "true"
   {{- end }}
+
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  {{- end }}
   - name: HASURA_DDN_INSECURE_SKIP_TLS_VERIFY
     value: {{ .Values.skipTlsVerify | quote }}
   {{- if .Values.setControlPlaneUrls }}
@@ -106,6 +109,12 @@ env: |
   - name: HASURA_DDN_PROMPTQL_CONSOLE_HOST
     value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}
   {{- end }}
+
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  {{- end }}
+  {{- end }}
+
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
   {{- end }}
 
 
@@ -116,6 +125,9 @@ extraVolumes: |
       claimName: {{ include "common.name" . }}-data
   {{- else }}
     emptyDir: {}
+  {{- end }}
+
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
   {{- end }}
 
 extraVolumeMounts: |
@@ -134,3 +146,159 @@ ingress:
 
 routes:
   enabled: false
+
+# Auth Proxy Configuration (only enabled when noAuth.enabled is true)
+authProxy:
+  enabled: false  # Will be automatically set based on noAuth.enabled
+  
+  # Image Configuration
+  image:
+    repository: "auth-proxy"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  # Routing Configuration
+  routing:
+    # Mode will be set automatically based on global.subDomain
+    # "subdomain" for <workspace>.domain or "path" for domain/<workspace>/
+    containerNamePattern: "{{ include \"common.name\" . }}"  # Use the workspace name
+  
+  # JWT Configuration
+  jwt:
+    issuer: "https://auth.hasura.io/ddn/token"
+    audience: "workspaces"
+    jwksUri: ""  # Must be provided when authProxy is enabled
+  
+  # Cookie Configuration
+  cookie:
+    name: "auth-session"
+    httpOnly: true
+    sameSite: "Lax"
+    maxAge: 3600
+    # domain, path, and secure will be configured automatically
+  
+  # Workspace Configuration
+  workspace:
+    servicePort: 8123  # Port of the ddn-workspace service
+    claimKey: "workspaces"
+  
+  # Service Configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    adminPort: 9901
+  
+  # Resource Configuration
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Replicas
+  replicas: 1
+
+# Extra containers (auth-proxy sidecar when enabled)
+extraContainers: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  - name: auth-proxy
+    image: "{{ .Values.global.containerRegistry }}/{{ .Values.authProxy.image.repository }}:{{ .Values.authProxy.image.tag }}"
+    imagePullPolicy: {{ .Values.authProxy.image.pullPolicy }}
+    ports:
+      - name: auth-http
+        containerPort: {{ .Values.authProxy.service.port }}
+        protocol: TCP
+      - name: auth-admin
+        containerPort: {{ .Values.authProxy.service.adminPort }}
+        protocol: TCP
+    livenessProbe:
+      httpGet:
+        path: /ready
+        port: {{ .Values.authProxy.service.adminPort }}
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: {{ .Values.authProxy.service.adminPort }}
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    resources:
+      {{- toYaml .Values.authProxy.resources | nindent 6 }}
+    volumeMounts:
+    env:
+      # JWT Configuration
+      - name: JWT_ISSUER
+        value: "{{ .Values.authProxy.jwt.issuer }}"
+      - name: JWT_AUDIENCE
+        value: "{{ .Values.authProxy.jwt.audience }}"
+      - name: JWKS_URI
+        value: "{{ .Values.authProxy.jwt.jwksUri }}"
+      
+      # Cookie Configuration
+      - name: COOKIE_NAME
+        value: "{{ .Values.authProxy.cookie.name }}"
+      - name: COOKIE_DOMAIN
+        value: "{{ include "ddn-workspace.authProxy.cookieDomain" . }}"
+      - name: COOKIE_PATH
+        value: "{{ include "ddn-workspace.authProxy.cookiePath" . }}"
+      - name: COOKIE_SECURE
+        value: "{{ include "ddn-workspace.authProxy.cookieSecure" . }}"
+      - name: COOKIE_HTTP_ONLY
+        value: "{{ .Values.authProxy.cookie.httpOnly }}"
+      - name: COOKIE_SAME_SITE
+        value: "{{ .Values.authProxy.cookie.sameSite }}"
+      - name: COOKIE_MAX_AGE
+        value: "{{ .Values.authProxy.cookie.maxAge | toString }}"
+      
+      # Routing Configuration
+      - name: ROUTING_MODE
+        value: "{{ include "ddn-workspace.authProxy.routingMode" . }}"
+      - name: BASE_DOMAIN
+        value: "{{ .Values.global.domain }}"
+      - name: CONTAINER_NAME_PATTERN
+        value: "{{ include "common.name" . }}"
+      
+      # Workspace Configuration (localhost since same pod)
+      - name: WORKSPACE_SERVICE_HOST
+        value: "127.0.0.1"
+      - name: WORKSPACE_SERVICE_PORT
+        value: "{{ .Values.authProxy.workspace.servicePort | toString }}"
+      - name: WORKSPACE_CLAIM_KEY
+        value: "{{ .Values.authProxy.workspace.claimKey }}"
+      
+      # Envoy Configuration
+      - name: ENVOY_PORT
+        value: "{{ .Values.authProxy.service.port | toString }}"
+      - name: ENVOY_ADMIN_PORT
+        value: "{{ .Values.authProxy.service.adminPort | toString }}"
+  {{- end }}
+
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  {{- end }}
+
+# Additional service ports for auth-proxy
+containerPorts: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  - name: auth-http
+    containerPort: {{ .Values.authProxy.service.port }}
+    protocol: TCP
+  - name: auth-admin
+    containerPort: {{ .Values.authProxy.service.adminPort }}
+    protocol: TCP
+  {{- end }}
+
+# Service ports configuration
+servicePorts: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  - port: {{ .Values.authProxy.service.port }}
+    targetPort: auth-http
+    protocol: TCP
+    name: auth-http
+  - port: {{ .Values.authProxy.service.adminPort }}
+    targetPort: auth-admin
+    protocol: TCP
+    name: auth-admin
+  {{- end }}

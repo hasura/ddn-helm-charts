@@ -1,0 +1,226 @@
+{{- if include "ddn-workspace.authProxy.enabled" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ddn-workspace.authProxy.name" . }}-config
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+    component: auth-proxy
+data:
+  envoy.yaml: |
+    admin:
+      address:
+        socket_address:
+          protocol: TCP
+          address: 0.0.0.0
+          port_value: {{ .Values.authProxy.service.adminPort }}
+
+    # Enable debug logging for JWT
+    layered_runtime:
+      layers:
+      - name: static_layer_0
+        static_layer:
+          envoy:
+            reloadable_features:
+              jwt_authn_debug_log: true
+
+    static_resources:
+      listeners:
+      - name: listener_0
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: {{ .Values.authProxy.service.port }}
+        filter_chains:
+        - filters:
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: ingress_http
+              codec_type: AUTO
+              route_config:
+                name: local_route
+                virtual_hosts:
+                - name: local_service
+                  domains: ["*"]
+                  routes:
+                  # UI Routes (serve static files)
+                  - match:
+                      prefix: "/ui"
+                    route:
+                      cluster: ui_service
+                  # API Routes (for token verification)
+                  - match:
+                      prefix: "/api"
+                    route:
+                      cluster: api_service
+                  # Default workspace routes
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+                      retry_policy:
+                        retry_on: 5xx,reset,connect-failure,refused-stream
+                        num_retries: 3
+
+              http_filters:
+              # JWT Authentication Filter
+              - name: envoy.filters.http.jwt_authn
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                  providers:
+                    auth_provider:
+                      issuer: "{{ .Values.authProxy.jwt.issuer }}"
+                      audiences:
+                      - "{{ .Values.authProxy.jwt.audience }}"
+                      remote_jwks:
+                        http_uri:
+                          uri: "{{ required "authProxy.jwt.jwksUri is required when authProxy is enabled" .Values.authProxy.jwt.jwksUri }}"
+                          cluster: jwks_cluster
+                          timeout: 10s
+                        cache_duration: 300s
+                        async_fetch:
+                          fast_listener: false
+                      from_headers:
+                      - name: Authorization
+                        value_prefix: "Bearer "
+                      from_cookies:
+                      - "{{ .Values.authProxy.cookie.name }}"
+                  rules:
+                  - match:
+                      prefix: "/ui"
+                    # Allow UI routes without authentication
+                  - match:
+                      path: "/auth"
+                    # Allow /auth endpoint for custom authentication handling
+                  - match:
+                      prefix: "/"
+                    requires:
+                      provider_name: auth_provider
+              # Lua Filter for Custom Authentication Logic
+              - name: envoy.filters.http.lua
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                  inline_code: |
+                    function envoy_on_request(request_handle)
+                      local path = request_handle:headers():get(":path")
+                      local method = request_handle:headers():get(":method")
+                      local host = request_handle:headers():get(":authority") or request_handle:headers():get("host")
+
+                      -- Handle authentication endpoint
+                      if path == "/auth" and method == "POST" then
+                        local auth_header = request_handle:headers():get("authorization") or request_handle:headers():get("Authorization")
+                        if not auth_header then
+                          request_handle:respond(
+                            {[":status"] = "400", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Missing authorization header"}'
+                          )
+                          return
+                        end
+
+                        local jwt_token = string.match(auth_header, "Bearer%s+(.+)")
+                        if not jwt_token then
+                          request_handle:respond(
+                            {[":status"] = "400", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Invalid authorization header format"}'
+                          )
+                          return
+                        end
+
+                        local cookie_value = "{{ .Values.authProxy.cookie.name }}=" .. jwt_token .. 
+                                           "; Path={{ include "ddn-workspace.authProxy.cookiePath" . }}; " ..
+                                           "Domain={{ include "ddn-workspace.authProxy.cookieDomain" . }}; " ..
+                                           "Max-Age={{ .Values.authProxy.cookie.maxAge }}; " ..
+                                           "{{ if eq (include "ddn-workspace.authProxy.cookieSecure" .) "true" }}Secure; {{ end }}" ..
+                                           "{{ if .Values.authProxy.cookie.httpOnly }}HttpOnly; {{ end }}" ..
+                                           "SameSite={{ .Values.authProxy.cookie.sameSite }}"
+                        
+                        request_handle:respond(
+                          {[":status"] = "200", ["content-type"] = "application/json", ["set-cookie"] = cookie_value},
+                          '{"status":"success","message":"Authentication successful"}'
+                        )
+                        return
+                      end
+
+                      -- Extract workspace name and validate access
+                      local workspace_name = "{{ include "common.name" . }}"
+                      local routing_mode = "{{ include "ddn-workspace.authProxy.routingMode" . }}"
+                      
+                      -- Clean the path for path-based routing
+                      local clean_path = path
+                      if routing_mode == "path" then
+                        clean_path = string.gsub(path, "^/" .. workspace_name, "")
+                        if clean_path == "" then
+                          clean_path = "/"
+                        end
+                        request_handle:headers():replace(":path", clean_path)
+                      end
+                      
+                      request_handle:logInfo("DEBUG: Routing to workspace: " .. workspace_name .. " with path: " .. clean_path)
+                    end
+              # Router Filter (must be last)
+              - name: envoy.filters.http.router
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+      clusters:
+      # JWKS Cluster
+      - name: jwks_cluster
+        connect_timeout: 10s
+        type: LOGICAL_DNS
+        dns_lookup_family: V4_ONLY
+        load_assignment:
+          cluster_name: jwks_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ include "common.extractHost" .Values.authProxy.jwt.jwksUri }}
+                    port_value: {{ include "common.extractPort" .Values.authProxy.jwt.jwksUri | default "443" }}
+
+      # UI Service Cluster (serves static files)
+      - name: ui_service
+        connect_timeout: 0.25s
+        type: STATIC
+        load_assignment:
+          cluster_name: ui_service
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: 127.0.0.1
+                    port_value: 8080
+
+      # API Service Cluster
+      - name: api_service
+        connect_timeout: 5s
+        type: LOGICAL_DNS
+        dns_lookup_family: V4_ONLY
+        load_assignment:
+          cluster_name: api_service
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: "127.0.0.1"
+                    port_value: 3001
+
+      # Workspace Service Cluster (dynamic routing target)
+      - name: workspace_service
+        connect_timeout: 0.25s
+        type: STATIC
+        
+        load_assignment:
+          cluster_name: workspace_service
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: "127.0.0.1"
+                    port_value: {{ .Values.authProxy.workspace.servicePort }}
+{{- end }}

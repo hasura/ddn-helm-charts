@@ -1,0 +1,270 @@
+# DDN Workspace with Auth Proxy Sidecar Integration
+
+This document explains the sidecar implementation of auth-proxy within the ddn-workspace Helm chart.
+
+## Architecture Overview
+
+The auth-proxy runs as a **sidecar container** within the same pod as the workspace, providing JWT-based authentication and workspace access control.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Kubernetes Pod                       │
+│  ┌─────────────────┐              ┌─────────────────────┐   │
+│  │   Auth Proxy    │   localhost  │    Workspace        │   │
+│  │   (Port 8080)   │ ──────────── │   (Port 8123)       │   │
+│  │                 │              │                     │   │
+│  │ • JWT Validation│              │ • Code Server       │   │
+│  │ • Workspace     │              │ • DDN Tools         │   │
+│  │   Access Control│              │ • Project Files     │   │
+│  └─────────────────┘              └─────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                    ┌─────────────┐
+                    │   Service   │
+                    │ Port 8080   │ ← Ingress routes here
+                    └─────────────┘
+```
+
+## Key Benefits
+
+✅ **Security**: Workspace is not directly accessible from outside the pod  
+✅ **Performance**: Localhost communication between auth-proxy and workspace  
+✅ **Simplicity**: Single pod deployment with shared volumes  
+✅ **Resource Efficiency**: Shared network namespace and storage  
+✅ **Scalability**: Pod-level scaling includes both containers  
+
+## Configuration
+
+### Enable Auth Proxy Sidecar
+
+```yaml
+# Enable no-auth mode (required)
+noAuth:
+  enabled: true
+
+# Enable auth-proxy sidecar
+authProxy:
+  enabled: true
+  jwt:
+    jwksUri: "https://auth.your-domain.com/.well-known/jwks"
+```
+
+### Routing Modes
+
+#### Subdomain Routing
+```yaml
+global:
+  domain: "hasura.io"
+  subDomain: true
+
+# Results in: workspace-name.hasura.io → auth-proxy:8080 → workspace:8123
+```
+
+#### Path-Based Routing
+```yaml
+global:
+  domain: "hasura.io"
+  subDomain: false
+
+# Results in: hasura.io/workspace-name/ → auth-proxy:8080 → workspace:8123
+```
+
+## Implementation Details
+
+### Sidecar Container Configuration
+
+The auth-proxy is added as an `extraContainer` in the deployment:
+
+```yaml
+extraContainers: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  - name: auth-proxy
+    image: "{{ .Values.global.containerRegistry }}/{{ .Values.authProxy.image.repository }}:{{ .Values.authProxy.image.tag }}"
+    ports:
+      - name: auth-http
+        containerPort: 8080
+      - name: auth-admin
+        containerPort: 9901
+    # ... environment variables and volume mounts
+  {{- end }}
+```
+
+### Service Configuration
+
+The main service exposes both auth-proxy and workspace ports:
+
+```yaml
+servicePorts: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  - port: 8080          # Auth proxy HTTP port
+    targetPort: auth-http
+    name: auth-http
+  - port: 9901          # Auth proxy admin port
+    targetPort: auth-admin
+    name: auth-admin
+  {{- end }}
+```
+
+### Ingress Configuration
+
+Traffic is routed to the auth-proxy port (8080):
+
+```yaml
+backend:
+  service:
+    name: {{ include "common.name" . }}
+    port:
+      number: 8080  # Routes to auth-proxy, not workspace
+```
+
+### Localhost Communication
+
+The auth-proxy is configured to route to the workspace via localhost:
+
+```yaml
+# In Envoy configuration
+- name: workspace_service
+  type: STATIC
+  endpoints:
+    - socket_address:
+        address: "127.0.0.1"  # Same pod
+        port_value: 8123      # Workspace port
+```
+
+## Deployment Example
+
+```bash
+helm install my-workspace . \
+  --set noAuth.enabled=true \
+  --set authProxy.enabled=true \
+  --set authProxy.jwt.jwksUri="https://auth.example.com/.well-known/jwks" \
+  --set global.domain="example.com" \
+  --set global.subDomain=true
+```
+
+## Request Flow
+
+1. **External Request** → `workspace.example.com`
+2. **Ingress** → Routes to service port 8080
+3. **Auth Proxy Container** → Validates JWT and workspace access
+4. **Localhost Proxy** → `127.0.0.1:8123` (workspace container)
+5. **Workspace Container** → Serves the application
+
+## Security Model
+
+### Authentication
+- JWT tokens validated against JWKS endpoint
+- Cookie-based session management
+- Configurable token expiration
+
+### Authorization
+- Workspace access validated against JWT claims
+- User must have access to specific workspace
+- Claims format: `workspaces.hasura.io/workspace-accesses`
+
+### Network Security
+- Workspace not directly accessible from outside pod
+- All external traffic goes through auth-proxy
+- Internal communication via localhost
+
+## Monitoring and Debugging
+
+### Health Checks
+```bash
+# Check auth-proxy health
+kubectl exec -it pod-name -c auth-proxy -- curl localhost:9901/ready
+
+# Check workspace health
+kubectl exec -it pod-name -c workspace-name -- curl localhost:8123/healthz
+```
+
+### Logs
+```bash
+# Auth-proxy logs
+kubectl logs pod-name -c auth-proxy
+
+# Workspace logs
+kubectl logs pod-name -c workspace-name
+```
+
+### Envoy Admin Interface
+```bash
+# Port forward admin interface
+kubectl port-forward pod-name 9901:9901
+
+# Check clusters
+curl http://localhost:9901/clusters
+
+# Check configuration
+curl http://localhost:9901/config_dump
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Auth-proxy not starting**
+   - Check JWKS URI is accessible
+   - Verify ConfigMap is mounted correctly
+   - Check resource limits
+
+2. **JWT validation failing**
+   - Verify JWKS endpoint is reachable
+   - Check JWT issuer and audience configuration
+   - Validate JWT claims format
+
+3. **Workspace access denied**
+   - Verify JWT contains workspace access claims
+   - Check workspace name matches deployment name
+   - Validate claims structure
+
+4. **Service connectivity issues**
+   - Ensure both containers are in same pod
+   - Check localhost communication (127.0.0.1:8123)
+   - Verify service port configuration
+
+### Debug Commands
+
+```bash
+# Test auth-proxy directly
+kubectl exec -it pod-name -c auth-proxy -- curl -v localhost:8080/
+
+# Test workspace directly
+kubectl exec -it pod-name -c workspace-name -- curl -v localhost:8123/
+
+# Check Envoy configuration
+kubectl exec -it pod-name -c auth-proxy -- cat /etc/envoy/envoy.yaml
+```
+
+## Migration from Separate Deployment
+
+If migrating from a separate auth-proxy deployment:
+
+1. Remove separate auth-proxy deployment
+2. Enable sidecar mode: `authProxy.enabled: true`
+3. Update ingress to point to main service
+4. Remove separate auth-proxy service
+5. Test localhost communication
+
+## Limitations
+
+- Single workspace per pod (no multi-tenancy)
+- Requires `noAuth.enabled: true`
+- Auth-proxy and workspace share resource limits
+- Both containers restart together
+
+## Performance Considerations
+
+- Localhost communication is very fast
+- Shared memory and network namespace
+- Resource requests should account for both containers
+- Consider CPU and memory limits for both containers
+
+## Security Best Practices
+
+1. Always use HTTPS in production
+2. Set appropriate JWT expiration times
+3. Use secure cookie settings
+4. Implement proper RBAC for workspace access
+5. Monitor auth-proxy logs for security events
+6. Regularly rotate JWT signing keys
