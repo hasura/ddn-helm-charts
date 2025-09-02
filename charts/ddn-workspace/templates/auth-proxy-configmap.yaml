@@ -103,6 +103,11 @@ data:
                   "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                   inline_code: |
                     -- JSON encode/decode functions
+
+                    package.path = package.path .. ";/usr/local/share/lua/5.1/?.lua"
+                    package.cpath = package.cpath .. ";/usr/local/lib/lua/5.1/?.so"
+
+                    local cjson = require "cjson"
                     local function json_encode(obj)
                       if type(obj) == "table" then
                         local items = {}
@@ -179,10 +184,13 @@ data:
                         return false, "GraphQL request failed"
                       end
                       
-                      local response = json_decode(body)
+                      local response = cjson.decode(body)
                       request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. json_encode(headers) .. ", body: " .. (body or "nil"))
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: response: " .. json_encode(response))
                       if response and response.data and response.data.ddn_workspace then
                         for i = 1, #response.data.ddn_workspace do
+                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace: " .. json_encode(response.data.ddn_workspace[i]))
+                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace_name: " .. workspace_name)
                           if response.data.ddn_workspace[i].name == workspace_name then
                             return true, nil
                           end
@@ -224,7 +232,7 @@ data:
                         end
 
                         local body_string = body:getBytes(0, body_length)
-                        local request_data = json_decode(body_string)
+                        local request_data = cjson.decode(body_string)
                         if not request_data or not request_data.token or not request_data.auth_method then
                           request_handle:respond(
                             {[":status"] = "400", ["content-type"] = "application/json"},
@@ -233,7 +241,17 @@ data:
                           return
                         end
 
-                        local workspace_name = request_data.workspace_name or "default-workspace"
+                        -- Extract workspace name from Host header (subdomain approach)
+                        local host_header = request_handle:headers():get(":authority") or request_handle:headers():get("host")
+                        local workspace_name = "default-workspace"
+                        if host_header then
+                          -- Extract workspace name from subdomain (e.g., karthikvt26-workspace from karthikvt26-workspace-ddn-workspace.lux-dev.hasura.me)
+                          local subdomain = string.match(host_header, "^([^%.]+)")
+                          if subdomain then
+                            -- Remove -ddn-workspace suffix if present
+                            workspace_name = string.gsub(subdomain, "%-ddn%-workspace$", "")
+                          end
+                        end
                         local has_access, error_msg = check_workspace_access(
                           request_handle, request_data.token, request_data.auth_method, workspace_name
                         )
