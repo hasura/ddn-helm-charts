@@ -33,7 +33,7 @@ data:
               codec_type: AUTO
               route_config:
                 name: local_route
-                max_direct_response_body_size_bytes: 16384
+                max_direct_response_body_size_bytes: 3672040
                 virtual_hosts:
                 - name: local_service
                   domains: ["*"]
