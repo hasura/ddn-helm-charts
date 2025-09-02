@@ -268,3 +268,89 @@ If migrating from a separate auth-proxy deployment:
 4. Implement proper RBAC for workspace access
 5. Monitor auth-proxy logs for security events
 6. Regularly rotate JWT signing keys
+
+## Auth Service URL Configuration
+
+The auth service URL is automatically configured based on the routing mode and made available to both the auth-proxy and workspace containers.
+
+### Environment Variables
+
+The following environment variables are automatically set:
+
+**Auth Proxy Container:**
+- `AUTH_SERVICE_URL`: URL of the authentication service
+
+**Workspace Container:**
+- `HASURA_DDN_AUTH_SERVICE_URL`: URL of the authentication service (for UI)
+
+### URL Generation Logic
+
+The auth service URL is generated based on the routing mode:
+
+#### Subdomain Mode (`global.subDomain: true`)
+```yaml
+global:
+  domain: "example.com"
+  subDomain: true
+  uriScheme: "https"
+
+# Results in: AUTH_SERVICE_URL=https://auth.example.com
+```
+
+#### Path Mode (`global.subDomain: false`)
+```yaml
+global:
+  domain: "example.com"
+  subDomain: false
+  uriScheme: "https"
+
+# Results in: AUTH_SERVICE_URL=https://example.com/auth
+```
+
+### Custom Auth Service URL
+
+You can override the auto-generated URL by setting:
+
+```yaml
+authProxy:
+  auth:
+    serviceUrl: "https://custom-auth.example.com"
+```
+
+### UI Integration
+
+The workspace UI can access the auth service URL through the `HASURA_DDN_AUTH_SERVICE_URL` environment variable to:
+
+1. **Redirect users for authentication**
+2. **Fetch workspace information**
+3. **Handle token refresh**
+4. **Manage user sessions**
+
+### Example Usage in UI
+
+```javascript
+// The auth service URL is available as an environment variable
+const authServiceUrl = process.env.HASURA_DDN_AUTH_SERVICE_URL;
+
+// Redirect to auth service for login
+window.location.href = `${authServiceUrl}/login?redirect=${encodeURIComponent(window.location.href)}`;
+
+// Fetch user workspaces
+const response = await fetch(`${authServiceUrl}/api/user/workspaces`, {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+```
+
+### Testing Auth Service URL
+
+You can verify the auth service URL configuration:
+
+```bash
+# Check auth-proxy container
+kubectl exec -it pod-name -c auth-proxy -- env | grep AUTH_SERVICE_URL
+
+# Check workspace container
+kubectl exec -it pod-name -c workspace-name -- env | grep HASURA_DDN_AUTH_SERVICE_URL
+```

@@ -71,3 +71,15 @@ false
 {{- define "ddn-workspace.authProxy.workspaceServiceName" -}}
 {{- include "common.name" . -}}
 {{- end -}}
+
+{{- define "ddn-workspace.authProxy.authServiceUrl" -}}
+{{- if .Values.authProxy.auth.serviceUrl -}}
+{{- .Values.authProxy.auth.serviceUrl -}}
+{{- else -}}
+{{- if .Values.global.subDomain -}}
+{{- printf "%s://auth.%s" .Values.global.uriScheme .Values.global.domain -}}
+{{- else -}}
+{{- printf "%s://%s/auth" .Values.global.uriScheme .Values.global.domain -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

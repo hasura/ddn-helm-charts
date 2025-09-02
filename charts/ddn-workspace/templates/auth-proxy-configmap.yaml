@@ -15,15 +15,6 @@ data:
           address: 0.0.0.0
           port_value: {{ .Values.authProxy.service.adminPort }}
 
-    # Enable debug logging for JWT
-    layered_runtime:
-      layers:
-      - name: static_layer_0
-        static_layer:
-          envoy:
-            reloadable_features:
-              jwt_authn_debug_log: true
-
     static_resources:
       listeners:
       - name: listener_0
@@ -40,101 +31,226 @@ data:
               codec_type: AUTO
               route_config:
                 name: local_route
+                max_direct_response_body_size_bytes: 16384
                 virtual_hosts:
                 - name: local_service
                   domains: ["*"]
                   routes:
-                  # UI Routes (serve static files)
+                  # Authentication endpoint - handled by Lua filter
                   - match:
-                      prefix: "/ui"
+                      path: "/auth"
                     route:
-                      cluster: ui_service
-                  # API Routes (for token verification)
+                      cluster: workspace_service
+                      timeout: 30s
+                  
+                  # UI HTML - serve main page
                   - match:
-                      prefix: "/api"
-                    route:
-                      cluster: api_service
+                      path: "/ui"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/index.html"
+                    response_headers_to_add:
+                    - header:
+                        key: "Content-Type"
+                        value: "text/html; charset=utf-8"
+                  
+                  # UI Static Assets - serve CSS and JS files
+                  - match:
+                      path: "/ui/client.js"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/client.js"
+                    response_headers_to_add:
+                    - header:
+                        key: "Content-Type"
+                        value: "application/javascript"
+                  
+                  - match:
+                      path: "/ui/client.css"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/client.css"
+                    response_headers_to_add:
+                    - header:
+                        key: "Content-Type"
+                        value: "text/css"
+                  
+                  - match:
+                      path: "/ui/output.css"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/output.css"
+                    response_headers_to_add:
+                    - header:
+                        key: "Content-Type"
+                        value: "text/css"
+                  
                   # Default workspace routes
                   - match:
                       prefix: "/"
                     route:
                       cluster: workspace_service
                       timeout: 30s
-                      retry_policy:
-                        retry_on: 5xx,reset,connect-failure,refused-stream
-                        num_retries: 3
 
               http_filters:
-              # JWT Authentication Filter
-              - name: envoy.filters.http.jwt_authn
-                typed_config:
-                  "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
-                  providers:
-                    auth_provider:
-                      issuer: "{{ .Values.authProxy.jwt.issuer }}"
-                      audiences:
-                      - "{{ .Values.authProxy.jwt.audience }}"
-                      remote_jwks:
-                        http_uri:
-                          uri: "{{ required "authProxy.jwt.jwksUri is required when authProxy is enabled" .Values.authProxy.jwt.jwksUri }}"
-                          cluster: jwks_cluster
-                          timeout: 10s
-                        cache_duration: 300s
-                        async_fetch:
-                          fast_listener: false
-                      from_headers:
-                      - name: Authorization
-                        value_prefix: "Bearer "
-                      from_cookies:
-                      - "{{ .Values.authProxy.cookie.name }}"
-                  rules:
-                  - match:
-                      prefix: "/ui"
-                    # Allow UI routes without authentication
-                  - match:
-                      path: "/auth"
-                    # Allow /auth endpoint for custom authentication handling
-                  - match:
-                      prefix: "/"
-                    requires:
-                      provider_name: auth_provider
-              # Lua Filter for Custom Authentication Logic
+              # Lua filter for authentication
               - name: envoy.filters.http.lua
                 typed_config:
                   "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                   inline_code: |
+                    -- JSON encode/decode functions
+                    local function json_encode(obj)
+                      if type(obj) == "table" then
+                        local items = {}
+                        for k, v in pairs(obj) do
+                          table.insert(items, '"' .. k .. '":' .. json_encode(v))
+                        end
+                        return "{" .. table.concat(items, ",") .. "}"
+                      elseif type(obj) == "string" then
+                        return '"' .. obj:gsub('"', '\\"') .. '"'
+                      else
+                        return tostring(obj)
+                      end
+                    end
+
+                    -- JSON decode function (simplified)
+                    local function json_decode(str)
+                      local function decode_value(s, pos)
+                        local first = s:sub(pos, pos)
+                        if first == '"' then
+                          local i = pos + 1
+                          while i <= #s do
+                            if s:sub(i, i) == '"' and s:sub(i-1, i-1) ~= '\\' then
+                              return s:sub(pos + 1, i - 1), i + 1
+                            end
+                            i = i + 1
+                          end
+                        elseif first == '{' then
+                          local obj = {}
+                          local i = pos + 1
+                          while i <= #s and s:sub(i, i) ~= '}' do
+                            if s:sub(i, i) == '"' then
+                              local key, next_pos = decode_value(s, i)
+                              i = next_pos
+                              while i <= #s and (s:sub(i, i) == ' ' or s:sub(i, i) == ':') do i = i + 1 end
+                              local value, next_pos2 = decode_value(s, i)
+                              obj[key] = value
+                              i = next_pos2
+                              while i <= #s and (s:sub(i, i) == ' ' or s:sub(i, i) == ',') do i = i + 1 end
+                            else
+                              i = i + 1
+                            end
+                          end
+                          return obj, i + 1
+                        end
+                        return nil, pos
+                      end
+                      return decode_value(str, 1)
+                    end
+
+                    -- GraphQL workspace access check function
+                    local function check_workspace_access(request_handle, token, auth_method, workspace_name)
+                      local graphql_host = os.getenv("GRAPHQL_HOST") or "api.hasura.io"
+                      
+                      local query_body = '{"query":"query fetchWorkspace($where: ddn_workspace_bool_exp!) { ddn_workspace(where: $where) { id password name } }","variables":{"where":{"name":{"_eq":"' .. workspace_name .. '"}}},"operationName":"fetchWorkspace"}'
+                      
+                      local auth_header = auth_method .. " " .. token
+                      
+                      local headers, body = request_handle:httpCall(
+                        "graphql_cluster",
+                        {
+                          [":method"] = "POST",
+                          [":path"] = "/v1/graphql", 
+                          [":authority"] = "192.168.2.68:8082",
+                          ["content-type"] = "application/json",
+                          ["authorization"] = auth_header
+                        },
+                        query_body,
+                        5000
+                      )
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: graphql_host: " .. graphql_host)
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. json_encode(headers) .. ", body: " .. (body or "nil"))
+                      
+                      if not body then
+                        return false, "GraphQL request failed"
+                      end
+                      
+                      local response = json_decode(body)
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. json_encode(headers) .. ", body: " .. (body or "nil"))
+                      if response and response.data and response.data.ddn_workspace then
+                        for i = 1, #response.data.ddn_workspace do
+                          if response.data.ddn_workspace[i].name == workspace_name then
+                            return true, nil
+                          end
+                        end
+                      end
+                      
+                      if response and response.errors then
+                        local error_msg = "GraphQL error"
+                        if response.errors[1] and response.errors[1].message then
+                          error_msg = response.errors[1].message
+                        end
+                        return false, error_msg
+                      end
+                      
+                      return false, "No workspace access found"
+                    end
+
                     function envoy_on_request(request_handle)
                       local path = request_handle:headers():get(":path")
                       local method = request_handle:headers():get(":method")
-                      local host = request_handle:headers():get(":authority") or request_handle:headers():get("host")
-
-                      -- Handle authentication endpoint
+                      
                       if path == "/auth" and method == "POST" then
-                        local auth_header = request_handle:headers():get("authorization") or request_handle:headers():get("Authorization")
-                        if not auth_header then
+                        local body = request_handle:body()
+                        if not body then
                           request_handle:respond(
                             {[":status"] = "400", ["content-type"] = "application/json"},
-                            '{"status":"error","message":"Missing authorization header"}'
+                            '{"status":"error","message":"Missing request body"}'
                           )
                           return
                         end
 
-                        local jwt_token = string.match(auth_header, "Bearer%s+(.+)")
-                        if not jwt_token then
+                        local body_length = body:length()
+                        if body_length == 0 then
                           request_handle:respond(
                             {[":status"] = "400", ["content-type"] = "application/json"},
-                            '{"status":"error","message":"Invalid authorization header format"}'
+                            '{"status":"error","message":"Empty request body"}'
                           )
                           return
                         end
 
-                        local cookie_value = "{{ .Values.authProxy.cookie.name }}=" .. jwt_token .. 
-                                           "; Path={{ include "ddn-workspace.authProxy.cookiePath" . }}; " ..
-                                           "Domain={{ include "ddn-workspace.authProxy.cookieDomain" . }}; " ..
-                                           "Max-Age={{ .Values.authProxy.cookie.maxAge }}; " ..
-                                           "{{ if eq (include "ddn-workspace.authProxy.cookieSecure" .) "true" }}Secure; {{ end }}" ..
-                                           "{{ if .Values.authProxy.cookie.httpOnly }}HttpOnly; {{ end }}" ..
-                                           "SameSite={{ .Values.authProxy.cookie.sameSite }}"
+                        local body_string = body:getBytes(0, body_length)
+                        local request_data = json_decode(body_string)
+                        if not request_data or not request_data.token or not request_data.auth_method then
+                          request_handle:respond(
+                            {[":status"] = "400", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Missing token or auth_method"}'
+                          )
+                          return
+                        end
+
+                        local workspace_name = request_data.workspace_name or "default-workspace"
+                        local has_access, error_msg = check_workspace_access(
+                          request_handle, request_data.token, request_data.auth_method, workspace_name
+                        )
+
+
+                        request_handle:logInfo("LUA SCRIPT: has_access: " .. tostring(has_access) .. ", error_msg: " .. (error_msg or "nil"))
+
+                        if not has_access then
+                          request_handle:respond(
+                            {[":status"] = "403", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Access denied"}'
+                          )
+                          return
+                        end
+
+                        local cookie_domain = os.getenv("COOKIE_DOMAIN") or ".localhost"
+                        local cookie_value = "authenticated=true; Domain=" .. cookie_domain .. "; Path=/; HttpOnly"
                         
                         request_handle:respond(
                           {[":status"] = "200", ["content-type"] = "application/json", ["set-cookie"] = cookie_value},
@@ -143,21 +259,17 @@ data:
                         return
                       end
 
-                      -- Extract workspace name and validate access
-                      local workspace_name = "{{ include "common.name" . }}"
-                      local routing_mode = "{{ include "ddn-workspace.authProxy.routingMode" . }}"
-                      
-                      -- Clean the path for path-based routing
-                      local clean_path = path
-                      if routing_mode == "path" then
-                        clean_path = string.gsub(path, "^/" .. workspace_name, "")
-                        if clean_path == "" then
-                          clean_path = "/"
-                        end
-                        request_handle:headers():replace(":path", clean_path)
+                      -- Allow access to UI paths without authentication
+                      if string.match(path, "^/ui") then
+                        return
                       end
                       
-                      request_handle:logInfo("DEBUG: Routing to workspace: " .. workspace_name .. " with path: " .. clean_path)
+                      local cookie_header = request_handle:headers():get("cookie")
+                      if cookie_header and string.find(cookie_header, "authenticated=true") then
+                        return
+                      end
+
+                      request_handle:respond({[":status"] = "302", ["location"] = "/ui"}, "")
                     end
               # Router Filter (must be last)
               - name: envoy.filters.http.router
@@ -165,55 +277,10 @@ data:
                   "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
 
       clusters:
-      # JWKS Cluster
-      - name: jwks_cluster
-        connect_timeout: 10s
-        type: LOGICAL_DNS
-        dns_lookup_family: V4_ONLY
-        load_assignment:
-          cluster_name: jwks_cluster
-          endpoints:
-          - lb_endpoints:
-            - endpoint:
-                address:
-                  socket_address:
-                    address: {{ include "common.extractHost" .Values.authProxy.jwt.jwksUri }}
-                    port_value: {{ include "common.extractPort" .Values.authProxy.jwt.jwksUri | default "443" }}
-
-      # UI Service Cluster (serves static files)
-      - name: ui_service
-        connect_timeout: 0.25s
-        type: STATIC
-        load_assignment:
-          cluster_name: ui_service
-          endpoints:
-          - lb_endpoints:
-            - endpoint:
-                address:
-                  socket_address:
-                    address: 127.0.0.1
-                    port_value: 8080
-
-      # API Service Cluster
-      - name: api_service
-        connect_timeout: 5s
-        type: LOGICAL_DNS
-        dns_lookup_family: V4_ONLY
-        load_assignment:
-          cluster_name: api_service
-          endpoints:
-          - lb_endpoints:
-            - endpoint:
-                address:
-                  socket_address:
-                    address: "127.0.0.1"
-                    port_value: 3001
-
-      # Workspace Service Cluster (dynamic routing target)
       - name: workspace_service
         connect_timeout: 0.25s
-        type: STATIC
-        
+        type: LOGICAL_DNS
+        lb_policy: ROUND_ROBIN
         load_assignment:
           cluster_name: workspace_service
           endpoints:
@@ -221,6 +288,21 @@ data:
             - endpoint:
                 address:
                   socket_address:
-                    address: "127.0.0.1"
-                    port_value: {{ .Values.authProxy.workspace.servicePort }}
+                    address: 127.0.0.1
+                    port_value: 8123
+      
+      - name: graphql_cluster
+        connect_timeout: 0.25s
+        type: LOGICAL_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: graphql_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: 192.168.2.68 
+                    port_value: 8082
+
 {{- end }}

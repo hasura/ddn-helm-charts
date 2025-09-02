@@ -1,9 +1,11 @@
+# Example values file showing how to enable auth-proxy with ddn-workspace
+
 global:
-  domain: ""
-  subDomain: true
+  domain: "lux-dev.hasura.me"
+  subDomain: true  # Set to false for path-based routing (domain.com/workspace/)
   containerRegistry: "gcr.io/hasura-ee"
   certIssuer: "letsencrypt-prod"
-  uriScheme: "https"
+  uriScheme: "http"
   persistence:
     enabled: true
   serviceCatalog:
@@ -35,7 +37,7 @@ image:
   repository: "ddn-native-workspace"
   tag: ""
 replicas: "1"
-httpPort: 8123
+httpPort: 8080
 setControlPlaneUrls: true
 persistence:
   enabled: true
@@ -69,11 +71,14 @@ hostAliases:
 
 dataHost: "http://data:8080"
 ddnCpsEngineHost: "http://ddn-cps-engine:3000"
-consoleUrl: ""
+consoleUrl: "https://console.lux-dev.hasura.me"
 ddnPromptqlEndpoint: ""
 skipTlsVerify: false
+
+# Enable noAuth mode (required for auth-proxy)
 noAuth:
   enabled: true
+
 secrets:
   password: ""
 
@@ -91,9 +96,6 @@ env: |
   - name: CODE_SERVER_NO_AUTH
     value: "true"
   {{- end }}
-
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
-  {{- end }}
   - name: HASURA_DDN_INSECURE_SKIP_TLS_VERIFY
     value: {{ .Values.skipTlsVerify | quote }}
   {{- if .Values.setControlPlaneUrls }}
@@ -109,14 +111,7 @@ env: |
   - name: HASURA_DDN_PROMPTQL_CONSOLE_HOST
     value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}
   {{- end }}
-
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
   {{- end }}
-  {{- end }}
-
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
-  {{- end }}
-
 
 extraVolumes: |
   - name: ddn-workspace-data
@@ -125,9 +120,6 @@ extraVolumes: |
       claimName: {{ include "common.name" . }}-data
   {{- else }}
     emptyDir: {}
-  {{- end }}
-
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
   {{- end }}
 
 extraVolumeMounts: |
@@ -147,9 +139,9 @@ ingress:
 routes:
   enabled: false
 
-# Auth Proxy Configuration (only enabled when noAuth.enabled is true)
+# Auth Proxy Configuration (automatically enabled when noAuth.enabled is true)
 authProxy:
-  enabled: false  # Will be automatically set based on noAuth.enabled
+  enabled: true  # Will be automatically set based on noAuth.enabled
   
   # Image Configuration
   image:
@@ -167,7 +159,7 @@ authProxy:
   jwt:
     issuer: "https://auth.hasura.io/ddn/token"
     audience: "workspaces"
-    jwksUri: ""  # Must be provided when authProxy is enabled
+    jwksUri: "https://auth.lux-dev.hasura.me/ddn/.well-known/jwks"  # REQUIRED when authProxy is enabled
   
   # Cookie Configuration
   cookie:
@@ -175,7 +167,7 @@ authProxy:
     httpOnly: true
     sameSite: "Lax"
     maxAge: 3600
-    # domain, path, and secure will be configured automatically
+    # domain, path, and secure will be configured automatically based on global settings
   
   # Workspace Configuration
   workspace:
@@ -200,105 +192,68 @@ authProxy:
   # Replicas
   replicas: 1
 
-# Extra containers (auth-proxy sidecar when enabled)
-extraContainers: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
+
+# Extra containers (sidecars) - Auth Proxy
+extraContainers:
   - name: auth-proxy
-    image: "{{ .Values.global.containerRegistry }}/{{ .Values.authProxy.image.repository }}:{{ .Values.authProxy.image.tag }}"
-    imagePullPolicy: {{ .Values.authProxy.image.pullPolicy }}
+    image: gcr.io/hasura-ee/auth-proxy:latest
+    imagePullPolicy: IfNotPresent
     ports:
       - name: auth-http
-        containerPort: {{ .Values.authProxy.service.port }}
+        containerPort: 8080
         protocol: TCP
       - name: auth-admin
-        containerPort: {{ .Values.authProxy.service.adminPort }}
+        containerPort: 9901
         protocol: TCP
     livenessProbe:
       httpGet:
         path: /ready
-        port: {{ .Values.authProxy.service.adminPort }}
+        port: 9901
       initialDelaySeconds: 30
       periodSeconds: 10
     readinessProbe:
       httpGet:
         path: /ready
-        port: {{ .Values.authProxy.service.adminPort }}
+        port: 9901
       initialDelaySeconds: 5
       periodSeconds: 5
     resources:
-      {{- toYaml .Values.authProxy.resources | nindent 6 }}
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
     volumeMounts:
+    - name: auth-proxy-config
+      mountPath: /etc/envoy
+      readOnly: true
     env:
-      # JWT Configuration
-      - name: JWT_ISSUER
-        value: "{{ .Values.authProxy.jwt.issuer }}"
-      - name: JWT_AUDIENCE
-        value: "{{ .Values.authProxy.jwt.audience }}"
-      - name: JWKS_URI
-        value: "{{ .Values.authProxy.jwt.jwksUri }}"
-      
-      # Cookie Configuration
-      - name: COOKIE_NAME
-        value: "{{ .Values.authProxy.cookie.name }}"
-      - name: COOKIE_DOMAIN
-        value: "{{ include "ddn-workspace.authProxy.cookieDomain" . }}"
-      - name: COOKIE_PATH
-        value: "{{ include "ddn-workspace.authProxy.cookiePath" . }}"
-      - name: COOKIE_SECURE
-        value: "{{ include "ddn-workspace.authProxy.cookieSecure" . }}"
-      - name: COOKIE_HTTP_ONLY
-        value: "{{ .Values.authProxy.cookie.httpOnly }}"
-      - name: COOKIE_SAME_SITE
-        value: "{{ .Values.authProxy.cookie.sameSite }}"
-      - name: COOKIE_MAX_AGE
-        value: "{{ .Values.authProxy.cookie.maxAge | toString }}"
-      
-      # Routing Configuration
-      - name: ROUTING_MODE
-        value: "{{ include "ddn-workspace.authProxy.routingMode" . }}"
-      - name: BASE_DOMAIN
-        value: "{{ .Values.global.domain }}"
-      - name: CONTAINER_NAME_PATTERN
-        value: "{{ include "common.name" . }}"
-      
-      # Workspace Configuration (localhost since same pod)
-      - name: WORKSPACE_SERVICE_HOST
-        value: "127.0.0.1"
-      - name: WORKSPACE_SERVICE_PORT
-        value: "{{ .Values.authProxy.workspace.servicePort | toString }}"
-      - name: WORKSPACE_CLAIM_KEY
-        value: "{{ .Values.authProxy.workspace.claimKey }}"
-      
-      # Envoy Configuration
-      - name: ENVOY_PORT
-        value: "{{ .Values.authProxy.service.port | toString }}"
-      - name: ENVOY_ADMIN_PORT
-        value: "{{ .Values.authProxy.service.adminPort | toString }}"
-  {{- end }}
+    - name: GRAPHQL_ENDPOINT
+      value: "http://data.lux-dev.hasura.me/v1/graphql"
+    - name: GRAPHQL_HOST
+      value: "data.lux-dev.hasura.me"
+    - name: GRAPHQL_TIMEOUT
+      value: "5s"
+    - name: WORKSPACE_NAME
+      value: "karthikvt26-workspace"
+    - name: COOKIE_DOMAIN
+      value: ".lux-dev.hasura.me"
+    - name: COOKIE_NAME
+      value: "auth-session"
+    - name: COOKIE_PATH
+      value: "/"
+    - name: COOKIE_SECURE
+      value: "false"
+    - name: COOKIE_MAX_AGE
+      value: "3600"
+    command: ["/usr/local/bin/envoy"]
+    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
 
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
-  {{- end }}
-
-# Additional service ports for auth-proxy
-containerPorts: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
-  - name: auth-http
-    containerPort: {{ .Values.authProxy.service.port }}
-    protocol: TCP
-  - name: auth-admin
-    containerPort: {{ .Values.authProxy.service.adminPort }}
-    protocol: TCP
-  {{- end }}
-
-# Service ports configuration
-servicePorts: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
-  - port: {{ .Values.authProxy.service.port }}
-    targetPort: auth-http
-    protocol: TCP
-    name: auth-http
-  - port: {{ .Values.authProxy.service.adminPort }}
-    targetPort: auth-admin
-    protocol: TCP
-    name: auth-admin
-  {{- end }}
+# Additional volumes for auth-proxy
+extraVolumes:
+  - name: auth-proxy-config
+    configMap:
+      name: karthikvt26-workspace-ddn-workspace-auth-proxy-config
+  - name: ddn-workspace-data
+    emptyDir: {}
