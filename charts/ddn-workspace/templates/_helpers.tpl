@@ -46,7 +46,7 @@ path
 
 {{- define "ddn-workspace.authProxy.cookieDomain" -}}
 {{- if .Values.global.subDomain -}}
-{{- printf ".%s" .Values.global.domain -}}
+{{- printf "%s.%s" (include "common.name" .) .Values.global.domain -}}
 {{- else -}}
 {{- printf "%s" .Values.global.domain -}}
 {{- end -}}
