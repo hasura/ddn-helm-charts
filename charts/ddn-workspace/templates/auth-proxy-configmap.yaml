@@ -49,12 +49,24 @@ data:
                 - name: local_service
                   domains: ["*"]
                   routes:
+                  {{- if .Values.global.subDomain }}
+                  # Subdomain routing - direct paths
                   # Authentication endpoint - handled by Lua filter
                   - match:
                       path: "/auth"
                     route:
                       cluster: workspace_service
                       timeout: 30s
+                  {{- else }}
+                  # Path-based routing - workspace prefix required
+                  # Authentication endpoint - handled by Lua filter
+                  - match:
+                      path: "/{{ include "common.name" . }}/auth"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+                      prefix_rewrite: "/auth"
+                  {{- end }}
                     response_headers_to_add:
                       - header:
                           key: "Strict-Transport-Security"
@@ -74,38 +86,10 @@ data:
                       - header:
                           key: "Content-Security-Policy"
                           value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-                  
-                  # UI HTML - serve main page
-                  - match:
-                      path: "/ui"
-                    direct_response:
-                      status: 200
-                      body:
-                        filename: "/var/www/html/index.html"
-                    response_headers_to_add:
-                    - header:
-                        key: "Content-Type"
-                        value: "text/html; charset=utf-8"
-                    - header:
-                        key: "Strict-Transport-Security"
-                        value: "max-age=31536000; includeSubDomains"
-                    - header:
-                        key: "X-Frame-Options"
-                        value: "SAMEORIGIN"
-                    - header:
-                        key: "Referrer-Policy"
-                        value: "strict-origin"
-                    - header:
-                        key: "X-Content-Type-Options"
-                        value: "nosniff"
-                    - header:
-                        key: "X-Xss-Protection"
-                        value: "1; mode=block"
-                    - header:
-                        key: "Content-Security-Policy"
-                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-                  
-                  # UI Static Assets - serve CSS and JS files
+
+
+
+                  # UI Static Assets - serve CSS and JS files (works for both modes due to ingress rewrite)
                   - match:
                       path: "/ui/client.js"
                     direct_response:
@@ -134,7 +118,12 @@ data:
                     - header:
                         key: "Content-Security-Policy"
                         value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-                  
+                    # Skip Lua filter for static assets
+                    typed_per_filter_config:
+                      envoy.filters.http.lua:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                        disabled: true
+
                   - match:
                       path: "/ui/client.css"
                     direct_response:
@@ -163,7 +152,12 @@ data:
                     - header:
                         key: "Content-Security-Policy"
                         value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-                  
+                    # Skip Lua filter for static assets
+                    typed_per_filter_config:
+                      envoy.filters.http.lua:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                        disabled: true
+
                   - match:
                       path: "/ui/output.css"
                     direct_response:
@@ -192,7 +186,47 @@ data:
                     - header:
                         key: "Content-Security-Policy"
                         value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-                  
+                    # Skip Lua filter for static assets
+                    typed_per_filter_config:
+                      envoy.filters.http.lua:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                        disabled: true
+
+                  # UI HTML - serve main page (works for both subdomain and path-based due to ingress rewrite)
+                  - match:
+                      path: "/ui"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/index.html"
+                    response_headers_to_add:
+                    - header:
+                        key: "Content-Type"
+                        value: "text/html; charset=utf-8"
+                    - header:
+                        key: "Strict-Transport-Security"
+                        value: "max-age=31536000; includeSubDomains"
+                    - header:
+                        key: "X-Frame-Options"
+                        value: "SAMEORIGIN"
+                    - header:
+                        key: "Referrer-Policy"
+                        value: "strict-origin"
+                    - header:
+                        key: "X-Content-Type-Options"
+                        value: "nosniff"
+                    - header:
+                        key: "X-Xss-Protection"
+                        value: "1; mode=block"
+                    - header:
+                        key: "Content-Security-Policy"
+                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline';"
+                    # Skip Lua filter for UI routes
+                    typed_per_filter_config:
+                      envoy.filters.http.lua:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                        disabled: true
+
                   # Default workspace routes
                   - match:
                       prefix: "/"
@@ -301,8 +335,11 @@ data:
                     function envoy_on_request(request_handle)
                       local path = request_handle:headers():get(":path")
                       local method = request_handle:headers():get(":method")
-                      
-                      if path == "/auth" and method == "POST" then
+
+                      -- Ingress rewrites paths, so we always work with simple paths
+                      local auth_path = "/auth"
+
+                      if path == auth_path and method == "POST" then
                         local body = request_handle:body()
                         if not body then
                           request_handle:respond(
@@ -331,9 +368,11 @@ data:
                           return
                         end
 
-                        -- Extract workspace name from Host header (subdomain approach)
-                        local host_header = request_handle:headers():get(":authority") or request_handle:headers():get("host")
+                        -- Extract workspace name based on routing mode
                         local workspace_name = "default-workspace"
+                        {{- if .Values.global.subDomain }}
+                        -- Subdomain mode: extract from Host header
+                        local host_header = request_handle:headers():get(":authority") or request_handle:headers():get("host")
                         if host_header then
                           -- Extract workspace name from subdomain (e.g., karthikvt26-workspace from karthikvt26-workspace-ddn-workspace.lux-dev.hasura.me)
                           local subdomain = string.match(host_header, "^([^%.]+)")
@@ -342,6 +381,11 @@ data:
                             workspace_name = string.gsub(subdomain, "%-ddn%-workspace$", "")
                           end
                         end
+                        {{- else }}
+                        -- Path-based mode: use the configured workspace name and trim -ddn-workspace suffix
+                        local full_workspace_name = "{{ include "common.name" . }}"
+                        workspace_name = string.gsub(full_workspace_name, "%-ddn%-workspace$", "")
+                        {{- end }}
                         local has_access, error_msg = check_workspace_access(
                           request_handle, request_data.token, request_data.auth_method, workspace_name
                         )
@@ -358,8 +402,17 @@ data:
                         end
 
                         local cookie_domain = os.getenv("COOKIE_DOMAIN") or ".localhost"
-                        local cookie_value = "authenticated=true; Domain=" .. cookie_domain .. "; Path=/; HttpOnly"
-                        
+                        {{- if .Values.global.subDomain }}
+                        -- Subdomain routing: set cookie path to root
+                        local cookie_path = "/"
+                        {{- else }}
+                        -- Path-based routing: set cookie path to workspace prefix (ingress handles the routing)
+                        local workspace_name = "{{ include "common.name" . }}"
+                        local cookie_path = "/" .. workspace_name
+                        {{- end }}
+                        local cookie_value = "authenticated=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; HttpOnly"
+
+                        request_handle:logInfo("LUA SCRIPT: Setting authentication cookie: " .. cookie_value)
                         request_handle:respond(
                           {[":status"] = "200", ["content-type"] = "application/json", ["set-cookie"] = cookie_value},
                           '{"status":"success","message":"Authentication successful"}'
@@ -367,17 +420,24 @@ data:
                         return
                       end
 
-                      -- Allow access to UI paths without authentication
-                      if string.match(path, "^/ui") then
-                        return
-                      end
+
                       
                       local cookie_header = request_handle:headers():get("cookie")
+                      request_handle:logInfo("LUA SCRIPT: Checking authentication for path: " .. path .. ", cookies: " .. (cookie_header or "none"))
                       if cookie_header and string.find(cookie_header, "authenticated=true") then
+                        request_handle:logInfo("LUA SCRIPT: Authentication cookie found, allowing access")
                         return
                       end
 
+                      {{- if .Values.global.subDomain }}
+                      request_handle:logInfo("LUA SCRIPT: Redirecting to /ui (subdomain mode)")
                       request_handle:respond({[":status"] = "302", ["location"] = "/ui"}, "")
+                      {{- else }}
+                      local workspace_name = "{{ include "common.name" . }}"
+                      local redirect_location = "/" .. workspace_name .. "/ui"
+                      request_handle:logInfo("LUA SCRIPT: Redirecting to " .. redirect_location .. " (path-based mode)")
+                      request_handle:respond({[":status"] = "302", ["location"] = redirect_location}, "")
+                      {{- end }}
                     end
               # Router Filter (must be last)
               - name: envoy.filters.http.router
