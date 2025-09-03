@@ -62,7 +62,11 @@ authProxy:
 
   cookie:
     name: "auth-session"
-    maxAge: 3600
+    maxAge: 3600  # Session expiry in seconds (1 hour)
+    # Examples:
+    # maxAge: 1800   # 30 minutes
+    # maxAge: 7200   # 2 hours
+    # maxAge: 28800  # 8 hours
 
   resources:
     limits:

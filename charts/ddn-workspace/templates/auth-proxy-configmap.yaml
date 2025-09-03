@@ -410,7 +410,8 @@ data:
                         local workspace_name = "{{ include "common.name" . }}"
                         local cookie_path = "/" .. workspace_name
                         {{- end }}
-                        local cookie_value = "authenticated=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; HttpOnly"
+                        local cookie_max_age = {{ .Values.authProxy.cookie.maxAge | default 3600 }}
+                        local cookie_value = "authenticated=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; HttpOnly"
 
                         request_handle:logInfo("LUA SCRIPT: Setting authentication cookie: " .. cookie_value)
                         request_handle:respond(

@@ -162,16 +162,15 @@ authProxy:
   
   # Cookie Configuration
   cookie:
-    name: "auth-session"
+    name: "ddn-workspace"
     httpOnly: true
     sameSite: "Lax"
-    maxAge: 3600
+    maxAge: 3600  # Session expiry in seconds (1 hour = 3600 seconds)
     # domain, path, and secure will be configured automatically based on global settings
   
   # Workspace Configuration
   workspace:
     servicePort: 8123  # Port of the ddn-workspace service
-    claimKey: "workspaces"
 
   # Data Configuration (optional - will use sensible defaults if not specified)
   # dataHost: "data.your-domain.com"
