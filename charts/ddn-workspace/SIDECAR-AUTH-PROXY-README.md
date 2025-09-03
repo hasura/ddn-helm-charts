@@ -4,7 +4,7 @@ This document explains the sidecar implementation of auth-proxy within the ddn-w
 
 ## Architecture Overview
 
-The auth-proxy runs as a **sidecar container** within the same pod as the workspace, providing JWT-based authentication and workspace access control.
+The auth-proxy runs as a **sidecar container** within the same pod as the workspace, providing authentication and workspace access control.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -13,7 +13,7 @@ The auth-proxy runs as a **sidecar container** within the same pod as the worksp
 │  │   Auth Proxy    │   localhost  │    Workspace        │   │
 │  │   (Port 8080)   │ ──────────── │   (Port 8123)       │   │
 │  │                 │              │                     │   │
-│  │ • JWT Validation│              │ • Code Server       │   │
+│  │ • Authentication │              │ • Code Server       │   │
 │  │ • Workspace     │              │ • DDN Tools         │   │
 │  │   Access Control│              │ • Project Files     │   │
 │  └─────────────────┘              └─────────────────────┘   │
@@ -45,8 +45,6 @@ noAuth:
 # Enable auth-proxy sidecar
 authProxy:
   enabled: true
-  jwt:
-    jwksUri: "https://auth.your-domain.com/.well-known/jwks"
 ```
 
 ### Routing Modes
@@ -137,7 +135,6 @@ The auth-proxy is configured to route to the workspace via localhost:
 helm install my-workspace . \
   --set noAuth.enabled=true \
   --set authProxy.enabled=true \
-  --set authProxy.jwt.jwksUri="https://auth.example.com/.well-known/jwks" \
   --set global.domain="example.com" \
   --set global.subDomain=true
 ```
@@ -153,14 +150,12 @@ helm install my-workspace . \
 ## Security Model
 
 ### Authentication
-- JWT tokens validated against JWKS endpoint
 - Cookie-based session management
-- Configurable token expiration
+- GraphQL-based workspace validation
 
 ### Authorization
-- Workspace access validated against JWT claims
+- Workspace access validated through GraphQL queries
 - User must have access to specific workspace
-- Claims format: `workspaces.hasura.io/workspace-accesses`
 
 ### Network Security
 - Workspace not directly accessible from outside pod
@@ -204,19 +199,14 @@ curl http://localhost:9901/config_dump
 ### Common Issues
 
 1. **Auth-proxy not starting**
-   - Check JWKS URI is accessible
    - Verify ConfigMap is mounted correctly
    - Check resource limits
+   - Verify DATA_HOST and DATA_PORT environment variables
 
-2. **JWT validation failing**
-   - Verify JWKS endpoint is reachable
-   - Check JWT issuer and audience configuration
-   - Validate JWT claims format
-
-3. **Workspace access denied**
-   - Verify JWT contains workspace access claims
+2. **Workspace access denied**
    - Check workspace name matches deployment name
-   - Validate claims structure
+   - Verify GraphQL data service is accessible
+   - Check DATA_HOST configuration
 
 4. **Service connectivity issues**
    - Ensure both containers are in same pod

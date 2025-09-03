@@ -71,7 +71,7 @@ hostAliases:
 
 dataHost: "http://data:8080"
 ddnCpsEngineHost: "http://ddn-cps-engine:3000"
-consoleUrl: "https://console.lux-dev.hasura.me"
+consoleUrl: "https://console.{{ .Values.global.domain }}"
 ddnPromptqlEndpoint: ""
 skipTlsVerify: false
 
@@ -114,6 +114,9 @@ env: |
   {{- end }}
 
 extraVolumes: |
+  - name: auth-proxy-config
+    configMap:
+      name: {{ include "ddn-workspace.authProxy.name" . }}-config
   - name: ddn-workspace-data
   {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}
     persistentVolumeClaim:
@@ -142,6 +145,8 @@ routes:
 # Auth Proxy Configuration (automatically enabled when noAuth.enabled is true)
 authProxy:
   enabled: true  # Will be automatically set based on noAuth.enabled
+  debug:
+    enabled: false
   
   # Image Configuration
   image:
@@ -155,12 +160,6 @@ authProxy:
     # "subdomain" for <workspace>.domain or "path" for domain/<workspace>/
     containerNamePattern: "{{ include \"common.name\" . }}"  # Use the workspace name
   
-  # JWT Configuration
-  jwt:
-    issuer: "https://auth.hasura.io/ddn/token"
-    audience: "workspaces"
-    jwksUri: "https://auth.lux-dev.hasura.me/ddn/.well-known/jwks"  # REQUIRED when authProxy is enabled
-  
   # Cookie Configuration
   cookie:
     name: "auth-session"
@@ -173,7 +172,13 @@ authProxy:
   workspace:
     servicePort: 8123  # Port of the ddn-workspace service
     claimKey: "workspaces"
-  
+
+  # Data Configuration (optional - will use sensible defaults if not specified)
+  # dataHost: "data.your-domain.com"
+  # dataPort: "443"
+  # workspaceName: "my-workspace"
+  # cookieDomain: ".your-domain.com"
+
   # Service Configuration
   service:
     type: ClusterIP
@@ -194,7 +199,7 @@ authProxy:
 
 
 # Extra containers (sidecars) - Auth Proxy
-extraContainers:
+extraContainers: |
   - name: auth-proxy
     image: gcr.io/hasura-ee/auth-proxy:latest
     imagePullPolicy: IfNotPresent
@@ -229,16 +234,14 @@ extraContainers:
       mountPath: /etc/envoy
       readOnly: true
     env:
-    - name: GRAPHQL_ENDPOINT
-      value: "http://data.lux-dev.hasura.me/v1/graphql"
-    - name: GRAPHQL_HOST
-      value: "data.lux-dev.hasura.me"
-    - name: GRAPHQL_TIMEOUT
-      value: "5s"
+    - name: DATA_HOST
+      value: {{ .Values.authProxy.dataHost | default (printf "data.%s" .Values.global.domain) | quote }}
+    - name: DATA_PORT
+      value: {{ .Values.authProxy.dataPort | default "443" | quote }}
     - name: WORKSPACE_NAME
-      value: "karthikvt26-workspace"
+      value: {{ .Values.authProxy.workspaceName | default (include "common.name" .) | quote }}
     - name: COOKIE_DOMAIN
-      value: ".lux-dev.hasura.me"
+      value: {{ .Values.authProxy.cookieDomain | default (include "ddn-workspace.authProxy.cookieDomain" .) | quote }}
     - name: COOKIE_NAME
       value: "auth-session"
     - name: COOKIE_PATH
@@ -250,10 +253,4 @@ extraContainers:
     command: ["/usr/local/bin/envoy"]
     args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
 
-# Additional volumes for auth-proxy
-extraVolumes:
-  - name: auth-proxy-config
-    configMap:
-      name: karthikvt26-workspace-ddn-workspace-auth-proxy-config
-  - name: ddn-workspace-data
-    emptyDir: {}
+

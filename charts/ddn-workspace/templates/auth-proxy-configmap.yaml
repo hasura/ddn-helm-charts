@@ -14,7 +14,6 @@ data:
           protocol: TCP
           address: 0.0.0.0
           port_value: {{ .Values.authProxy.service.adminPort }}
-
     static_resources:
       listeners:
       - name: listener_0
@@ -31,6 +30,18 @@ data:
               upgrade_configs:
                 - upgrade_type: websocket
               codec_type: AUTO
+              # Enable access logging to see request routing
+              access_log:
+              - name: envoy.access_loggers.stdout
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                  log_format:
+                    text_format: |
+                      [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+                      %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+                      %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%"
+                      "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+                      upstream_cluster="%UPSTREAM_CLUSTER%" upstream_local_address="%UPSTREAM_LOCAL_ADDRESS%"
               route_config:
                 name: local_route
                 max_direct_response_body_size_bytes: 3672040
@@ -44,6 +55,25 @@ data:
                     route:
                       cluster: workspace_service
                       timeout: 30s
+                    response_headers_to_add:
+                      - header:
+                          key: "Strict-Transport-Security"
+                          value: "max-age=31536000; includeSubDomains"
+                      - header:
+                          key: "X-Frame-Options"
+                          value: "SAMEORIGIN"
+                      - header:
+                          key: "Referrer-Policy"
+                          value: "strict-origin"
+                      - header:
+                          key: "X-Content-Type-Options"
+                          value: "nosniff"
+                      - header:
+                          key: "X-Xss-Protection"
+                          value: "1; mode=block"
+                      - header:
+                          key: "Content-Security-Policy"
+                          value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
                   
                   # UI HTML - serve main page
                   - match:
@@ -56,6 +86,24 @@ data:
                     - header:
                         key: "Content-Type"
                         value: "text/html; charset=utf-8"
+                    - header:
+                        key: "Strict-Transport-Security"
+                        value: "max-age=31536000; includeSubDomains"
+                    - header:
+                        key: "X-Frame-Options"
+                        value: "SAMEORIGIN"
+                    - header:
+                        key: "Referrer-Policy"
+                        value: "strict-origin"
+                    - header:
+                        key: "X-Content-Type-Options"
+                        value: "nosniff"
+                    - header:
+                        key: "X-Xss-Protection"
+                        value: "1; mode=block"
+                    - header:
+                        key: "Content-Security-Policy"
+                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
                   
                   # UI Static Assets - serve CSS and JS files
                   - match:
@@ -68,6 +116,24 @@ data:
                     - header:
                         key: "Content-Type"
                         value: "application/javascript"
+                    - header:
+                        key: "Strict-Transport-Security"
+                        value: "max-age=31536000; includeSubDomains"
+                    - header:
+                        key: "X-Frame-Options"
+                        value: "SAMEORIGIN"
+                    - header:
+                        key: "Referrer-Policy"
+                        value: "strict-origin"
+                    - header:
+                        key: "X-Content-Type-Options"
+                        value: "nosniff"
+                    - header:
+                        key: "X-Xss-Protection"
+                        value: "1; mode=block"
+                    - header:
+                        key: "Content-Security-Policy"
+                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
                   
                   - match:
                       path: "/ui/client.css"
@@ -79,6 +145,24 @@ data:
                     - header:
                         key: "Content-Type"
                         value: "text/css"
+                    - header:
+                        key: "Strict-Transport-Security"
+                        value: "max-age=31536000; includeSubDomains"
+                    - header:
+                        key: "X-Frame-Options"
+                        value: "SAMEORIGIN"
+                    - header:
+                        key: "Referrer-Policy"
+                        value: "strict-origin"
+                    - header:
+                        key: "X-Content-Type-Options"
+                        value: "nosniff"
+                    - header:
+                        key: "X-Xss-Protection"
+                        value: "1; mode=block"
+                    - header:
+                        key: "Content-Security-Policy"
+                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
                   
                   - match:
                       path: "/ui/output.css"
@@ -90,6 +174,24 @@ data:
                     - header:
                         key: "Content-Type"
                         value: "text/css"
+                    - header:
+                        key: "Strict-Transport-Security"
+                        value: "max-age=31536000; includeSubDomains"
+                    - header:
+                        key: "X-Frame-Options"
+                        value: "SAMEORIGIN"
+                    - header:
+                        key: "Referrer-Policy"
+                        value: "strict-origin"
+                    - header:
+                        key: "X-Content-Type-Options"
+                        value: "nosniff"
+                    - header:
+                        key: "X-Xss-Protection"
+                        value: "1; mode=block"
+                    - header:
+                        key: "Content-Security-Policy"
+                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
                   
                   # Default workspace routes
                   - match:
@@ -105,24 +207,10 @@ data:
                   "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                   inline_code: |
                     -- JSON encode/decode functions
-
                     package.path = package.path .. ";/usr/local/share/lua/5.1/?.lua"
                     package.cpath = package.cpath .. ";/usr/local/lib/lua/5.1/?.so"
 
                     local cjson = require "cjson"
-                    local function json_encode(obj)
-                      if type(obj) == "table" then
-                        local items = {}
-                        for k, v in pairs(obj) do
-                          table.insert(items, '"' .. k .. '":' .. json_encode(v))
-                        end
-                        return "{" .. table.concat(items, ",") .. "}"
-                      elseif type(obj) == "string" then
-                        return '"' .. obj:gsub('"', '\\"') .. '"'
-                      else
-                        return tostring(obj)
-                      end
-                    end
 
                     -- JSON decode function (simplified)
                     local function json_decode(str)
@@ -161,37 +249,37 @@ data:
 
                     -- GraphQL workspace access check function
                     local function check_workspace_access(request_handle, token, auth_method, workspace_name)
-                      local graphql_host = os.getenv("GRAPHQL_HOST") or "api.hasura.io"
-                      
+                      local data_host = os.getenv("DATA_HOST") or "api.hasura.io"
+
                       local query_body = '{"query":"query fetchWorkspace($where: ddn_workspace_bool_exp!) { ddn_workspace(where: $where) { id password name } }","variables":{"where":{"name":{"_eq":"' .. workspace_name .. '"}}},"operationName":"fetchWorkspace"}'
-                      
+
                       local auth_header = auth_method .. " " .. token
-                      
+
                       local headers, body = request_handle:httpCall(
                         "graphql_cluster",
                         {
                           [":method"] = "POST",
-                          [":path"] = "/v1/graphql", 
-                          [":authority"] = "192.168.2.68:8082",
+                          [":path"] = "/v1/graphql",
+                          [":authority"] = data_host,
                           ["content-type"] = "application/json",
                           ["authorization"] = auth_header
                         },
                         query_body,
                         5000
                       )
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: graphql_host: " .. graphql_host)
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. json_encode(headers) .. ", body: " .. (body or "nil"))
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: data_host: " .. data_host)
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. cjson.encode(headers) .. ", body: " .. (body or "nil"))
                       
                       if not body then
                         return false, "GraphQL request failed"
                       end
                       
                       local response = cjson.decode(body)
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. json_encode(headers) .. ", body: " .. (body or "nil"))
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: response: " .. json_encode(response))
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. cjson.encode(headers) .. ", body: " .. (body or "nil"))
+                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: response: " .. cjson.encode(response))
                       if response and response.data and response.data.ddn_workspace then
                         for i = 1, #response.data.ddn_workspace do
-                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace: " .. json_encode(response.data.ddn_workspace[i]))
+                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace: " .. cjson.encode(response.data.ddn_workspace[i]))
                           request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace_name: " .. workspace_name)
                           if response.data.ddn_workspace[i].name == workspace_name then
                             return true, nil
@@ -315,6 +403,7 @@ data:
         connect_timeout: 0.25s
         type: LOGICAL_DNS
         lb_policy: ROUND_ROBIN
+
         load_assignment:
           cluster_name: graphql_cluster
           endpoints:
@@ -322,7 +411,7 @@ data:
             - endpoint:
                 address:
                   socket_address:
-                    address: 192.168.2.68 
-                    port_value: 8082
+                    address: {{ .Values.authProxy.dataHost }}
+                    port_value: {{ .Values.authProxy.dataPort | default "443" | int }}
 
 {{- end }}

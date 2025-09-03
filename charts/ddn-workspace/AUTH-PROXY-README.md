@@ -4,13 +4,11 @@ This document explains how to use the integrated auth-proxy functionality with t
 
 ## Overview
 
-The auth-proxy integration provides JWT-based authentication for DDN workspaces with support for both subdomain and path-based routing patterns. It automatically validates workspace access based on JWT claims and routes requests to the appropriate workspace containers.
+The auth-proxy integration provides authentication for DDN workspaces with support for both subdomain and path-based routing patterns. It automatically validates workspace access and routes requests to the workspace container.
 
 ## Prerequisites
 
 - `noAuth.enabled` must be set to `true` (auth-proxy only works with no-auth mode, not password-based auth)
-- A valid JWKS endpoint must be provided
-- JWT tokens must contain workspace access claims in the expected format
 
 ## Configuration
 
@@ -24,8 +22,6 @@ noAuth:
 # Enable and configure auth-proxy
 authProxy:
   enabled: true
-  jwt:
-    jwksUri: "https://auth.your-domain.com/ddn/.well-known/jwks"
 ```
 
 ### Routing Modes
@@ -63,16 +59,11 @@ noAuth:
 
 authProxy:
   enabled: true
-  
-  jwt:
-    issuer: "https://auth.hasura.io/ddn/token"
-    audience: "workspaces"
-    jwksUri: "https://auth.lux-dev.hasura.me/ddn/.well-known/jwks"
-  
+
   cookie:
     name: "auth-session"
     maxAge: 3600
-  
+
   resources:
     limits:
       cpu: 200m
@@ -86,29 +77,12 @@ authProxy:
 
 ### Authentication Flow
 
-1. **JWT Validation**: Incoming requests are validated against the JWKS endpoint
-2. **Workspace Extraction**: Workspace name is extracted from subdomain or path
-3. **Access Control**: JWT claims are checked for workspace access permissions
-4. **Dynamic Routing**: Requests are routed to the appropriate workspace container
-5. **Path Cleaning**: For path-based routing, workspace prefix is removed from paths
+1. **Workspace Extraction**: Workspace name is extracted from subdomain or path
+2. **Access Control**: Workspace access is validated through GraphQL queries
 
 ### Workspace Access Validation
 
-The auth-proxy validates that the JWT token contains the required workspace access claims:
-
-```json
-{
-  "https://workspaces.hasura.io": {
-    "workspace-accesses": [
-      {
-        "name": "workspace-name",
-        "id": "workspace-id",
-        ...
-      }
-    ]
-  }
-}
-```
+The auth-proxy validates workspace access through GraphQL queries to the data service.
 
 ### Container Naming
 
@@ -125,8 +99,7 @@ The auth-proxy automatically routes to containers using the workspace name from 
 ```bash
 # Deploy with auth-proxy enabled
 helm install my-workspace ./charts/ddn-workspace \
-  -f values-with-auth-proxy.yaml \
-  --set authProxy.jwt.jwksUri="https://auth.example.com/.well-known/jwks"
+  -f values-with-auth-proxy.yaml
 ```
 
 ### Environment-Specific Values
@@ -181,15 +154,11 @@ spec:
 
 ### Common Issues
 
-1. **JWKS Fetch Failures**
-   - Verify `authProxy.jwt.jwksUri` is accessible
-   - Check network policies and firewall rules
-
-2. **Workspace Access Denied**
-   - Verify JWT contains correct workspace claims
+1. **Workspace Access Denied**
    - Check workspace name matches the Helm release name
+   - Verify GraphQL data service is accessible
 
-3. **Cookie Issues**
+2. **Cookie Issues**
    - Verify domain and path settings match your ingress configuration
    - Check secure flag matches your URI scheme (HTTP/HTTPS)
 
