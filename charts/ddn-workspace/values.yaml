@@ -37,7 +37,7 @@ image:
   repository: "ddn-native-workspace"
   tag: ""
 replicas: "1"
-httpPort: 8080
+httpPort: 8123
 setControlPlaneUrls: true
 persistence:
   enabled: true
@@ -114,9 +114,11 @@ env: |
   {{- end }}
 
 extraVolumes: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
   - name: auth-proxy-config
     configMap:
       name: {{ include "ddn-workspace.authProxy.name" . }}-config
+  {{- end }}
   - name: ddn-workspace-data
   {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}
     persistentVolumeClaim:
@@ -141,6 +143,17 @@ ingress:
 
 routes:
   enabled: false
+
+# Service ports configuration - expose auth-proxy ports when enabled
+servicePorts: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  - port: 8080          # Auth proxy HTTP port
+    targetPort: auth-http
+    name: auth-http
+  - port: 9901          # Auth proxy admin port
+    targetPort: auth-admin
+    name: auth-admin
+  {{- end }}
 
 # Auth Proxy Configuration (automatically enabled when noAuth.enabled is true)
 authProxy:
@@ -171,6 +184,7 @@ authProxy:
   # Workspace Configuration
   workspace:
     servicePort: 8123  # Port of the ddn-workspace service
+    claimKey: "workspaces"  # For backward compatibility
 
   # Data Configuration (optional - will use sensible defaults if not specified)
   # dataHost: "data.your-domain.com"
@@ -197,8 +211,9 @@ authProxy:
   replicas: 1
 
 
-# Extra containers (sidecars) - Auth Proxy
+# Extra containers (sidecars) - Auth Proxy (only when enabled)
 extraContainers: |
+  {{- if include "ddn-workspace.authProxy.enabled" . }}
   - name: auth-proxy
     image: gcr.io/hasura-ee/auth-proxy:latest
     imagePullPolicy: IfNotPresent
@@ -251,5 +266,6 @@ extraContainers: |
       value: "3600"
     command: ["/usr/local/bin/envoy"]
     args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
+  {{- end }}
 
 
