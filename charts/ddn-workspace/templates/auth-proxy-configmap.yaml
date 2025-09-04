@@ -461,9 +461,27 @@ data:
                     port_value: 8123
       
       - name: graphql_cluster
-        connect_timeout: 0.25s
+        connect_timeout: 5s
         type: LOGICAL_DNS
-        lb_policy: ROUND_ROBIN
+        dns_lookup_family: V4_ONLY
+        # can I detect if http or https and set the port accordingly? based on dataHost?
+
+
+{{- $dataURL := urlParse .Values.dataHost }}
+{{- if eq $dataURL.scheme "https" }}
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+            common_tls_context: {}
+            sni: {{ include "common.extractHost" .Values.dataHost }}
+{{- end }}
+        # transport_socket:
+        #   name: envoy.transport_sockets.tls
+        #   typed_config:
+        #     "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        #     common_tls_context: {}
+        #     sni: {{ .Values.authProxy.dataHost }}
 
         load_assignment:
           cluster_name: graphql_cluster
@@ -472,7 +490,7 @@ data:
             - endpoint:
                 address:
                   socket_address:
-                    address: {{ .Values.authProxy.dataHost }}
-                    port_value: {{ .Values.authProxy.dataPort | default "443" | int }}
+                    address: {{ include "common.extractHost" .Values.dataHost }}
+                    port_value: {{ include "common.extractPort" .Values.dataHost | default "443" | int }}
 
 {{- end }}

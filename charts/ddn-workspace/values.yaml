@@ -167,12 +167,6 @@ authProxy:
     tag: "latest"
     pullPolicy: IfNotPresent
   
-  # Routing Configuration
-  routing:
-    # Mode will be set automatically based on global.subDomain
-    # "subdomain" for <workspace>.domain or "path" for domain/<workspace>/
-    containerNamePattern: "{{ include \"common.name\" . }}"  # Use the workspace name
-  
   # Cookie Configuration
   cookie:
     name: "ddn-workspace"
@@ -184,7 +178,6 @@ authProxy:
   # Workspace Configuration
   workspace:
     servicePort: 8123  # Port of the ddn-workspace service
-    claimKey: "workspaces"  # For backward compatibility
 
   # Data Configuration (optional - will use sensible defaults if not specified)
   # dataHost: "data.your-domain.com"
@@ -249,9 +242,7 @@ extraContainers: |
       readOnly: true
     env:
     - name: DATA_HOST
-      value: {{ .Values.authProxy.dataHost | default (printf "data.%s" .Values.global.domain) | quote }}
-    - name: DATA_PORT
-      value: {{ .Values.authProxy.dataPort | default "443" | quote }}
+      value: {{ include "common.extractHost" .Values.dataHost | quote }}
     - name: WORKSPACE_NAME
       value: {{ .Values.authProxy.workspaceName | default (include "common.name" .) | quote }}
     - name: COOKIE_DOMAIN
@@ -265,7 +256,7 @@ extraContainers: |
     - name: COOKIE_MAX_AGE
       value: "3600"
     command: ["/usr/local/bin/envoy"]
-    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
+    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.authProxy.debug.enabled }}debug{{ else }}info{{ end }}"]   
   {{- end }}
 
 
