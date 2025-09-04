@@ -167,9 +167,11 @@ data:
                     -- JSON encode/decode functions
                     package.path = package.path .. ";/usr/local/share/lua/5.1/?.lua"
                     package.cpath = package.cpath .. ";/usr/local/lib/lua/5.1/?.so"
-
                     local cjson = require "cjson"
-
+                    local cookie_name = os.getenv("COOKIE_NAME") or "workspace-session"
+                    local cookie_domain = os.getenv("COOKIE_DOMAIN") or ".localhost"
+                    local cookie_max_age = os.getenv("COOKIE_MAX_AGE") or 3600
+                    local config_workspace_name = os.getenv("WORKSPACE_NAME")
                     -- GraphQL workspace access check function
                     local function check_workspace_access(request_handle, token, auth_method, workspace_name)
                       local data_host = os.getenv("DATA_HOST") or "api.hasura.io"
@@ -253,24 +255,14 @@ data:
                           return
                         end
 
-                        -- Extract workspace name based on routing mode
-                        local workspace_name = "default-workspace"
-                        {{- if .Values.global.subDomain }}
-                        -- Subdomain mode: extract from Host header
-                        local host_header = request_handle:headers():get(":authority") or request_handle:headers():get("host")
-                        if host_header then
-                          -- Extract workspace name from subdomain (e.g., karthikvt26-workspace from karthikvt26-workspace-ddn-workspace.lux-dev.hasura.me)
-                          local subdomain = string.match(host_header, "^([^%.]+)")
-                          if subdomain then
-                            -- Remove -ddn-workspace suffix if present
-                            workspace_name = string.gsub(subdomain, "%-ddn%-workspace$", "")
-                          end
-                        end
-                        {{- else }}
-                        -- Path-based mode: use the configured workspace name and trim -ddn-workspace suffix
-                        local full_workspace_name = "{{ include "common.name" . }}"
-                        workspace_name = string.gsub(full_workspace_name, "%-ddn%-workspace$", "")
-                        {{- end }}
+                        local workspace_name = ""
+
+                        -- this is the workspace user is trying to access
+                        -- based on how ingress is forwarding it andit will most likely be
+                        -- common.name.<domain> or <domain>/common.name
+                        -- Remove -ddn-workspace suffix if present
+                        workspace_name = string.gsub(config_workspace_name, "%-ddn%-workspace$", "")
+
                         local has_access, error_msg = check_workspace_access(
                           request_handle, request_data.token, request_data.auth_method, workspace_name
                         )
@@ -286,17 +278,14 @@ data:
                           return
                         end
 
-                        local cookie_domain = os.getenv("COOKIE_DOMAIN") or ".localhost"
                         {{- if .Values.global.subDomain }}
                         -- Subdomain routing: set cookie path to root
                         local cookie_path = "/"
                         {{- else }}
                         -- Path-based routing: set cookie path to workspace prefix (ingress handles the routing)
-                        local workspace_name = "{{ include "common.name" . }}"
-                        local cookie_path = "/" .. workspace_name
+                        local cookie_path = "/" .. config_workspace_name 
                         {{- end }}
-                        local cookie_max_age = {{ .Values.authProxy.cookie.maxAge | default 3600 }}
-                        local cookie_value = "authenticated=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; HttpOnly"
+                        local cookie_value = "{{ .Values.authProxy.cookie.name }}=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; ; SameSite=Lax; Secure"
 
                         request_handle:logInfo("LUA SCRIPT: Setting authentication cookie: " .. cookie_value)
                         request_handle:respond(
@@ -308,8 +297,10 @@ data:
 
                       
                       local cookie_header = request_handle:headers():get("cookie")
+
+                      cookie_name = "{{ .Values.authProxy.cookie.name }}"
                       request_handle:logInfo("LUA SCRIPT: Checking authentication for path: " .. path .. ", cookies: " .. (cookie_header or "none"))
-                      if cookie_header and string.find(cookie_header, "authenticated=true") then
+                      if cookie_header == cookie_name .. "=true" then
                         request_handle:logInfo("LUA SCRIPT: Authentication cookie found, allowing access")
                         return
                       end
@@ -318,8 +309,7 @@ data:
                       request_handle:logInfo("LUA SCRIPT: Redirecting to /ui (subdomain mode)")
                       request_handle:respond({[":status"] = "302", ["location"] = "/ui"}, "")
                       {{- else }}
-                      local workspace_name = "{{ include "common.name" . }}"
-                      local redirect_location = "/" .. workspace_name .. "/ui"
+                      local redirect_location = "/" .. config_workspace_name .. "/ui"
                       request_handle:logInfo("LUA SCRIPT: Redirecting to " .. redirect_location .. " (path-based mode)")
                       request_handle:respond({[":status"] = "302", ["location"] = redirect_location}, "")
                       {{- end }}
