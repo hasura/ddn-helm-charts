@@ -26,17 +26,17 @@
 {{- end -}}
 
 {{/*
-Auth Proxy helpers
+Workspace Auth Proxy helpers
 */}}
-{{- define "ddn-workspace.authProxy.enabled" -}}
-{{- and .Values.noAuth.enabled .Values.authProxy.enabled -}}
+{{- define "ddn-workspace.workspaceAuthProxy.enabled" -}}
+{{- and .Values.noAuth.enabled .Values.workspaceAuthProxy.enabled -}}
 {{- end -}}
 
-{{- define "ddn-workspace.authProxy.name" -}}
+{{- define "ddn-workspace.workspaceAuthProxy.name" -}}
 {{- printf "%s-auth-proxy" (include "common.name" .) -}}
 {{- end -}}
 
-{{- define "ddn-workspace.authProxy.routingMode" -}}
+{{- define "ddn-workspace.workspaceAuthProxy.routingMode" -}}
 {{- if .Values.global.subDomain -}}
 subdomain
 {{- else -}}
@@ -44,7 +44,7 @@ path
 {{- end -}}
 {{- end -}}
 
-{{- define "ddn-workspace.authProxy.cookieDomain" -}}
+{{- define "ddn-workspace.workspaceAuthProxy.cookieDomain" -}}
 {{- if .Values.global.subDomain -}}
 {{- printf "%s.%s" (include "common.name" .) .Values.global.domain -}}
 {{- else -}}
@@ -52,7 +52,7 @@ path
 {{- end -}}
 {{- end -}}
 
-{{- define "ddn-workspace.authProxy.cookiePath" -}}
+{{- define "ddn-workspace.workspaceAuthProxy.cookiePath" -}}
 {{- if .Values.global.subDomain -}}
 /
 {{- else -}}
@@ -60,7 +60,7 @@ path
 {{- end -}}
 {{- end -}}
 
-{{- define "ddn-workspace.authProxy.cookieSecure" -}}
+{{- define "ddn-workspace.workspaceAuthProxy.cookieSecure" -}}
 {{- if eq .Values.global.uriScheme "https" -}}
 true
 {{- else -}}
@@ -68,13 +68,13 @@ false
 {{- end -}}
 {{- end -}}
 
-{{- define "ddn-workspace.authProxy.workspaceServiceName" -}}
+{{- define "ddn-workspace.workspaceAuthProxy.workspaceServiceName" -}}
 {{- include "common.name" . -}}
 {{- end -}}
 
-{{- define "ddn-workspace.authProxy.authServiceUrl" -}}
-{{- if .Values.authProxy.auth.serviceUrl -}}
-{{- .Values.authProxy.auth.serviceUrl -}}
+{{- define "ddn-workspace.workspaceAuthProxy.authServiceUrl" -}}
+{{- if .Values.workspaceAuthProxy.auth.serviceUrl -}}
+{{- .Values.workspaceAuthProxy.auth.serviceUrl -}}
 {{- else -}}
 {{- if .Values.global.subDomain -}}
 {{- printf "%s://auth.%s" .Values.global.uriScheme .Values.global.domain -}}

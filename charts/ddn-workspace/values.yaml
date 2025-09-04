@@ -114,10 +114,10 @@ env: |
   {{- end }}
 
 extraVolumes: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - name: auth-proxy-config
     configMap:
-      name: {{ include "ddn-workspace.authProxy.name" . }}-config
+      name: {{ include "ddn-workspace.workspaceAuthProxy.name" . }}-config
   {{- end }}
   - name: ddn-workspace-data
   {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}
@@ -146,17 +146,17 @@ routes:
 
 # Service ports configuration - expose auth-proxy ports when enabled
 servicePorts: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
-  - port: 8080          # Auth proxy HTTP port
+  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
+  - port: 8080          # Workspace auth proxy HTTP port
     targetPort: auth-http
     name: auth-http
-  - port: 9901          # Auth proxy admin port
+  - port: 9901          # Workspace auth proxy admin port
     targetPort: auth-admin
     name: auth-admin
   {{- end }}
 
-# Auth Proxy Configuration (automatically enabled when noAuth.enabled is true)
-authProxy:
+# Workspace Auth Proxy Configuration (automatically enabled when noAuth.enabled is true)
+workspaceAuthProxy:
   enabled: true  # Will be automatically set based on noAuth.enabled
   debug:
     enabled: false
@@ -204,7 +204,7 @@ authProxy:
 
 # Extra containers (sidecars) - Auth Proxy (only when enabled)
 extraContainers: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - name: auth-proxy
     image: gcr.io/hasura-ee/auth-proxy:latest
     imagePullPolicy: IfNotPresent
@@ -244,13 +244,13 @@ extraContainers: |
     - name: WORKSPACE_NAME
       value: {{ include "common.name" . | quote }}
     - name: COOKIE_DOMAIN
-      value: {{ .Values.authProxy.cookieDomain | default (include "ddn-workspace.authProxy.cookieDomain" .) | quote }}
+      value: {{ .Values.workspaceAuthProxy.cookieDomain | default (include "ddn-workspace.workspaceAuthProxy.cookieDomain" .) | quote }}
     - name: COOKIE_NAME
-      value: {{ .Values.authProxy.cookie.name }}
+      value: {{ .Values.workspaceAuthProxy.cookie.name }}
     - name: COOKIE_MAX_AGE
       value: "3600"
     command: ["/usr/local/bin/envoy"]
-    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.authProxy.debug.enabled }}debug{{ else }}info{{ end }}"]   
+    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]   
   {{- end }}
 
 

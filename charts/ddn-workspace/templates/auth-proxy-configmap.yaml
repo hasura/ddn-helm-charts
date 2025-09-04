@@ -1,8 +1,8 @@
-{{- if include "ddn-workspace.authProxy.enabled" . }}
+{{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "ddn-workspace.authProxy.name" . }}-config
+  name: {{ include "ddn-workspace.workspaceAuthProxy.name" . }}-config
   labels:
     {{- include "common.labels" . | nindent 4 }}
     component: auth-proxy
@@ -13,14 +13,14 @@ data:
         socket_address:
           protocol: TCP
           address: 0.0.0.0
-          port_value: {{ .Values.authProxy.service.adminPort }}
+          port_value: {{ .Values.workspaceAuthProxy.service.adminPort }}
     static_resources:
       listeners:
       - name: listener_0
         address:
           socket_address:
             address: 0.0.0.0
-            port_value: {{ .Values.authProxy.service.port }}
+            port_value: {{ .Values.workspaceAuthProxy.service.port }}
         filter_chains:
         - filters:
           - name: envoy.filters.network.http_connection_manager
@@ -156,7 +156,7 @@ data:
                         # this configuration will ensure
                         # that the stream is terminated after 60s
                         # so that if cookie expires, the connection is closed
-                        max_stream_duration: {{ .Values.authProxy.cookie.maxAge | default 3600 }}s
+                        max_stream_duration: {{ .Values.workspaceAuthProxy.cookie.maxAge | default 3600 }}s
 
               http_filters:
               # Lua filter for authentication
@@ -168,7 +168,6 @@ data:
                     package.path = package.path .. ";/usr/local/share/lua/5.1/?.lua"
                     package.cpath = package.cpath .. ";/usr/local/lib/lua/5.1/?.so"
                     local cjson = require "cjson"
-                    local cookie_name = os.getenv("COOKIE_NAME") or "workspace-session"
                     local cookie_domain = os.getenv("COOKIE_DOMAIN") or ".localhost"
                     local cookie_max_age = os.getenv("COOKIE_MAX_AGE") or 3600
                     local config_workspace_name = os.getenv("WORKSPACE_NAME")
@@ -285,7 +284,7 @@ data:
                         -- Path-based routing: set cookie path to workspace prefix (ingress handles the routing)
                         local cookie_path = "/" .. config_workspace_name 
                         {{- end }}
-                        local cookie_value = "{{ .Values.authProxy.cookie.name }}=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; ; SameSite=Lax; Secure"
+                        local cookie_value = "{{ .Values.workspaceAuthProxy.cookie.name }}=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; ; SameSite=Lax; Secure"
 
                         request_handle:logInfo("LUA SCRIPT: Setting authentication cookie: " .. cookie_value)
                         request_handle:respond(
@@ -298,7 +297,7 @@ data:
                       
                       local cookie_header = request_handle:headers():get("cookie")
 
-                      cookie_name = "{{ .Values.authProxy.cookie.name }}"
+                      cookie_name = "{{ .Values.workspaceAuthProxy.cookie.name }}"
                       request_handle:logInfo("LUA SCRIPT: Checking authentication for path: " .. path .. ", cookies: " .. (cookie_header or "none"))
                       if cookie_header == cookie_name .. "=true" then
                         request_handle:logInfo("LUA SCRIPT: Authentication cookie found, allowing access")

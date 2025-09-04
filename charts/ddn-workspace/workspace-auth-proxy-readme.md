@@ -42,8 +42,8 @@ The auth-proxy runs as a **sidecar container** within the same pod as the worksp
 noAuth:
   enabled: true
 
-# Enable auth-proxy sidecar
-authProxy:
+# Enable workspace auth-proxy sidecar
+workspaceAuthProxy:
   enabled: true
 ```
 
@@ -75,9 +75,9 @@ The auth-proxy is added as an `extraContainer` in the deployment:
 
 ```yaml
 extraContainers: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - name: auth-proxy
-    image: "{{ .Values.global.containerRegistry }}/{{ .Values.authProxy.image.repository }}:{{ .Values.authProxy.image.tag }}"
+    image: "{{ .Values.global.containerRegistry }}/{{ .Values.workspaceAuthProxy.image.repository }}:{{ .Values.workspaceAuthProxy.image.tag }}"
     ports:
       - name: auth-http
         containerPort: 8080
@@ -93,7 +93,7 @@ The main service exposes both auth-proxy and workspace ports:
 
 ```yaml
 servicePorts: |
-  {{- if include "ddn-workspace.authProxy.enabled" . }}
+  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - port: 8080          # Auth proxy HTTP port
     targetPort: auth-http
     name: auth-http
@@ -134,7 +134,7 @@ The auth-proxy is configured to route to the workspace via localhost:
 ```bash
 helm install my-workspace . \
   --set noAuth.enabled=true \
-  --set authProxy.enabled=true \
+  --set workspaceAuthProxy.enabled=true \
   --set global.domain="example.com" \
   --set global.subDomain=true
 ```
@@ -231,7 +231,7 @@ kubectl exec -it pod-name -c auth-proxy -- cat /etc/envoy/envoy.yaml
 If migrating from a separate auth-proxy deployment:
 
 1. Remove separate auth-proxy deployment
-2. Enable sidecar mode: `authProxy.enabled: true`
+2. Enable sidecar mode: `workspaceAuthProxy.enabled: true`
 3. Update ingress to point to main service
 4. Remove separate auth-proxy service
 5. Test localhost communication
@@ -302,7 +302,7 @@ global:
 You can override the auto-generated URL by setting:
 
 ```yaml
-authProxy:
+workspaceAuthProxy:
   auth:
     serviceUrl: "https://custom-auth.example.com"
 ```
