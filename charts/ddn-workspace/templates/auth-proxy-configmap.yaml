@@ -232,7 +232,12 @@ data:
                       prefix: "/"
                     route:
                       cluster: workspace_service
-                      timeout: 30s
+                      timeout: 0s
+                      max_stream_duration:
+                        # this configuration will ensure
+                        # that the stream is terminated after 60s
+                        # so that if cookie expires, the connection is closed
+                        max_stream_duration: {{ .Values.authProxy.cookie.maxAge | default 3600 }}s
 
               http_filters:
               # Lua filter for authentication
