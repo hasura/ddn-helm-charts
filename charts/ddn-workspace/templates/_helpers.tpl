@@ -83,3 +83,24 @@ false
 {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "ddn-workspace.securityHeaders" -}}
+- header:
+    key: "Strict-Transport-Security"
+    value: "max-age=31536000; includeSubDomains"
+- header:
+    key: "X-Frame-Options"
+    value: "SAMEORIGIN"
+- header:
+    key: "Referrer-Policy"
+    value: "strict-origin"
+- header:
+    key: "X-Content-Type-Options"
+    value: "nosniff"
+- header:
+    key: "X-Xss-Protection"
+    value: "1; mode=block"
+- header:
+    key: "Content-Security-Policy"
+    value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+{{- end -}}

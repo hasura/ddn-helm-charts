@@ -68,26 +68,7 @@ data:
                       prefix_rewrite: "/auth"
                   {{- end }}
                     response_headers_to_add:
-                      - header:
-                          key: "Strict-Transport-Security"
-                          value: "max-age=31536000; includeSubDomains"
-                      - header:
-                          key: "X-Frame-Options"
-                          value: "SAMEORIGIN"
-                      - header:
-                          key: "Referrer-Policy"
-                          value: "strict-origin"
-                      - header:
-                          key: "X-Content-Type-Options"
-                          value: "nosniff"
-                      - header:
-                          key: "X-Xss-Protection"
-                          value: "1; mode=block"
-                      - header:
-                          key: "Content-Security-Policy"
-                          value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-
-
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
 
                   # UI Static Assets - serve CSS and JS files (works for both modes due to ingress rewrite)
                   - match:
@@ -97,27 +78,11 @@ data:
                       body:
                         filename: "/var/www/html/client.js"
                     response_headers_to_add:
-                    - header:
-                        key: "Content-Type"
-                        value: "application/javascript"
-                    - header:
-                        key: "Strict-Transport-Security"
-                        value: "max-age=31536000; includeSubDomains"
-                    - header:
-                        key: "X-Frame-Options"
-                        value: "SAMEORIGIN"
-                    - header:
-                        key: "Referrer-Policy"
-                        value: "strict-origin"
-                    - header:
-                        key: "X-Content-Type-Options"
-                        value: "nosniff"
-                    - header:
-                        key: "X-Xss-Protection"
-                        value: "1; mode=block"
-                    - header:
-                        key: "Content-Security-Policy"
-                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+                      - header:
+                          key: "Content-Type"
+                          value: "application/javascript"
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
                     # Skip Lua filter for static assets
                     typed_per_filter_config:
                       envoy.filters.http.lua:
@@ -131,27 +96,11 @@ data:
                       body:
                         filename: "/var/www/html/client.css"
                     response_headers_to_add:
-                    - header:
-                        key: "Content-Type"
-                        value: "text/css"
-                    - header:
-                        key: "Strict-Transport-Security"
-                        value: "max-age=31536000; includeSubDomains"
-                    - header:
-                        key: "X-Frame-Options"
-                        value: "SAMEORIGIN"
-                    - header:
-                        key: "Referrer-Policy"
-                        value: "strict-origin"
-                    - header:
-                        key: "X-Content-Type-Options"
-                        value: "nosniff"
-                    - header:
-                        key: "X-Xss-Protection"
-                        value: "1; mode=block"
-                    - header:
-                        key: "Content-Security-Policy"
-                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+                      - header:
+                          key: "Content-Type"
+                          value: "text/css"
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
                     # Skip Lua filter for static assets
                     typed_per_filter_config:
                       envoy.filters.http.lua:
@@ -165,27 +114,12 @@ data:
                       body:
                         filename: "/var/www/html/output.css"
                     response_headers_to_add:
-                    - header:
-                        key: "Content-Type"
-                        value: "text/css"
-                    - header:
-                        key: "Strict-Transport-Security"
-                        value: "max-age=31536000; includeSubDomains"
-                    - header:
-                        key: "X-Frame-Options"
-                        value: "SAMEORIGIN"
-                    - header:
-                        key: "Referrer-Policy"
-                        value: "strict-origin"
-                    - header:
-                        key: "X-Content-Type-Options"
-                        value: "nosniff"
-                    - header:
-                        key: "X-Xss-Protection"
-                        value: "1; mode=block"
-                    - header:
-                        key: "Content-Security-Policy"
-                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+                      - header:
+                          key: "Content-Type"
+                          value: "text/css"
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
+
                     # Skip Lua filter for static assets
                     typed_per_filter_config:
                       envoy.filters.http.lua:
@@ -200,27 +134,12 @@ data:
                       body:
                         filename: "/var/www/html/index.html"
                     response_headers_to_add:
-                    - header:
-                        key: "Content-Type"
-                        value: "text/html; charset=utf-8"
-                    - header:
-                        key: "Strict-Transport-Security"
-                        value: "max-age=31536000; includeSubDomains"
-                    - header:
-                        key: "X-Frame-Options"
-                        value: "SAMEORIGIN"
-                    - header:
-                        key: "Referrer-Policy"
-                        value: "strict-origin"
-                    - header:
-                        key: "X-Content-Type-Options"
-                        value: "nosniff"
-                    - header:
-                        key: "X-Xss-Protection"
-                        value: "1; mode=block"
-                    - header:
-                        key: "Content-Security-Policy"
-                        value: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline';"
+                      - header:
+                          key: "Content-Type"
+                          value: "text/html"
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
+
                     # Skip Lua filter for UI routes
                     typed_per_filter_config:
                       envoy.filters.http.lua:
@@ -251,41 +170,6 @@ data:
 
                     local cjson = require "cjson"
 
-                    -- JSON decode function (simplified)
-                    local function json_decode(str)
-                      local function decode_value(s, pos)
-                        local first = s:sub(pos, pos)
-                        if first == '"' then
-                          local i = pos + 1
-                          while i <= #s do
-                            if s:sub(i, i) == '"' and s:sub(i-1, i-1) ~= '\\' then
-                              return s:sub(pos + 1, i - 1), i + 1
-                            end
-                            i = i + 1
-                          end
-                        elseif first == '{' then
-                          local obj = {}
-                          local i = pos + 1
-                          while i <= #s and s:sub(i, i) ~= '}' do
-                            if s:sub(i, i) == '"' then
-                              local key, next_pos = decode_value(s, i)
-                              i = next_pos
-                              while i <= #s and (s:sub(i, i) == ' ' or s:sub(i, i) == ':') do i = i + 1 end
-                              local value, next_pos2 = decode_value(s, i)
-                              obj[key] = value
-                              i = next_pos2
-                              while i <= #s and (s:sub(i, i) == ' ' or s:sub(i, i) == ',') do i = i + 1 end
-                            else
-                              i = i + 1
-                            end
-                          end
-                          return obj, i + 1
-                        end
-                        return nil, pos
-                      end
-                      return decode_value(str, 1)
-                    end
-
                     -- GraphQL workspace access check function
                     local function check_workspace_access(request_handle, token, auth_method, workspace_name)
                       local data_host = os.getenv("DATA_HOST") or "api.hasura.io"
@@ -306,16 +190,12 @@ data:
                         query_body,
                         5000
                       )
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: data_host: " .. data_host)
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. cjson.encode(headers) .. ", body: " .. (body or "nil"))
                       
                       if not body then
                         return false, "GraphQL request failed"
                       end
                       
                       local response = cjson.decode(body)
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: headers: " .. cjson.encode(headers) .. ", body: " .. (body or "nil"))
-                      request_handle:logInfo("LUA SCRIPT: check_workspace_access: response: " .. cjson.encode(response))
                       if response and response.data and response.data.ddn_workspace then
                         for i = 1, #response.data.ddn_workspace do
                           request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace: " .. cjson.encode(response.data.ddn_workspace[i]))
@@ -426,7 +306,6 @@ data:
                         return
                       end
 
-
                       
                       local cookie_header = request_handle:headers():get("cookie")
                       request_handle:logInfo("LUA SCRIPT: Checking authentication for path: " .. path .. ", cookies: " .. (cookie_header or "none"))
@@ -481,13 +360,6 @@ data:
             common_tls_context: {}
             sni: {{ include "common.extractHost" .Values.dataHost }}
 {{- end }}
-        # transport_socket:
-        #   name: envoy.transport_sockets.tls
-        #   typed_config:
-        #     "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-        #     common_tls_context: {}
-        #     sni: {{ .Values.authProxy.dataHost }}
-
         load_assignment:
           cluster_name: graphql_cluster
           endpoints:
