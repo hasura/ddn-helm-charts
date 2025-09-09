@@ -70,9 +70,9 @@ data:
                     response_headers_to_add:
                       {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
 
-                  # UI Static Assets - serve CSS and JS files (works for both modes due to ingress rewrite)
+                  # Login Static Assets - serve CSS and JS files (works for both modes due to ingress rewrite)
                   - match:
-                      path: "/ui/client.js"
+                      path: "/login/client.js"
                     direct_response:
                       status: 200
                       body:
@@ -90,7 +90,7 @@ data:
                         disabled: true
 
                   - match:
-                      path: "/ui/client.css"
+                      path: "/login/client.css"
                     direct_response:
                       status: 200
                       body:
@@ -108,7 +108,7 @@ data:
                         disabled: true
 
                   - match:
-                      path: "/ui/output.css"
+                      path: "/login/output.css"
                     direct_response:
                       status: 200
                       body:
@@ -126,9 +126,9 @@ data:
                         "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
                         disabled: true
 
-                  # UI HTML - handled by Lua for auth config injection
+                  # Login HTML - handled by Lua for auth config injection
                   - match:
-                      path: "/ui"
+                      path: "/login"
                     route:
                       cluster: workspace_service
                       timeout: 30s
@@ -341,8 +341,8 @@ data:
                         return
                       end
 
-                      -- Handle UI path - serve HTML with auth config injection
-                      if path == "/ui" then
+                      -- Handle login path - serve HTML with auth config injection
+                      if path == "/login" then
                         local html_content = get_html_content()
                         local modified_html = inject_auth_config_into_html(html_content)
                         request_handle:respond(
@@ -371,10 +371,10 @@ data:
                       end
 
                       {{- if .Values.global.subDomain }}
-                      request_handle:logInfo("LUA SCRIPT: Redirecting to /ui (subdomain mode)")
-                      request_handle:respond({[":status"] = "302", ["location"] = "/ui"}, "")
+                      request_handle:logInfo("LUA SCRIPT: Redirecting to /login (subdomain mode)")
+                      request_handle:respond({[":status"] = "302", ["location"] = "/login"}, "")
                       {{- else }}
-                      local redirect_location = "/" .. config_workspace_name .. "/ui"
+                      local redirect_location = "/" .. config_workspace_name .. "/login"
                       request_handle:logInfo("LUA SCRIPT: Redirecting to " .. redirect_location .. " (path-based mode)")
                       request_handle:respond({[":status"] = "302", ["location"] = redirect_location}, "")
                       {{- end }}
