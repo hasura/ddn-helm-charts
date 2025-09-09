@@ -179,23 +179,19 @@ workspaceAuthProxy:
     enabledMethods: "pat,oidc-access-token,oidc-id-token"
     ui:
       title: "DDN Workspace | Login"
-
   # Workspace Configuration
   workspace:
     servicePort: 8123  # Port of the ddn-workspace service
-
   # Data Configuration (optional - will use sensible defaults if not specified)
   # dataHost: "data.your-domain.com"
   # dataPort: "443"
   # workspaceName: "my-workspace"
   # cookieDomain: ".your-domain.com"
-
   # Service Configuration
   service:
     type: ClusterIP
     port: 8080
     adminPort: 9901
-  
   # Resource Configuration
   resources:
     limits:
@@ -204,10 +200,8 @@ workspaceAuthProxy:
     requests:
       cpu: 100m
       memory: 128Mi
-  
   # Replicas
   replicas: 1
-
 
 # Extra containers (sidecars) - Auth Proxy (only when enabled)
 extraContainers: |
@@ -261,5 +255,3 @@ extraContainers: |
     command: ["/usr/local/bin/envoy"]
     args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]   
   {{- end }}
-
-
