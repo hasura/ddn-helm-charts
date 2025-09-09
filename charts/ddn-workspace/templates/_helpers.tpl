@@ -15,11 +15,13 @@
 {{- end -}}
 {{- end -}}
 
-{{- define "ddn-workspace.ingress.annotations" -}}   
-{{- if not .Values.global.subDomain -}}      
+{{- define "ddn-workspace.ingress.annotations" -}}
+{{- if not .Values.global.subDomain -}}
 {{- printf "nginx.ingress.kubernetes.io/rewrite-target: /$2" -}}
 {{- end -}}
 {{- end -}}
+
+
 
 {{- define "common.secretsName" -}}   
 {{- printf "%s-secrets" (include "common.name" .) -}}

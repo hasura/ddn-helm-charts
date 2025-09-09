@@ -1,4 +1,81 @@
-# ingress.yaml
-{{- if not (include "ddn-workspace.workspaceAuthProxy.enabled" .) }}
-{{- template "common.ingress" . -}}
+# ingress.yaml - handles both workspace and auth-proxy routing
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.global.kubeTargetVersionOverride }}
+{{- $serviceName := include "common.name" . -}}
+{{- if and (not ((.Values.global).ingress).disabled) .Values.ingress.enabled -}}
+---
+{{- if semverCompare ">=1.19-0" $kubeTargetVersion }}
+apiVersion: networking.k8s.io/v1
+{{- else }}
+apiVersion: networking.k8s.io/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ template "common.namespace" . }}
+  annotations:
+{{- if .Values.global.ingress.annotations }}
+  {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.global.ingress.annotations) | nindent 4 }}
+{{- else }}
+{{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.global.ingress.additionalAnnotations) | nindent 4 }}
+{{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.ingress.annotations) | nindent 4 }}
+{{- if .Values.ingress.waf.enabled }}
+{{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.ingress.waf.annotations) | nindent 4 }}
+{{- end  }}
+{{- if .Values.ingress.additionalAnnotations }}
+  {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.ingress.additionalAnnotations) | nindent 4 }}
+{{- end }}
+{{- end }}
+  labels:
+{{- include "common.labels" . | nindent 4 }}
+spec:
+{{- if and (semverCompare ">=1.18-0" $kubeTargetVersion) (or ((.Values.global).ingress).ingressClassName (.Values.ingress).ingressClassName) }}
+  ingressClassName: {{ default ((.Values.global).ingress).ingressClassName (.Values.ingress).ingressClassName }}
+{{- end  }}
+{{- if .Values.global.ingress.defaultBackend }}
+  defaultBackend:
+  {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.global.ingress.defaultBackend) | nindent 4 -}}
+{{- end }}
+  rules:
+  -
+{{- if .Values.ingress.host }}
+  {{- tpl  .Values.ingress.host . | nindent 4 }}
+{{- else if (.Values.ingress.hostName | quote) }}
+    host: "{{ tpl .Values.ingress.hostName . }}"
+{{- else }}
+    host: {{ .Values.global.domain }}
+{{- end }}
+{{- if semverCompare ">=1.19-0" $kubeTargetVersion }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ $serviceName }}
+            port:
+              number: {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }} {{ .Values.workspaceAuthProxy.service.port }}{{- else }} {{ .Values.httpPort }}{{- end }}
+        pathType: ImplementationSpecific
+        path: /{{ tpl .Values.ingress.path . }}
+{{- else }}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ $serviceName }}
+          servicePort: {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }} {{ .Values.workspaceAuthProxy.service.port }}{{- else }} {{ .Values.httpPort }}{{- end }}
+        path: /{{ tpl .Values.ingress.path . }}
+{{- end }}
+{{- if (include "common.isIngressHttps" .) | eq "true" }}
+  tls:
+{{- if .Values.ingress.tls }}
+  {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.ingress.tls) | nindent 2 }}
+{{- else }}
+{{- if .Values.ingress.hostName }}
+  - hosts:
+    - "{{ tpl .Values.ingress.hostName . }}"
+    secretName: {{ .Values.global.ingress.tlsSecretName | default (print (tpl .Values.ingress.hostName .) "-tls-certs") }}
+{{- else }}
+  - hosts:
+    - {{ .Values.global.domain }}
+    secretName: {{ .Values.global.ingress.tlsSecretName | default (print (tpl .Values.ingress.hostName .) "-tls-certs") }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
