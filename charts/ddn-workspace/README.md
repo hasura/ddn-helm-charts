@@ -125,27 +125,13 @@ helm upgrade --install <release-name> \
   hasura-ddn/ddn-workspace
 ```
 
-## Argo2id Password
-
-The value being passed to `secrets.password` needs to be an `Argo2id` hashed password.  You can use a tool like [this](https://argon2.online/) to generate the appropriate hash from a given password.
-When you generate a password, make sure you choose `Argon2id` as the mode/variant (This is the recommended approach per [RFC 9106](https://datatracker.ietf.org/doc/html/rfc9106)).
-
-You can also use [this](https://github.com/hasura/ddn-helm-charts/blob/main/scripts/argo2id.py) Python script provided that you installed the `argon2-cffi` package via `pip install argon2-cffi`.
-
-Note that when you pass the password via `--set`, you will need to escape `$` as well as `,` that are contained within the password.  If you are using an overrides file, you do not need to escape.
-
-## Image pull secret
-
-The DDN Workspace Helm chart is configured by default to fetch from Hasura's own private registry.  You will need to obtain an image pull secret in order to pull from this registry or otherwise
-contact the Hasura engineering team in order to obtain alternate methods for fetching the image.
-
-## Images
-
-Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/ddn-workspace/release-notes/#ddn-workspace-release-notes).
-
 ## Workspace Auth-Proxy
 
-The DDN Workspace supports optional authentication via an auth-proxy sidecar container. When enabled, the auth-proxy handles authentication and forwards authenticated requests to the workspace.
+The DDN Workspace supports optional control plane authentication via an auth-proxy sidecar container. When enabled, the auth-proxy handles authentication against the control plane and checks workspace access of the token bearer via their access on the dataplane and forwards authenticated requests to the workspace.
+
+### Architecture Overview
+
+![DDN Workspace with Auth Proxy](../../imgs/ddn-workspace/workspace-auth-proxy.svg)
 
 ### Authentication Methods
 
@@ -167,12 +153,10 @@ helm upgrade --install <release-name> \
 
 **With Auth-Proxy Enabled:**
 ```bash
-# Enable auth-proxy with all authentication methods
+# Enable auth-proxy with all authentication methods (no password needed)
 helm upgrade --install <release-name> \
   --set global.domain="my-dp.domain.com" \
-  --set noAuth.enabled=true \
   --set workspaceAuthProxy.enabled=true \
-  --set secrets.password="argon2id_hashed_password" \
   hasura-ddn/ddn-workspace
 ```
 
@@ -181,19 +165,39 @@ helm upgrade --install <release-name> \
 # Enable only PAT and OIDC access token authentication
 helm upgrade --install <release-name> \
   --set global.domain="my-dp.domain.com" \
-  --set noAuth.enabled=true \
   --set workspaceAuthProxy.enabled=true \
   --set workspaceAuthProxy.auth.enabledMethods="pat,oidc-access-token" \
-  --set secrets.password="argon2id_hashed_password" \
   hasura-ddn/ddn-workspace
 ```
 
 ### Important Notes
 
-- **Both `noAuth.enabled=true` AND `workspaceAuthProxy.enabled=true` are required** for auth-proxy to be active
+- **Only `workspaceAuthProxy.enabled=true` is required** for auth-proxy to be active
+- When auth-proxy is enabled, `secrets.password` is ignored (auth-proxy handles authentication)
+- When auth-proxy is disabled, `secrets.password` is required for workspace access
 - When auth-proxy is enabled, only port 8080 is exposed externally (auth-proxy port)
 - When auth-proxy is disabled, only port 8123 is exposed externally (workspace port)
 - Auth-proxy admin port (9901) is never exposed externally for security
+
+## Argo2id Password
+
+The value being passed to `secrets.password` needs to be an `Argo2id` hashed password.  You can use a tool like [this](https://argon2.online/) to generate the appropriate hash from a given password.
+When you generate a password, make sure you choose `Argon2id` as the mode/variant (This is the recommended approach per [RFC 9106](https://datatracker.ietf.org/doc/html/rfc9106)).
+
+You can also use [this](https://github.com/hasura/ddn-helm-charts/blob/main/scripts/argo2id.py) Python script provided that you installed the `argon2-cffi` package via `pip install argon2-cffi`.
+
+Note that when you pass the password via `--set`, you will need to escape `$` as well as `,` that are contained within the password.  If you are using an overrides file, you do not need to escape.
+
+## Image pull secret
+
+The DDN Workspace Helm chart is configured by default to fetch from Hasura's own private registry.  You will need to obtain an image pull secret in order to pull from this registry or otherwise
+contact the Hasura engineering team in order to obtain alternate methods for fetching the image.
+
+## Images
+
+Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/ddn-workspace/release-notes/#ddn-workspace-release-notes).
+
+
 
 ## Accessing DDN Workspace (Native Runtime) and next steps
 
@@ -251,8 +255,7 @@ To explore the release notes, which include details on connector support and oth
 | `ingress.additionalAnnotations`                   | Ingress additional annotations                                                                             | `""`                            |
 | `ingress.path`                                    | Ingress override path                                                                                      | `""`                            |
 | `routes.enabled`                                  | Enable routes (For OpenShift)                                                                              | `false`                         |
-| `noAuth.enabled`                                  | Enable no-auth mode (required for auth-proxy)                                                              | `false`                         |
-| `workspaceAuthProxy.enabled`                      | Enable workspace auth-proxy sidecar                                                                        | `false`                         |
+| `workspaceAuthProxy.enabled`                      | Enable workspace auth-proxy sidecar (ignores secrets.password when enabled)                               | `false`                         |
 | `workspaceAuthProxy.debug.enabled`                | Enable debug logging for auth-proxy                                                                        | `false`                         |
 | `workspaceAuthProxy.image.repository`             | Auth-proxy image repository                                                                                 | `auth-proxy`                    |
 | `workspaceAuthProxy.image.tag`                    | Auth-proxy image tag                                                                                        | `latest`                        |

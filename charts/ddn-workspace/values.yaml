@@ -75,9 +75,7 @@ consoleUrl: "https://console.{{ .Values.global.domain }}"
 ddnPromptqlEndpoint: ""
 skipTlsVerify: false
 
-# Enable noAuth mode (required for auth-proxy)
-noAuth:
-  enabled: true
+
 
 secrets:
   password: ""
@@ -86,7 +84,7 @@ secrets:
 env: |
   - name: CODE_SERVER_PORT
     value: "8123"
-  {{- if not .Values.noAuth.enabled }}
+  {{- if not (include "ddn-workspace.workspaceAuthProxy.enabled" .) }}
   - name: HASHED_PASSWORD
     valueFrom:
       secretKeyRef:
@@ -147,9 +145,9 @@ routes:
 # Service ports configuration - handled directly in service.yaml template
 # No additional ports needed as conditional logic is in the service template
 
-# Workspace Auth Proxy Configuration (automatically enabled when noAuth.enabled is true)
+# Workspace Auth Proxy Configuration
 workspaceAuthProxy:
-  enabled: true  # Will be automatically set based on noAuth.enabled
+  enabled: false  # Set to true to enable auth-proxy (secrets.password will be ignored)
   debug:
     enabled: false
   # Image Configuration

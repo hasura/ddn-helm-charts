@@ -29,7 +29,7 @@
 Workspace Auth Proxy helpers
 */}}
 {{- define "ddn-workspace.workspaceAuthProxy.enabled" -}}
-{{- if and .Values.noAuth.enabled .Values.workspaceAuthProxy.enabled -}}
+{{- if .Values.workspaceAuthProxy.enabled -}}
 true
 {{- end -}}
 {{- end -}}
