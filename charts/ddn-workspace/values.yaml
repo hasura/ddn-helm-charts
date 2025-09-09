@@ -248,7 +248,7 @@ extraContainers: |
     - name: COOKIE_NAME
       value: {{ .Values.workspaceAuthProxy.cookie.name }}
     - name: COOKIE_MAX_AGE
-      value: "3600"
+      value: {{ .Values.workspaceAuthProxy.cookie.maxAge | default 3600 | quote }}
     command: ["/usr/local/bin/envoy"]
     args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]   
   {{- end }}
