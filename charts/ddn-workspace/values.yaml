@@ -75,8 +75,6 @@ consoleUrl: "https://console.{{ .Values.global.domain }}"
 ddnPromptqlEndpoint: ""
 skipTlsVerify: false
 
-
-
 secrets:
   password: ""
 
