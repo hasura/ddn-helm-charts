@@ -77,7 +77,7 @@ skipTlsVerify: false
 
 # Enable noAuth mode (required for auth-proxy)
 noAuth:
-  enabled: false
+  enabled: true
 
 secrets:
   password: ""
@@ -160,13 +160,11 @@ workspaceAuthProxy:
   enabled: true  # Will be automatically set based on noAuth.enabled
   debug:
     enabled: false
-  
   # Image Configuration
   image:
     repository: "auth-proxy"
     tag: "latest"
     pullPolicy: IfNotPresent
-  
   # Cookie Configuration
   cookie:
     name: "workspace-session"
@@ -179,19 +177,17 @@ workspaceAuthProxy:
     enabledMethods: "pat,oidc-access-token,oidc-id-token"
     ui:
       title: "DDN Workspace | Login"
+
   # Workspace Configuration
   workspace:
     servicePort: 8123  # Port of the ddn-workspace service
-  # Data Configuration (optional - will use sensible defaults if not specified)
-  # dataHost: "data.your-domain.com"
-  # dataPort: "443"
-  # workspaceName: "my-workspace"
-  # cookieDomain: ".your-domain.com"
+
   # Service Configuration
   service:
     type: ClusterIP
     port: 8080
     adminPort: 9901
+
   # Resource Configuration
   resources:
     limits:
@@ -200,6 +196,7 @@ workspaceAuthProxy:
     requests:
       cpu: 100m
       memory: 128Mi
+
   # Replicas
   replicas: 1
 
@@ -253,5 +250,5 @@ extraContainers: |
     - name: ENABLED_AUTH_METHODS
       value: {{ .Values.workspaceAuthProxy.auth.enabledMethods | quote }}
     command: ["/usr/local/bin/envoy"]
-    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]   
+    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]
   {{- end }}
