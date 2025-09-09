@@ -206,8 +206,8 @@ workspaceAuthProxy:
 extraContainers: |
   {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - name: auth-proxy
-    image: gcr.io/hasura-ee/ddn-workspace-auth-proxy:latest
-    imagePullPolicy: IfNotPresent
+    image: "{{ .Values.global.containerRegistry }}/{{ .Values.workspaceAuthProxy.image.repository }}:{{ .Values.workspaceAuthProxy.image.tag }}"
+    imagePullPolicy: {{ .Values.workspaceAuthProxy.image.pullPolicy }}
     ports:
       - name: auth-http
         containerPort: 8080
