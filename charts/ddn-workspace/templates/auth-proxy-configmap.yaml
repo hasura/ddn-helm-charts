@@ -189,9 +189,7 @@ data:
                       local auth_config = {
                         authMethods = enabled_methods,
                         ui = {
-                          title = "{{ .Values.workspaceAuthProxy.auth.ui.title }}",
-                          subtitle = "{{ .Values.workspaceAuthProxy.auth.ui.subtitle }}",
-                          showDescriptions = {{ .Values.workspaceAuthProxy.auth.ui.showDescriptions }}
+                          title = "{{ .Values.workspaceAuthProxy.auth.ui.title }}"
                         },
                         workspace = {
                           name = config_workspace_name and string.gsub(config_workspace_name, "%-ddn%-workspace$", "") or "default-workspace",

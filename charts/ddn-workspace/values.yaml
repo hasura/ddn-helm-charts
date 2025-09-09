@@ -179,8 +179,6 @@ workspaceAuthProxy:
     enabledMethods: "pat,oidc-access-token,oidc-id-token"
     ui:
       title: "DDN Workspace | Login"
-      subtitle: "Please select your authentication method"
-      showDescriptions: true
 
   # Workspace Configuration
   workspace:
