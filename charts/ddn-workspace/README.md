@@ -143,6 +143,58 @@ contact the Hasura engineering team in order to obtain alternate methods for fet
 
 Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/ddn-workspace/release-notes/#ddn-workspace-release-notes).
 
+## Workspace Auth-Proxy
+
+The DDN Workspace supports optional authentication via an auth-proxy sidecar container. When enabled, the auth-proxy handles authentication and forwards authenticated requests to the workspace.
+
+### Authentication Methods
+
+The auth-proxy supports multiple authentication methods:
+- **PAT (Personal Access Token)**: Token-based authentication
+- **OIDC Access Token**: OAuth 2.0 access token authentication
+- **OIDC ID Token**: OpenID Connect ID token authentication
+
+### Usage Patterns
+
+**Without Auth-Proxy (Default):**
+```bash
+# Direct workspace access - no authentication
+helm upgrade --install <release-name> \
+  --set global.domain="my-dp.domain.com" \
+  --set secrets.password="argon2id_hashed_password" \
+  hasura-ddn/ddn-workspace
+```
+
+**With Auth-Proxy Enabled:**
+```bash
+# Enable auth-proxy with all authentication methods
+helm upgrade --install <release-name> \
+  --set global.domain="my-dp.domain.com" \
+  --set noAuth.enabled=true \
+  --set workspaceAuthProxy.enabled=true \
+  --set secrets.password="argon2id_hashed_password" \
+  hasura-ddn/ddn-workspace
+```
+
+**With Specific Auth Methods:**
+```bash
+# Enable only PAT and OIDC access token authentication
+helm upgrade --install <release-name> \
+  --set global.domain="my-dp.domain.com" \
+  --set noAuth.enabled=true \
+  --set workspaceAuthProxy.enabled=true \
+  --set workspaceAuthProxy.auth.enabledMethods="pat,oidc-access-token" \
+  --set secrets.password="argon2id_hashed_password" \
+  hasura-ddn/ddn-workspace
+```
+
+### Important Notes
+
+- **Both `noAuth.enabled=true` AND `workspaceAuthProxy.enabled=true` are required** for auth-proxy to be active
+- When auth-proxy is enabled, only port 8080 is exposed externally (auth-proxy port)
+- When auth-proxy is disabled, only port 8123 is exposed externally (workspace port)
+- Auth-proxy admin port (9901) is never exposed externally for security
+
 ## Accessing DDN Workspace (Native Runtime) and next steps
 
 After installation, you can access the DDN Workspace (Native Runtime) via the ingress URL. To find the hostname needed for connecting, run the following command: `kubectl get ingress`.
@@ -198,4 +250,20 @@ To explore the release notes, which include details on connector support and oth
 | `ingress.hostName`                                | Ingress override hostname                                                                                  | `""`                            |
 | `ingress.additionalAnnotations`                   | Ingress additional annotations                                                                             | `""`                            |
 | `ingress.path`                                    | Ingress override path                                                                                      | `""`                            |
-| `routes.enabled`                                  | Enable routes (For OpenShift)                                                                              | `false`                         |      
+| `routes.enabled`                                  | Enable routes (For OpenShift)                                                                              | `false`                         |
+| `noAuth.enabled`                                  | Enable no-auth mode (required for auth-proxy)                                                              | `false`                         |
+| `workspaceAuthProxy.enabled`                      | Enable workspace auth-proxy sidecar                                                                        | `false`                         |
+| `workspaceAuthProxy.debug.enabled`                | Enable debug logging for auth-proxy                                                                        | `false`                         |
+| `workspaceAuthProxy.image.repository`             | Auth-proxy image repository                                                                                 | `auth-proxy`                    |
+| `workspaceAuthProxy.image.tag`                    | Auth-proxy image tag                                                                                        | `latest`                        |
+| `workspaceAuthProxy.image.pullPolicy`             | Auth-proxy image pull policy                                                                               | `IfNotPresent`                  |
+| `workspaceAuthProxy.cookie.name`                  | Session cookie name                                                                                         | `workspace-session`             |
+| `workspaceAuthProxy.cookie.maxAge`                | Session cookie max age in seconds                                                                           | `3600`                          |
+| `workspaceAuthProxy.cookieDomain`                 | Session cookie domain (auto-configured if empty)                                                           | `""`                            |
+| `workspaceAuthProxy.auth.enabledMethods`          | Comma-separated auth methods: pat,oidc-access-token,oidc-id-token                                          | `pat,oidc-access-token,oidc-id-token` |
+| `workspaceAuthProxy.auth.ui.title`                | Auth UI page title                                                                                          | `DDN Workspace \| Login`        |
+| `workspaceAuthProxy.service.port`                 | Auth-proxy HTTP port                                                                                        | `8080`                          |
+| `workspaceAuthProxy.resources.requests.cpu`       | Auth-proxy CPU request                                                                                      | `100m`                          |
+| `workspaceAuthProxy.resources.requests.memory`    | Auth-proxy memory request                                                                                   | `128Mi`                         |
+| `workspaceAuthProxy.resources.limits.cpu`         | Auth-proxy CPU limit                                                                                        | `200m`                          |
+| `workspaceAuthProxy.resources.limits.memory`      | Auth-proxy memory limit                                                                                     | `256Mi`                         |
