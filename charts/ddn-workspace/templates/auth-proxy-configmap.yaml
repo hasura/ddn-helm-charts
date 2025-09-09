@@ -160,6 +160,26 @@ data:
                     local config_workspace_name = os.getenv("WORKSPACE_NAME")
                     local enabled_auth_methods = os.getenv("ENABLED_AUTH_METHODS") or "pat,oidc-access-token,oidc-id-token"
 
+                    -- Cookie parsing function
+                    function parse_cookies(cookie_header)
+                      if not cookie_header then
+                        return {}
+                      end
+
+                      local cookies = {}
+                      -- Split by semicolon and trim whitespace
+                      for cookie_pair in string.gmatch(cookie_header, "([^;]+)") do
+                        cookie_pair = cookie_pair:match("^%s*(.-)%s*$") -- trim whitespace
+                        local name, value = cookie_pair:match("([^=]+)=(.+)")
+                        if name and value then
+                          name = name:match("^%s*(.-)%s*$") -- trim whitespace from name
+                          value = value:match("^%s*(.-)%s*$") -- trim whitespace from value
+                          cookies[name] = value
+                        end
+                      end
+                      return cookies
+                    end
+
                     -- Auth methods configuration
                     local all_auth_methods = {
                       {id = "pat", name = "Personal Access Token", description = "Use your personal access token to authenticate"},
@@ -362,12 +382,25 @@ data:
                       end
 
                       local cookie_header = request_handle:headers():get("cookie")
+                      local cookies = parse_cookies(cookie_header)
 
                       cookie_name = "{{ .Values.workspaceAuthProxy.cookie.name }}"
-                      request_handle:logInfo("LUA SCRIPT: Checking authentication for path: " .. path .. ", cookies: " .. (cookie_header or "none"))
-                      if cookie_header == cookie_name .. "=true" then
-                        request_handle:logInfo("LUA SCRIPT: Authentication cookie found, allowing access")
+                      request_handle:logInfo("LUA SCRIPT: Checking authentication for path: " .. path .. ", raw cookies: " .. (cookie_header or "none"))
+
+                      -- Log parsed cookies for debugging
+                      local cookie_count = 0
+                      for name, value in pairs(cookies) do
+                        cookie_count = cookie_count + 1
+                        request_handle:logInfo("LUA SCRIPT: Parsed cookie: " .. name .. "=" .. value)
+                      end
+                      request_handle:logInfo("LUA SCRIPT: Total cookies parsed: " .. cookie_count)
+
+                      -- Check if the specific authentication cookie exists and has the correct value
+                      if cookies[cookie_name] == "true" then
+                        request_handle:logInfo("LUA SCRIPT: Authentication cookie '" .. cookie_name .. "' found with correct value, allowing access")
                         return
+                      else
+                        request_handle:logInfo("LUA SCRIPT: Authentication cookie '" .. cookie_name .. "' not found or incorrect value: " .. (cookies[cookie_name] or "not present"))
                       end
 
                       {{- if .Values.global.subDomain }}
