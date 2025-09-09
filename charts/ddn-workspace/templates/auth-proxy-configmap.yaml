@@ -126,25 +126,12 @@ data:
                         "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
                         disabled: true
 
-                  # UI HTML - serve main page (works for both subdomain and path-based due to ingress rewrite)
+                  # UI HTML - handled by Lua for auth config injection
                   - match:
                       path: "/ui"
-                    direct_response:
-                      status: 200
-                      body:
-                        filename: "/var/www/html/index.html"
-                    response_headers_to_add:
-                      - header:
-                          key: "Content-Type"
-                          value: "text/html"
-                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
-
-
-                    # Skip Lua filter for UI routes
-                    typed_per_filter_config:
-                      envoy.filters.http.lua:
-                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
-                        disabled: true
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
 
                   # Default workspace routes
                   - match:
@@ -171,6 +158,55 @@ data:
                     local cookie_domain = os.getenv("COOKIE_DOMAIN") or ".localhost"
                     local cookie_max_age = os.getenv("COOKIE_MAX_AGE") or 3600
                     local config_workspace_name = os.getenv("WORKSPACE_NAME")
+                    local enabled_auth_methods = os.getenv("ENABLED_AUTH_METHODS") or "pat,oidc-access-token,oidc-id-token"
+
+                    -- Auth methods configuration
+                    local all_auth_methods = {
+                      {id = "pat", name = "Personal Access Token", description = "Use your personal access token to authenticate"},
+                      {id = "oidc-access-token", name = "OIDC Access Token", description = "Use an OIDC access token for authentication"},
+                      {id = "oidc-id-token", name = "OIDC ID Token", description = "Use an OIDC ID token for authentication"}
+                    }
+
+                    -- Function to get enabled auth methods
+                    local function get_enabled_auth_methods()
+                      local enabled_methods = {}
+                      local enabled_ids = {}
+                      for method_id in string.gmatch(enabled_auth_methods, "([^,]+)") do
+                        method_id = string.gsub(method_id, "^%s*(.-)%s*$", "%1")
+                        enabled_ids[method_id] = true
+                      end
+                      for _, method in ipairs(all_auth_methods) do
+                        if enabled_ids[method.id] then
+                          table.insert(enabled_methods, {id = method.id, name = method.name, description = method.description, enabled = true})
+                        end
+                      end
+                      return enabled_methods
+                    end
+
+                    -- Function to inject DDN_AUTH_CONFIG into HTML
+                    local function inject_auth_config_into_html(html_content)
+                      local enabled_methods = get_enabled_auth_methods()
+                      local auth_config = {
+                        authMethods = enabled_methods,
+                        ui = {
+                          title = "{{ .Values.workspaceAuthProxy.auth.ui.title }}",
+                          subtitle = "{{ .Values.workspaceAuthProxy.auth.ui.subtitle }}",
+                          showDescriptions = {{ .Values.workspaceAuthProxy.auth.ui.showDescriptions }}
+                        },
+                        workspace = {
+                          name = config_workspace_name and string.gsub(config_workspace_name, "%-ddn%-workspace$", "") or "default-workspace",
+                          region = "{{ .Values.global.domain }}"
+                        }
+                      }
+                      local config_json = cjson.encode(auth_config)
+                      local config_script = "<script>window.DDN_AUTH_CONFIG = " .. config_json .. ";</script>"
+                      local injected_html = string.gsub(html_content, "</head>", config_script .. "\n</head>")
+                      if injected_html == html_content then
+                        injected_html = string.gsub(html_content, "<body[^>]*>", "%0\n" .. config_script)
+                      end
+                      return injected_html
+                    end
+
                     -- GraphQL workspace access check function
                     local function check_workspace_access(request_handle, token, auth_method, workspace_name)
                       local data_host = os.getenv("DATA_HOST") or "api.hasura.io"
@@ -294,7 +330,26 @@ data:
                         return
                       end
 
-                      
+                      -- Handle UI path - serve HTML with auth config injection
+                      if path == "/ui" then
+                        local html_content = io.open("/var/www/html/index.html", "r"):read("*all")
+                        local modified_html = inject_auth_config_into_html(html_content)
+                        request_handle:respond(
+                          {
+                            [":status"] = "200",
+                            ["content-type"] = "text/html; charset=utf-8",
+                            ["strict-transport-security"] = "max-age=31536000; includeSubDomains",
+                            ["x-frame-options"] = "SAMEORIGIN",
+                            ["referrer-policy"] = "strict-origin",
+                            ["x-content-type-options"] = "nosniff",
+                            ["x-xss-protection"] = "1; mode=block",
+                            ["content-security-policy"] = "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline';"
+                          },
+                          modified_html
+                        )
+                        return
+                      end
+
                       local cookie_header = request_handle:headers():get("cookie")
 
                       cookie_name = "{{ .Values.workspaceAuthProxy.cookie.name }}"

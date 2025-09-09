@@ -172,7 +172,16 @@ workspaceAuthProxy:
     name: "workspace-session"
     maxAge: 3600  # Session expiry in seconds (1 hour = 3600 seconds)
     # domain, path, and secure will be configured automatically based on global settings
-  
+
+  # Authentication Methods Configuration
+  auth:
+    # Comma-separated list of enabled auth methods: pat,oidc-access-token,oidc-id-token
+    enabledMethods: "pat,oidc-access-token,oidc-id-token"
+    ui:
+      title: "DDN Workspace | Login"
+      subtitle: "Please select your authentication method"
+      showDescriptions: true
+
   # Workspace Configuration
   workspace:
     servicePort: 8123  # Port of the ddn-workspace service
@@ -249,6 +258,8 @@ extraContainers: |
       value: {{ .Values.workspaceAuthProxy.cookie.name }}
     - name: COOKIE_MAX_AGE
       value: {{ .Values.workspaceAuthProxy.cookie.maxAge | default 3600 | quote }}
+    - name: ENABLED_AUTH_METHODS
+      value: {{ .Values.workspaceAuthProxy.auth.enabledMethods | quote }}
     command: ["/usr/local/bin/envoy"]
     args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]   
   {{- end }}
