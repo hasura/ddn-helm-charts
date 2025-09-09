@@ -21,8 +21,6 @@
 {{- end -}}
 {{- end -}}
 
-
-
 {{- define "common.secretsName" -}}   
 {{- printf "%s-secrets" (include "common.name" .) -}}
 {{- end -}}

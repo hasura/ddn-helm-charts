@@ -37,7 +37,7 @@ image:
   repository: "ddn-native-workspace"
   tag: ""
 replicas: "1"
-httpPort: 8123
+httpPort: 8123  # Workspace container port (always 8123)
 setControlPlaneUrls: true
 persistence:
   enabled: true
@@ -144,16 +144,8 @@ ingress:
 routes:
   enabled: false
 
-# Service ports configuration - expose auth-proxy ports when enabled
-servicePorts: |
-  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
-  - port: 8080          # Workspace auth proxy HTTP port
-    targetPort: auth-http
-    name: auth-http
-  - port: 9901          # Workspace auth proxy admin port
-    targetPort: auth-admin
-    name: auth-admin
-  {{- end }}
+# Service ports configuration - handled directly in service.yaml template
+# No additional ports needed as conditional logic is in the service template
 
 # Workspace Auth Proxy Configuration (automatically enabled when noAuth.enabled is true)
 workspaceAuthProxy:
@@ -178,15 +170,9 @@ workspaceAuthProxy:
     ui:
       title: "DDN Workspace | Login"
 
-  # Workspace Configuration
-  workspace:
-    servicePort: 8123  # Port of the ddn-workspace service
-
-  # Service Configuration
+  # Service Configuration (used by configmap and ingress)
   service:
-    type: ClusterIP
-    port: 8080
-    adminPort: 9901
+    port: 8080      # Auth-proxy HTTP port
 
   # Resource Configuration
   resources:
@@ -197,8 +183,6 @@ workspaceAuthProxy:
       cpu: 100m
       memory: 128Mi
 
-  # Replicas
-  replicas: 1
 
 # Extra containers (sidecars) - Auth Proxy (only when enabled)
 extraContainers: |
