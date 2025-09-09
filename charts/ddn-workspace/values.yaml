@@ -1,5 +1,3 @@
-# Example values file showing how to enable auth-proxy with ddn-workspace
-
 global:
   domain: ""
   subDomain: true
