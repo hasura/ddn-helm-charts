@@ -152,8 +152,8 @@ workspaceAuthProxy:
     enabled: false
   # Image Configuration
   image:
-    repository: "auth-proxy"
-    tag: "latest"
+    repository: "ddn-workspace-auth-proxy"
+    tag: "0.1"
     pullPolicy: IfNotPresent
   # Cookie Configuration
   cookie:
