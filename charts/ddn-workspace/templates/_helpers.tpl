@@ -34,6 +34,14 @@ true
 {{- end -}}
 {{- end -}}
 
+{{- define "ddn-workspace.ingress.servicePort" -}}
+{{- if include "ddn-workspace.workspaceAuthProxy.enabled" . -}}
+{{ .Values.workspaceAuthProxy.service.port }}
+{{- else -}}
+{{ .Values.httpPort }}
+{{- end -}}
+{{- end -}}
+
 {{- define "ddn-workspace.workspaceAuthProxy.name" -}}
 {{- printf "%s-auth-proxy" (include "common.name" .) -}}
 {{- end -}}
