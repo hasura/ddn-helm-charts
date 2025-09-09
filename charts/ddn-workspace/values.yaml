@@ -1,11 +1,11 @@
 # Example values file showing how to enable auth-proxy with ddn-workspace
 
 global:
-  domain: "lux-dev.hasura.me"
-  subDomain: true  # Set to false for path-based routing (domain.com/workspace/)
+  domain: ""
+  subDomain: true
   containerRegistry: "gcr.io/hasura-ee"
   certIssuer: "letsencrypt-prod"
-  uriScheme: "http"
+  uriScheme: "https"
   persistence:
     enabled: true
   serviceCatalog:
@@ -37,7 +37,7 @@ image:
   repository: "ddn-native-workspace"
   tag: ""
 replicas: "1"
-httpPort: 8123  # Workspace container port (always 8123)
+httpPort: 8123
 setControlPlaneUrls: true
 persistence:
   enabled: true
@@ -71,7 +71,7 @@ hostAliases:
 
 dataHost: "http://data:8080"
 ddnCpsEngineHost: "http://ddn-cps-engine:3000"
-consoleUrl: "https://console.{{ .Values.global.domain }}"
+consoleUrl: ""
 ddnPromptqlEndpoint: ""
 skipTlsVerify: false
 secrets:
