@@ -77,7 +77,7 @@ skipTlsVerify: false
 
 # Enable noAuth mode (required for auth-proxy)
 noAuth:
-  enabled: true
+  enabled: false
 
 secrets:
   password: ""
