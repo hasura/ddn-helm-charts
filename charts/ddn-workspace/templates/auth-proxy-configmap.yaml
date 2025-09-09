@@ -259,6 +259,19 @@ data:
                       -- Ingress rewrites paths, so we always work with simple paths
                       local auth_path = "/auth"
 
+                      local cached_html_content = nil
+                      local function get_html_content()
+                        if not cached_html_content then
+                          local file = io.open("/var/www/html/index.html", "r")
+                          if file then
+                            cached_html_content = file:read("*all")
+                            file:close()
+                          else
+                            cached_html_content = "<html><body>Error loading content</body></html>"
+                          end
+                        end
+                        return cached_html_content
+                      end
                       if path == auth_path and method == "POST" then
                         local body = request_handle:body()
                         if not body then
@@ -330,7 +343,7 @@ data:
 
                       -- Handle UI path - serve HTML with auth config injection
                       if path == "/ui" then
-                        local html_content = io.open("/var/www/html/index.html", "r"):read("*all")
+                        local html_content = get_html_content()
                         local modified_html = inject_auth_config_into_html(html_content)
                         request_handle:respond(
                           {
