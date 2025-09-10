@@ -351,7 +351,7 @@ data:
                         -- Path-based routing: set cookie path to workspace prefix (ingress handles the routing)
                         local cookie_path = "/" .. config_workspace_name 
                         {{- end }}
-                        local cookie_value = "{{ .Values.workspaceAuthProxy.cookie.name }}=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; ; SameSite=Lax; Secure"
+                        local cookie_value = "{{ .Values.workspaceAuthProxy.cookie.name }}=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; HttpOnly; SameSite=Lax; Secure"
 
                         request_handle:logInfo("LUA SCRIPT: Setting authentication cookie: " .. cookie_value)
                         request_handle:respond(
