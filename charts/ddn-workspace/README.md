@@ -125,6 +125,52 @@ helm upgrade --install <release-name> \
   hasura-ddn/ddn-workspace
 ```
 
+## Trusting CA certs
+
+If you are using an SSL Certificate under your Control Plane ingresses which is tied to a CA (Certificate Authority) that is only trusted by your company, you
+will need to follow instructions here.  We need to ensure that the DDN Workspace is able to trust this CA.
+
+Note: The lifecycle of the ConfigMap or Secret, whichever you choose to use, is fully managed by you.
+
+1. Grab the Intermediate + Root certs and save it to a .crt file
+2. Create a secret or a configMap for this cert by running either:
+  - Secret: `kubectl create secret -n <namespace> generic ca-cert --from-file=path/to/cert.crt`
+  - ConfigMap: `kubectl create configmap -n <namespace> ca-cert --from-file=path/to/cert.crt`
+3. Add the following into your DDN Workspace overrides file.  Add this outside of the scope of the `global` section:
+
+Note: Make sure to substitute `<release-name>` with the appropriate value (ie.  This is your Helm release name which you gave to your DDN Workspace).
+
+```yaml title="When using configMap"
+extraVolumes: |
+  - name: ddn-workspace-data
+    persistentVolumeClaim:
+      claimName: <release-name>-ddn-workspace-data
+  - name: ca-cert
+    configMap:
+      name: ca-cert
+extraVolumeMounts: |
+  - mountPath: /workspace
+    name: ddn-workspace-data
+  - name: ca-cert
+    mountPath: /etc/ssl/certs
+```
+
+```yaml title="When using secret"
+extraVolumes: |
+  - name: ddn-workspace-data
+    persistentVolumeClaim:
+      claimName: <release-name>-ddn-workspace-data
+  - name: ca-cert
+    secret:
+      secretName: ca-cert
+extraVolumeMounts: |
+  - mountPath: /workspace
+    name: ddn-workspace-data
+  - name: ca-cert
+    mountPath: /etc/ssl/certs
+    readOnly: true
+```
+
 ## Argo2id Password
 
 The value being passed to `secrets.password` needs to be an `Argo2id` hashed password.  You can use a tool like [this](https://argon2.online/) to generate the appropriate hash from a given password.
