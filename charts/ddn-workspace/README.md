@@ -134,8 +134,8 @@ Note: The lifecycle of the ConfigMap or Secret, whichever you choose to use, is 
 
 1. Grab the Intermediate + Root certs and save it to a .crt file
 2. Create a secret or a configMap for this cert by running either:
-  - Secret: `kubectl create secret -n <namespace> generic ca-cert --from-file=path/to/cert.crt`
-  - ConfigMap: `kubectl create configmap -n <namespace> ca-cert --from-file=path/to/cert.crt`
+    - Secret: `kubectl create secret -n <namespace> generic ca-cert --from-file=path/to/cert.crt`
+    - ConfigMap: `kubectl create configmap -n <namespace> ca-cert --from-file=path/to/cert.crt`
 3. Add the following into your DDN Workspace overrides file.  Add this outside of the scope of the `global` section:
 
 Note: Make sure to substitute `<release-name>` with the appropriate value (ie.  This is your Helm release name which you gave to your DDN Workspace).
