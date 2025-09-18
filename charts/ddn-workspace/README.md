@@ -140,6 +140,14 @@ The auth-proxy supports multiple authentication methods:
 - **OIDC Access Token**: OAuth 2.0 access token authentication
 - **OIDC ID Token**: OpenID Connect ID token authentication
 
+### Session Management
+
+The auth-proxy provides comprehensive session management:
+- **Login Endpoint**: `/auth` (POST) - Authenticate and create session
+- **Logout Endpoint**: `/logout` (GET/POST) - Immediately invalidate session and clear cookies
+- **Automatic Expiry**: Sessions automatically expire after the configured `maxAge` (default: 1 hour)
+- **Secure Cookies**: HttpOnly, SameSite=Lax, Secure cookies for session management
+
 ### Usage Patterns
 
 **Without Auth-Proxy (Default):**
@@ -170,6 +178,33 @@ helm upgrade --install <release-name> \
   hasura-ddn/ddn-workspace
 ```
 
+### Logout Usage
+
+To logout from a workspace with auth-proxy enabled:
+
+**Subdomain Mode:**
+```bash
+# GET request
+curl -X GET https://my-workspace.my-dp.domain.com/logout
+
+# POST request
+curl -X POST https://my-workspace.my-dp.domain.com/logout
+```
+
+**Path-based Mode:**
+```bash
+# GET request
+curl -X GET https://my-dp.domain.com/my-workspace/logout
+
+# POST request
+curl -X POST https://my-dp.domain.com/my-workspace/logout
+```
+
+Both methods will immediately invalidate the session cookie and return:
+```json
+{"status":"success","message":"Logged out successfully"}
+```
+
 ### Important Notes
 
 - **Only `workspaceAuthProxy.enabled=true` is required** for auth-proxy to be active
@@ -178,6 +213,7 @@ helm upgrade --install <release-name> \
 - When auth-proxy is enabled, only port 8080 is exposed externally (auth-proxy port)
 - When auth-proxy is disabled, only port 8123 is exposed externally (workspace port)
 - Auth-proxy admin port (9901) is never exposed externally for security
+- **Logout endpoint** (`/logout`) immediately invalidates sessions for enhanced security
 
 ## Argo2id Password
 

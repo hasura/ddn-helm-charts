@@ -57,6 +57,12 @@ data:
                     route:
                       cluster: workspace_service
                       timeout: 30s
+                  # Logout endpoint - handled by Lua filter
+                  - match:
+                      path: "/logout"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
                   {{- else }}
                   # Path-based routing - workspace prefix required
                   # Authentication endpoint - handled by Lua filter
@@ -66,6 +72,13 @@ data:
                       cluster: workspace_service
                       timeout: 30s
                       prefix_rewrite: "/auth"
+                  # Logout endpoint - handled by Lua filter
+                  - match:
+                      path: "/{{ include "common.name" . }}/logout"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+                      prefix_rewrite: "/logout"
                   {{- end }}
                     response_headers_to_add:
                       {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
@@ -278,6 +291,7 @@ data:
 
                       -- Ingress rewrites paths, so we always work with simple paths
                       local auth_path = "/auth"
+                      local logout_path = "/logout"
 
                       local cached_html_content = nil
                       local function get_html_content()
@@ -357,6 +371,27 @@ data:
                         request_handle:respond(
                           {[":status"] = "200", ["content-type"] = "application/json", ["set-cookie"] = cookie_value},
                           '{"status":"success","message":"Authentication successful"}'
+                        )
+                        return
+                      end
+
+                      -- Handle logout endpoint - immediately invalidate session
+                      if (path == logout_path and method == "POST") or (path == logout_path and method == "GET") then
+                        {{- if .Values.global.subDomain }}
+                        -- Subdomain routing: set cookie path to root
+                        local cookie_path = "/"
+                        {{- else }}
+                        -- Path-based routing: set cookie path to workspace prefix (ingress handles the routing)
+                        local cookie_path = "/" .. config_workspace_name
+                        {{- end }}
+
+                        -- Create logout cookie with Max-Age=0 to immediately delete it
+                        local logout_cookie = "{{ .Values.workspaceAuthProxy.cookie.name }}=; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=0; HttpOnly; SameSite=Lax; Secure"
+
+                        request_handle:logInfo("LUA SCRIPT: Logging out user, invalidating session cookie")
+                        request_handle:respond(
+                          {[":status"] = "200", ["content-type"] = "application/json", ["set-cookie"] = logout_cookie},
+                          '{"status":"success","message":"Logged out successfully"}'
                         )
                         return
                       end
