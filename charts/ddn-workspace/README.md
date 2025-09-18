@@ -138,16 +138,19 @@ Note: The lifecycle of the ConfigMap or Secret, whichever you choose to use, is 
     - ConfigMap: `kubectl create configmap -n <namespace> ca-cert --from-file=path/to/cert.crt`
 3. Add the following into your DDN Workspace overrides file.  Add this outside of the scope of the `global` section:
 
-Note: Make sure to substitute `<release-name>` with the appropriate value (ie.  This is your Helm release name which you gave to your DDN Workspace).
-
 ```yaml title="When using configMap"
 extraVolumes: |
   - name: ddn-workspace-data
+  {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}
     persistentVolumeClaim:
-      claimName: <release-name>-ddn-workspace-data
+      claimName: {{ include "common.name" . }}-data
+  {{- else }}
+    emptyDir: {}
+  {{- end }}  
   - name: ca-cert
-    configMap:
-      name: ca-cert
+    secret:
+      secretName: ca-cert
+
 extraVolumeMounts: |
   - mountPath: /workspace
     name: ddn-workspace-data
@@ -158,11 +161,16 @@ extraVolumeMounts: |
 ```yaml title="When using secret"
 extraVolumes: |
   - name: ddn-workspace-data
+  {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}
     persistentVolumeClaim:
-      claimName: <release-name>-ddn-workspace-data
+      claimName: {{ include "common.name" . }}-data
+  {{- else }}
+    emptyDir: {}
+  {{- end }}  
   - name: ca-cert
     secret:
       secretName: ca-cert
+
 extraVolumeMounts: |
   - mountPath: /workspace
     name: ddn-workspace-data
