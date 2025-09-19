@@ -155,10 +155,10 @@ The DDN Workspace supports optional control plane authentication via an auth-pro
 
 **Important: If you are planning on using Workspace auth-proxy, you will need to ensure that you first have a workspace entry present in your database.  This entry would be created by running the below mutation on the data service.  A Control Plane Admin would be able to run this:**
 
-CLOUD: Match with `cloud` value which is present for your data plane within `ddn.private_ddn` table.  Example: `gcp`
-DDN_ID: Match with `id` value which is present for your data plane within `ddn.private_ddn` table.  Example: `f11afce9-ab0c-4620-b565-af9d94ce24ec`
-HELM_RELEASE_NAME: Match with the Helm release name which you are using for your Workspace installation.  Example: `ws`
-REGION: Match with `region` value which is present for your data plane within `ddn.private_ddn_region` table.  Example: `us-west2`
+- CLOUD: Match with `cloud` value which is present for your data plane within `ddn.private_ddn` table.  Example: `gcp`
+- DDN_ID: Match with `id` value which is present for your data plane within `ddn.private_ddn` table.  Example: `f11afce9-ab0c-4620-b565-af9d94ce24ec`
+- HELM_RELEASE_NAME: Match with the Helm release name which you are using for your Workspace installation.  Example: `ws`
+- REGION: Match with `region` value which is present for your data plane within `ddn.private_ddn_region` table.  Example: `us-west2`
 
 ```
 mutation {
@@ -326,8 +326,6 @@ contact the Hasura engineering team in order to obtain alternate methods for fet
 ## Images
 
 Image versions can be found under DDN Workspace [Release Notes](https://ddn-cp-docs.hasura.io/ddn-workspace/release-notes/#ddn-workspace-release-notes).
-
-
 
 ## Accessing DDN Workspace (Native Runtime) and next steps
 
