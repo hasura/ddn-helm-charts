@@ -18,6 +18,7 @@ global:
 
 additionalLabels:
   group: ddn-workspace
+  # ddn-id label will be added automatically when auth-proxy is enabled
 
 networkPolicy:
   ingress:
@@ -138,6 +139,7 @@ routes:
 # Workspace Auth Proxy Configuration
 workspaceAuthProxy:
   enabled: false  # Set to true to enable auth-proxy (secrets.password will be ignored)
+  ddnId: ""  # DDN ID that identifies the data plane this workspace belongs to (required when auth-proxy is enabled)
   debug:
     enabled: false
   # Image Configuration
@@ -216,6 +218,8 @@ extraContainers: |
       value: {{ .Values.workspaceAuthProxy.cookie.maxAge | default 3600 | quote }}
     - name: ENABLED_AUTH_METHODS
       value: {{ .Values.workspaceAuthProxy.auth.enabledMethods | quote }}
+    - name: DDN_ID
+      value: {{ required "Error: workspaceAuthProxy.ddnId is required when auth-proxy is enabled!" .Values.workspaceAuthProxy.ddnId | quote }}
     command: ["/usr/local/bin/envoy"]
     args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]
   {{- end }}

@@ -2,6 +2,30 @@
 
 This chart deploys DDN Workspace (Native Runtime).
 
+## DDN ID and Workspace Identification
+
+When using the auth-proxy, workspaces can be associated with a specific DDN ID that identifies the data plane. This provides:
+
+- **Workspace Isolation**: Ensures workspaces are scoped to the correct data plane
+- **Resource Organization**: Allows filtering and managing workspaces by DDN ID using kubectl
+- **Access Control**: Restricts workspace access to users with permissions on the specific data plane
+
+### Usage with DDN ID
+
+```bash
+# Deploy workspace with DDN ID (auth-proxy only)
+helm upgrade --install my-workspace \
+  --set workspaceAuthProxy.enabled=true \
+  --set workspaceAuthProxy.ddnId="my-data-plane-id" \
+  hasura-ddn/ddn-workspace
+
+# Find all resources for a specific DDN ID
+kubectl get all -l ddn-id=my-data-plane-id
+
+# Find all workspaces across all DDN IDs
+kubectl get pods -l group=ddn-workspace
+```
+
 ## Install Chart
 
 See all [configuration](#parameters) below.
@@ -362,6 +386,7 @@ To explore the release notes, which include details on connector support and oth
 | `ingress.path`                                    | Ingress override path                                                                                      | `""`                            |
 | `routes.enabled`                                  | Enable routes (For OpenShift)                                                                              | `false`                         |
 | `workspaceAuthProxy.enabled`                      | Enable workspace auth-proxy sidecar (ignores secrets.password when enabled)                               | `false`                         |
+| `workspaceAuthProxy.ddnId`                        | DDN ID that identifies the data plane this workspace belongs to (required when auth-proxy is enabled)      | `""`                            |
 | `workspaceAuthProxy.debug.enabled`                | Enable debug logging for auth-proxy                                                                        | `false`                         |
 | `workspaceAuthProxy.image.repository`             | Auth-proxy image repository                                                                                 | `auth-proxy`                    |
 | `workspaceAuthProxy.image.tag`                    | Auth-proxy image tag                                                                                        | `latest`                        |

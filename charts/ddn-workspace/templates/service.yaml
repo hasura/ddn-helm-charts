@@ -1,5 +1,6 @@
 # service.yaml - Custom service with conditional port configuration
 {{- $serviceName := include "common.name" . -}}
+{{- $_ := set .Values "additionalLabels" (include "ddn-workspace.additionalLabels" . | fromYaml) -}}
 ---
 apiVersion: v1
 kind: Service

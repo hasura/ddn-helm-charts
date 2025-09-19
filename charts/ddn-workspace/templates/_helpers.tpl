@@ -94,6 +94,20 @@ false
 {{- end -}}
 {{- end -}}
 
+{{/*
+Enhanced additionalLabels that includes ddn-id when auth-proxy is enabled
+*/}}
+{{- define "ddn-workspace.additionalLabels" -}}
+{{- with .Values.additionalLabels }}
+{{- toYaml . }}
+{{- end }}
+{{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
+ddn-id: {{ required "Error: workspaceAuthProxy.ddnId is required when auth-proxy is enabled!" .Values.workspaceAuthProxy.ddnId | quote }}
+{{- end -}}
+{{- end -}}
+
+
+
 {{- define "ddn-workspace.securityHeaders" -}}
 - header:
     key: "Strict-Transport-Security"

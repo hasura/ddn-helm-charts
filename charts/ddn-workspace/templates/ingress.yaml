@@ -1,3 +1,4 @@
 # ingress.yaml - Use common ingress template with conditional servicePort
 {{- $_ := set .Values.ingress "servicePort" (include "ddn-workspace.ingress.servicePort" .) -}}
+{{- $_ := set .Values "additionalLabels" (include "ddn-workspace.additionalLabels" . | fromYaml) -}}
 {{- template "common.ingress" . -}}

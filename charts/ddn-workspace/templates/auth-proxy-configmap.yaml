@@ -1,4 +1,5 @@
 {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
+{{- $ddnId := required "Error: workspaceAuthProxy.ddnId is required when auth-proxy is enabled!" .Values.workspaceAuthProxy.ddnId -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,6 +7,7 @@ metadata:
   labels:
     {{- include "common.labels" . | nindent 4 }}
     component: auth-proxy
+    ddn-id: {{ $ddnId | quote }}
 data:
   envoy.yaml: |
     admin:
@@ -172,6 +174,7 @@ data:
                     local cookie_max_age = os.getenv("COOKIE_MAX_AGE") or 3600
                     local config_workspace_name = os.getenv("WORKSPACE_NAME")
                     local enabled_auth_methods = os.getenv("ENABLED_AUTH_METHODS") or "pat,oidc-access-token,oidc-id-token"
+                    local ddn_id = os.getenv("DDN_ID")
 
                     -- Cookie parsing function
                     function parse_cookies(cookie_header)
@@ -242,7 +245,9 @@ data:
                     local function check_workspace_access(request_handle, token, auth_method, workspace_name)
                       local data_host = os.getenv("DATA_HOST") or "api.hasura.io"
 
-                      local query_body = '{"query":"query fetchWorkspace($where: ddn_workspace_bool_exp!) { ddn_workspace(where: $where) { id password name } }","variables":{"where":{"name":{"_eq":"' .. workspace_name .. '"}}},"operationName":"fetchWorkspace"}'
+                      -- Build where clause - filter by both workspace name and ddn_id (both are required)
+                      local where_clause = '{"_and":[{"name":{"_eq":"' .. workspace_name .. '"}},{"ddn_id":{"_eq":"' .. ddn_id .. '"}}]}'
+                      local query_body = '{"query":"query fetchWorkspace($where: ddn_workspace_bool_exp!) { ddn_workspace(where: $where) { id password name ddn_id } }","variables":{"where":' .. where_clause .. '},"operationName":"fetchWorkspace"}'
 
                       local auth_header = auth_method .. " " .. token
 
@@ -265,12 +270,10 @@ data:
                       
                       local response = cjson.decode(body)
                       if response and response.data and response.data.ddn_workspace then
-                        for i = 1, #response.data.ddn_workspace do
-                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace: " .. cjson.encode(response.data.ddn_workspace[i]))
-                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: workspace_name: " .. workspace_name)
-                          if response.data.ddn_workspace[i].name == workspace_name then
-                            return true, nil
-                          end
+                        -- If we get any workspace results, user has access (query already filtered by name and ddn_id)
+                        if #response.data.ddn_workspace > 0 then
+                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: found " .. #response.data.ddn_workspace .. " workspace(s) for " .. workspace_name .. ", ddn_id: " .. (ddn_id or "not_provided"))
+                          return true, nil
                         end
                       end
                       
