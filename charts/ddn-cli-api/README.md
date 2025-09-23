@@ -16,7 +16,7 @@ helm template <release-name> \
   --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.1-a4f050b" \
+  --set image.tag="v0.1.1-a4f050b.1" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api | kubectl apply -f-
@@ -28,7 +28,7 @@ helm upgrade --install <release-name> \
   --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.1-a4f050b" \
+  --set image.tag="v0.1.1-a4f050b.1" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api
@@ -42,7 +42,7 @@ helm template v1 \
   --set global.imagePullSecrets[0]="hasura-image-pull" \
   --set serviceAccount.enabled="true " \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.1-a4f050b" \
+  --set image.tag="v0.1.1-a4f050b.1" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   .  
@@ -73,7 +73,7 @@ See Hasura's documentation for more information.  Link will be provided here in 
 | `labels.app`                                   | Application label for K8s resources                | `ddn-cli-api`                                                               |                |
 | `additionalAnnotations`                        | Custom annotations like config checksums           | \`checksum/config: {{ include (print \$.Template.BasePath "/secret.yaml") . | sha256sum }}\` |
 | `image.repository`                             | Container image name                               | `ddn-cli-api`                                                               |                |
-| `image.tag`                                    | Container image version tag                        | `v0.1.0`                                                                    |                |
+| `image.tag`                                    | Container image version tag                        | `v0.1.1-a4f050b.1`                                                                    |                |
 | `image.pullPolicy`                             | Image pull policy                                  | `IfNotPresent`                                                              |                |
 | `replicas`                                     | Number of pod replicas                             | `"1"`                                                                       |                |
 | `httpPort`                                     | HTTP port exposed by the container                 | `3000`                                                                      |                |
