@@ -8,7 +8,7 @@ global:
 # Common Labels
 labels:
   app: "ddn-cli-api"
-  
+
 # Container Configs
 image:
   repository: "ddn-cli-api"
