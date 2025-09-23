@@ -1,0 +1,499 @@
+{{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
+{{- $ddnId := required "Error: workspaceAuthProxy.ddnId is required when auth-proxy is enabled!" .Values.workspaceAuthProxy.ddnId -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ddn-workspace.workspaceAuthProxy.name" . }}-config
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+    component: auth-proxy
+    ddn-id: {{ $ddnId | quote }}
+data:
+  envoy.yaml: |
+    admin:
+      address:
+        socket_address:
+          protocol: TCP
+          address: 0.0.0.0
+          port_value: 9901
+    static_resources:
+      listeners:
+      - name: listener_0
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: {{ .Values.workspaceAuthProxy.service.port }}
+        filter_chains:
+        - filters:
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: ingress_http
+              upgrade_configs:
+                - upgrade_type: websocket
+              codec_type: AUTO
+              # Enable access logging to see request routing
+              access_log:
+              - name: envoy.access_loggers.stdout
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                  log_format:
+                    text_format: |
+                      [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+                      %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+                      %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%"
+                      "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+                      upstream_cluster="%UPSTREAM_CLUSTER%" upstream_local_address="%UPSTREAM_LOCAL_ADDRESS%"
+              route_config:
+                name: local_route
+                max_direct_response_body_size_bytes: 3672040
+                virtual_hosts:
+                - name: local_service
+                  domains: ["*"]
+                  routes:
+                  {{- if .Values.global.subDomain }}
+                  # Subdomain routing - direct paths
+                  # Authentication endpoint - handled by Lua filter
+                  - match:
+                      path: "/auth"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+                  # Logout endpoint - handled by Lua filter
+                  - match:
+                      path: "/logout"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+                  {{- else }}
+                  # Path-based routing - workspace prefix required
+                  # Authentication endpoint - handled by Lua filter
+                  - match:
+                      path: "/{{ include "common.name" . }}/auth"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+                      prefix_rewrite: "/auth"
+                  # Logout endpoint - handled by Lua filter
+                  - match:
+                      path: "/{{ include "common.name" . }}/logout"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+                      prefix_rewrite: "/logout"
+                  {{- end }}
+                    response_headers_to_add:
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
+                  # Login Static Assets - serve CSS and JS files (works for both modes due to ingress rewrite)
+                  - match:
+                      path: "/login/client.js"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/client.js"
+                    response_headers_to_add:
+                      - header:
+                          key: "Content-Type"
+                          value: "application/javascript"
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
+                    # Skip Lua filter for static assets
+                    typed_per_filter_config:
+                      envoy.filters.http.lua:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                        disabled: true
+
+                  - match:
+                      path: "/login/client.css"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/client.css"
+                    response_headers_to_add:
+                      - header:
+                          key: "Content-Type"
+                          value: "text/css"
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
+                    # Skip Lua filter for static assets
+                    typed_per_filter_config:
+                      envoy.filters.http.lua:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                        disabled: true
+
+                  - match:
+                      path: "/login/output.css"
+                    direct_response:
+                      status: 200
+                      body:
+                        filename: "/var/www/html/output.css"
+                    response_headers_to_add:
+                      - header:
+                          key: "Content-Type"
+                          value: "text/css"
+                      {{- include "ddn-workspace.securityHeaders" . | nindent 22 }}
+
+
+                    # Skip Lua filter for static assets
+                    typed_per_filter_config:
+                      envoy.filters.http.lua:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                        disabled: true
+
+                  # Login HTML - handled by Lua for auth config injection
+                  - match:
+                      path: "/login"
+                    route:
+                      cluster: workspace_service
+                      timeout: 30s
+
+                  # Default workspace routes
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: workspace_service
+                      timeout: 0s
+                      max_stream_duration:
+                        # this configuration will ensure
+                        # that the stream is terminated after 60s
+                        # so that if cookie expires, the connection is closed
+                        max_stream_duration: {{ .Values.workspaceAuthProxy.cookie.maxAge | default 3600 }}s
+
+              http_filters:
+              # Lua filter for authentication
+              - name: envoy.filters.http.lua
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                  inline_code: |
+                    -- JSON encode/decode functions
+                    package.path = package.path .. ";/usr/local/share/lua/5.1/?.lua"
+                    package.cpath = package.cpath .. ";/usr/local/lib/lua/5.1/?.so"
+                    local cjson = require "cjson"
+                    local cookie_domain = os.getenv("COOKIE_DOMAIN") or ".localhost"
+                    local cookie_max_age = os.getenv("COOKIE_MAX_AGE") or 3600
+                    local config_workspace_name = os.getenv("WORKSPACE_NAME")
+                    local enabled_auth_methods = os.getenv("ENABLED_AUTH_METHODS") or "pat,oidc-access-token,oidc-id-token"
+                    local ddn_id = os.getenv("DDN_ID")
+
+                    -- Cookie parsing function
+                    function parse_cookies(cookie_header)
+                      if not cookie_header then
+                        return {}
+                      end
+
+                      local cookies = {}
+                      -- Split by semicolon and trim whitespace
+                      for cookie_pair in string.gmatch(cookie_header, "([^;]+)") do
+                        cookie_pair = cookie_pair:match("^%s*(.-)%s*$") -- trim whitespace
+                        local name, value = cookie_pair:match("([^=]+)=(.+)")
+                        if name and value then
+                          name = name:match("^%s*(.-)%s*$") -- trim whitespace from name
+                          value = value:match("^%s*(.-)%s*$") -- trim whitespace from value
+                          cookies[name] = value
+                        end
+                      end
+                      return cookies
+                    end
+
+                    -- Auth methods configuration
+                    local all_auth_methods = {
+                      {id = "pat", name = "Personal Access Token", description = "Use your personal access token to authenticate"},
+                      {id = "oidc-access-token", name = "OIDC Access Token", description = "Use an OIDC access token for authentication"},
+                      {id = "oidc-id-token", name = "OIDC ID Token", description = "Use an OIDC ID token for authentication"}
+                    }
+
+                    -- Function to get enabled auth methods
+                    local function get_enabled_auth_methods()
+                      local enabled_methods = {}
+                      local enabled_ids = {}
+                      for method_id in string.gmatch(enabled_auth_methods, "([^,]+)") do
+                        method_id = string.gsub(method_id, "^%s*(.-)%s*$", "%1")
+                        enabled_ids[method_id] = true
+                      end
+                      for _, method in ipairs(all_auth_methods) do
+                        if enabled_ids[method.id] then
+                          table.insert(enabled_methods, {id = method.id, name = method.name, description = method.description, enabled = true})
+                        end
+                      end
+                      return enabled_methods
+                    end
+
+                    -- Function to inject DDN_AUTH_CONFIG into HTML
+                    local function inject_auth_config_into_html(html_content)
+                      local enabled_methods = get_enabled_auth_methods()
+                      local auth_config = {
+                        authMethods = enabled_methods,
+                        ui = {
+                          title = "{{ .Values.workspaceAuthProxy.auth.ui.title }}"
+                        },
+                        workspace = {
+                          name = config_workspace_name and string.gsub(config_workspace_name, "%-ddn%-workspace$", "") or "default-workspace",
+                          region = "{{ .Values.global.domain }}"
+                        }
+                      }
+                      local config_json = cjson.encode(auth_config)
+                      local config_script = "<script>window.DDN_AUTH_CONFIG = " .. config_json .. ";</script>"
+                      local injected_html = string.gsub(html_content, "</head>", config_script .. "\n</head>")
+                      if injected_html == html_content then
+                        injected_html = string.gsub(html_content, "<body[^>]*>", "%0\n" .. config_script)
+                      end
+                      return injected_html
+                    end
+
+                    -- GraphQL workspace access check function
+                    local function check_workspace_access(request_handle, token, auth_method, workspace_name)
+                      local data_host = os.getenv("DATA_HOST") or "api.hasura.io"
+
+                      -- Build where clause - filter by both workspace name and ddn_id (both are required)
+                      local where_clause = '{"_and":[{"name":{"_eq":"' .. workspace_name .. '"}},{"ddn_id":{"_eq":"' .. ddn_id .. '"}}]}'
+                      local query_body = '{"query":"query fetchWorkspace($where: ddn_workspace_bool_exp!) { ddn_workspace(where: $where) { id password name ddn_id } }","variables":{"where":' .. where_clause .. '},"operationName":"fetchWorkspace"}'
+
+                      local auth_header = auth_method .. " " .. token
+
+                      local headers, body = request_handle:httpCall(
+                        "graphql_cluster",
+                        {
+                          [":method"] = "POST",
+                          [":path"] = "/v1/graphql",
+                          [":authority"] = data_host,
+                          ["content-type"] = "application/json",
+                          ["authorization"] = auth_header
+                        },
+                        query_body,
+                        5000
+                      )
+                      
+                      if not body then
+                        return false, "GraphQL request failed"
+                      end
+                      
+                      local response = cjson.decode(body)
+                      if response and response.data and response.data.ddn_workspace then
+                        -- If we get any workspace results, user has access (query already filtered by name and ddn_id)
+                        if #response.data.ddn_workspace > 0 then
+                          request_handle:logInfo("LUA SCRIPT: check_workspace_access: found " .. #response.data.ddn_workspace .. " workspace(s) for " .. workspace_name .. ", ddn_id: " .. (ddn_id or "not_provided"))
+                          return true, nil
+                        end
+                      end
+                      
+                      if response and response.errors then
+                        local error_msg = "GraphQL error"
+                        if response.errors[1] and response.errors[1].message then
+                          error_msg = response.errors[1].message
+                        end
+                        return false, error_msg
+                      end
+                      
+                      return false, "No workspace access found"
+                    end
+
+                    function envoy_on_request(request_handle)
+                      local path = request_handle:headers():get(":path")
+                      local method = request_handle:headers():get(":method")
+
+                      -- Ingress rewrites paths, so we always work with simple paths
+                      local auth_path = "/auth"
+                      local logout_path = "/logout"
+
+                      local cached_html_content = nil
+                      local function get_html_content()
+                        if not cached_html_content then
+                          local file = io.open("/var/www/html/index.html", "r")
+                          if file then
+                            cached_html_content = file:read("*all")
+                            file:close()
+                          else
+                            cached_html_content = "<html><body>Error loading content</body></html>"
+                          end
+                        end
+                        return cached_html_content
+                      end
+                      if path == auth_path and method == "POST" then
+                        local body = request_handle:body()
+                        if not body then
+                          request_handle:respond(
+                            {[":status"] = "400", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Missing request body"}'
+                          )
+                          return
+                        end
+
+                        local body_length = body:length()
+                        if body_length == 0 then
+                          request_handle:respond(
+                            {[":status"] = "400", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Empty request body"}'
+                          )
+                          return
+                        end
+
+                        local body_string = body:getBytes(0, body_length)
+                        local request_data = cjson.decode(body_string)
+                        if not request_data or not request_data.token or not request_data.auth_method then
+                          request_handle:respond(
+                            {[":status"] = "400", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Missing token or auth_method"}'
+                          )
+                          return
+                        end
+
+                        local workspace_name = ""
+
+                        -- this is the workspace user is trying to access
+                        -- based on how ingress is forwarding it andit will most likely be
+                        -- common.name.<domain> or <domain>/common.name
+                        -- Remove -ddn-workspace suffix if present
+                        workspace_name = string.gsub(config_workspace_name, "%-ddn%-workspace$", "")
+
+                        local has_access, error_msg = check_workspace_access(
+                          request_handle, request_data.token, request_data.auth_method, workspace_name
+                        )
+
+
+                        request_handle:logInfo("LUA SCRIPT: has_access: " .. tostring(has_access) .. ", error_msg: " .. (error_msg or "nil"))
+
+                        if not has_access then
+                          request_handle:respond(
+                            {[":status"] = "403", ["content-type"] = "application/json"},
+                            '{"status":"error","message":"Access denied"}'
+                          )
+                          return
+                        end
+
+                        {{- if .Values.global.subDomain }}
+                        -- Subdomain routing: set cookie path to root
+                        local cookie_path = "/"
+                        {{- else }}
+                        -- Path-based routing: set cookie path to workspace prefix (ingress handles the routing)
+                        local cookie_path = "/" .. config_workspace_name 
+                        {{- end }}
+                        local cookie_value = "{{ .Values.workspaceAuthProxy.cookie.name }}=true; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=" .. cookie_max_age .. "; HttpOnly; SameSite=Lax; Secure"
+
+                        request_handle:logInfo("LUA SCRIPT: Setting authentication cookie: " .. cookie_value)
+                        request_handle:respond(
+                          {[":status"] = "200", ["content-type"] = "application/json", ["set-cookie"] = cookie_value},
+                          '{"status":"success","message":"Authentication successful"}'
+                        )
+                        return
+                      end
+
+                      -- Handle logout endpoint - immediately invalidate session
+                      if (path == logout_path and method == "POST") or (path == logout_path and method == "GET") then
+                        {{- if .Values.global.subDomain }}
+                        -- Subdomain routing: set cookie path to root
+                        local cookie_path = "/"
+                        {{- else }}
+                        -- Path-based routing: set cookie path to workspace prefix (ingress handles the routing)
+                        local cookie_path = "/" .. config_workspace_name
+                        {{- end }}
+
+                        -- Create logout cookie with Max-Age=0 to immediately delete it
+                        local logout_cookie = "{{ .Values.workspaceAuthProxy.cookie.name }}=; Domain=" .. cookie_domain .. "; Path=" .. cookie_path .. "; Max-Age=0; HttpOnly; SameSite=Lax; Secure"
+
+                        request_handle:logInfo("LUA SCRIPT: Logging out user, invalidating session cookie")
+                        request_handle:respond(
+                          {[":status"] = "200", ["content-type"] = "application/json", ["set-cookie"] = logout_cookie},
+                          '{"status":"success","message":"Logged out successfully"}'
+                        )
+                        return
+                      end
+
+                      -- Handle login path - serve HTML with auth config injection
+                      if path == "/login" then
+                        local html_content = get_html_content()
+                        local modified_html = inject_auth_config_into_html(html_content)
+                        request_handle:respond(
+                          {
+                            [":status"] = "200",
+                            ["content-type"] = "text/html; charset=utf-8",
+                            ["strict-transport-security"] = "max-age=31536000; includeSubDomains",
+                            ["x-frame-options"] = "SAMEORIGIN",
+                            ["referrer-policy"] = "strict-origin",
+                            ["x-content-type-options"] = "nosniff",
+                            ["x-xss-protection"] = "1; mode=block",
+                            ["content-security-policy"] = "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline';"
+                          },
+                          modified_html
+                        )
+                        return
+                      end
+
+                      local cookie_header = request_handle:headers():get("cookie")
+                      local cookies = parse_cookies(cookie_header)
+
+                      cookie_name = "{{ .Values.workspaceAuthProxy.cookie.name }}"
+                      request_handle:logInfo("LUA SCRIPT: Checking authentication for path: " .. path .. ", raw cookies: " .. (cookie_header or "none"))
+
+                      -- Log parsed cookies for debugging
+                      local cookie_count = 0
+                      for name, value in pairs(cookies) do
+                        cookie_count = cookie_count + 1
+                        request_handle:logInfo("LUA SCRIPT: Parsed cookie: " .. name .. "=" .. value)
+                      end
+                      request_handle:logInfo("LUA SCRIPT: Total cookies parsed: " .. cookie_count)
+
+                      -- Check if the specific authentication cookie exists and has the correct value
+                      if cookies[cookie_name] == "true" then
+                        request_handle:logInfo("LUA SCRIPT: Authentication cookie '" .. cookie_name .. "' found with correct value, allowing access")
+                        return
+                      else
+                        request_handle:logInfo("LUA SCRIPT: Authentication cookie '" .. cookie_name .. "' not found or incorrect value: " .. (cookies[cookie_name] or "not present"))
+                      end
+
+                      {{- if .Values.global.subDomain }}
+                      request_handle:logInfo("LUA SCRIPT: Redirecting to /login (subdomain mode)")
+                      request_handle:respond({[":status"] = "302", ["location"] = "/login"}, "")
+                      {{- else }}
+                      local redirect_location = "/" .. config_workspace_name .. "/login"
+                      request_handle:logInfo("LUA SCRIPT: Redirecting to " .. redirect_location .. " (path-based mode)")
+                      request_handle:respond({[":status"] = "302", ["location"] = redirect_location}, "")
+                      {{- end }}
+                    end
+              # Router Filter (must be last)
+              - name: envoy.filters.http.router
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+      clusters:
+      - name: workspace_service
+        connect_timeout: 0.25s
+        type: LOGICAL_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: workspace_service
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: 127.0.0.1
+                    port_value: 8123
+      
+      - name: graphql_cluster
+        connect_timeout: 5s
+        type: LOGICAL_DNS
+        dns_lookup_family: V4_ONLY
+        # can I detect if http or https and set the port accordingly? based on dataHost?
+
+
+{{- $dataURL := urlParse .Values.dataHost }}
+{{- if eq $dataURL.scheme "https" }}
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+            common_tls_context: {}
+            sni: {{ include "common.extractHost" .Values.dataHost }}
+{{- end }}
+        load_assignment:
+          cluster_name: graphql_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ include "common.extractHost" .Values.dataHost }}
+                    port_value: {{ include "common.extractPort" .Values.dataHost | default "443" | int }}
+
+{{- end }}

@@ -1,2 +1,3 @@
 # deployment.yaml
+{{- $_ := set .Values "additionalLabels" (include "ddn-workspace.additionalLabels" . | fromYaml) -}}
 {{- template "common.deployment" . -}}

@@ -18,6 +18,7 @@ global:
 
 additionalLabels:
   group: ddn-workspace
+  # ddn-id label will be added automatically when auth-proxy is enabled
 
 networkPolicy:
   ingress:
@@ -74,16 +75,20 @@ ddnPromptqlEndpoint: ""
 skipTlsVerify: false
 secrets:
   password: ""
-
 # Additional Container Envs
 env: |
   - name: CODE_SERVER_PORT
     value: "8123"
+  {{- if not (include "ddn-workspace.workspaceAuthProxy.enabled" .) }}
   - name: HASHED_PASSWORD
     valueFrom:
       secretKeyRef:
         name: {{ include "common.secretsName" $ }}
         key: WORKSPACE_PASSWORD
+  {{- else }}
+  - name: CODE_SERVER_NO_AUTH
+    value: "true"
+  {{- end }}
   - name: HASURA_DDN_INSECURE_SKIP_TLS_VERIFY
     value: {{ .Values.skipTlsVerify | quote }}
   {{- if .Values.setControlPlaneUrls }}
@@ -100,9 +105,12 @@ env: |
     value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}
   {{- end }}
   {{- end }}
-
-
 extraVolumes: |
+  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
+  - name: auth-proxy-config
+    configMap:
+      name: {{ include "ddn-workspace.workspaceAuthProxy.name" . }}-config
+  {{- end }}
   - name: ddn-workspace-data
   {{- if and (.Values.persistence).enabled (.Values.global.persistence).enabled }}
     persistentVolumeClaim:
@@ -110,11 +118,9 @@ extraVolumes: |
   {{- else }}
     emptyDir: {}
   {{- end }}
-
 extraVolumeMounts: |
   - name: ddn-workspace-data
     mountPath: "/workspace"
-
 # Ingress Configs
 # enable ingress / routes only if there is no internal network connectivity
 # between control plane and data planes
@@ -127,3 +133,93 @@ ingress:
 
 routes:
   enabled: false
+# Service ports configuration - handled directly in service.yaml template
+# No additional ports needed as conditional logic is in the service template
+
+# Workspace Auth Proxy Configuration
+workspaceAuthProxy:
+  enabled: false  # Set to true to enable auth-proxy (secrets.password will be ignored)
+  ddnId: ""  # DDN ID that identifies the data plane this workspace belongs to (required when auth-proxy is enabled)
+  debug:
+    enabled: false
+  # Image Configuration
+  image:
+    repository: "ddn-workspace-auth-proxy"
+    tag: "a61c52b"
+    pullPolicy: IfNotPresent
+  # Cookie Configuration
+  cookie:
+    name: "workspace-session"
+    maxAge: 3600  # Session expiry in seconds (1 hour = 3600 seconds)
+    # domain, path, and secure will be configured automatically based on global settings
+  # Authentication Methods Configuration
+  auth:
+    # Comma-separated list of enabled auth methods: pat,oidc-access-token,oidc-id-token
+    enabledMethods: "pat,oidc-access-token,oidc-id-token"
+    ui:
+      title: "DDN Workspace | Login"
+  # Service Configuration (used by configmap and ingress)
+  service:
+    port: 8080      # Auth-proxy HTTP port
+  # Resource Configuration
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+# Extra containers (sidecars) - Auth Proxy (only when enabled)
+extraContainers: |
+  {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
+  - name: auth-proxy
+    image: "{{ .Values.global.containerRegistry }}/{{ .Values.workspaceAuthProxy.image.repository }}:{{ .Values.workspaceAuthProxy.image.tag }}"
+    imagePullPolicy: {{ .Values.workspaceAuthProxy.image.pullPolicy }}
+    ports:
+      - name: auth-http
+        containerPort: 8080
+        protocol: TCP
+      - name: auth-admin
+        containerPort: 9901
+        protocol: TCP
+    livenessProbe:
+      httpGet:
+        path: /ready
+        port: 9901
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 9901
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    volumeMounts:
+    - name: auth-proxy-config
+      mountPath: /etc/envoy
+      readOnly: true
+    env:
+    - name: DATA_HOST
+      value: {{ include "common.extractHost" .Values.dataHost | quote }}
+    - name: WORKSPACE_NAME
+      value: {{ include "common.name" . | quote }}
+    - name: COOKIE_DOMAIN
+      value: {{ .Values.workspaceAuthProxy.cookieDomain | default (include "ddn-workspace.workspaceAuthProxy.cookieDomain" .) | quote }}
+    - name: COOKIE_NAME
+      value: {{ .Values.workspaceAuthProxy.cookie.name }}
+    - name: COOKIE_MAX_AGE
+      value: {{ .Values.workspaceAuthProxy.cookie.maxAge | default 3600 | quote }}
+    - name: ENABLED_AUTH_METHODS
+      value: {{ .Values.workspaceAuthProxy.auth.enabledMethods | quote }}
+    - name: DDN_ID
+      value: {{ required "Error: workspaceAuthProxy.ddnId is required when auth-proxy is enabled!" .Values.workspaceAuthProxy.ddnId | quote }}
+    command: ["/usr/local/bin/envoy"]
+    args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]
+  {{- end }}

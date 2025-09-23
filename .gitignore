@@ -3,3 +3,4 @@
 **/charts/**/*.tgz
 **/helm/**/*.tgz
 *Chart.lock
+values.overrides.yaml

@@ -1,2 +1,34 @@
-# service.yaml
-{{- template "common.service" . -}}
+# service.yaml - Custom service with conditional port configuration
+{{- $serviceName := include "common.name" . -}}
+{{- $_ := set .Values "additionalLabels" (include "ddn-workspace.additionalLabels" . | fromYaml) -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ template "common.namespace" . }}
+  annotations:
+{{- if (.Values.ingress).zuul }}
+    zuul/route-path: {{ .Values.ingress.context }}
+{{- end }}
+{{- with (.Values.service).additionalAnnotations}}
+  {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+{{- end }}
+  labels:
+{{- include "common.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: {{ $serviceName }}
+  ports:
+{{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
+    # When auth-proxy is enabled, only expose auth-proxy port
+    - name: auth-http
+      port: 8080
+      targetPort: auth-http
+{{- else }}
+    # When auth-proxy is disabled, expose workspace port
+    - name: {{ .Values.defaultPortName }}
+      port: {{ .Values.httpPort }}
+      targetPort: {{ .Values.httpPort }}
+{{- end }}
+  type: {{ default "ClusterIP" (.Values.service).type }}
