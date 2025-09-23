@@ -157,7 +157,7 @@ The DDN Workspace supports optional control plane authentication via an auth-pro
 
 - CLOUD: Match with `cloud` value which is present for your data plane within `ddn.private_ddn` table.  Example: `gcp`
 - DDN_ID: Match with `id` value which is present for your data plane within `ddn.private_ddn` table.  Example: `f11afce9-ab0c-4620-b565-af9d94ce24ec`
-- HELM_RELEASE_NAME: Match with the Helm release name which you are using for your Workspace installation.  Example: `ws`
+- HELM_RELEASE_NAME: Match with the Helm release name which you are using for your Workspace installation.  This needs to be between 3 and 32 characters logs.  Example: `ws1`
 - REGION: Match with `region` value which is present for your data plane within `ddn.private_ddn_region` table.  Example: `us-west2`
 
 ```
@@ -205,6 +205,7 @@ helm upgrade --install <release-name> \
 helm upgrade --install <release-name> \
   --set global.domain="my-dp.domain.com" \
   --set workspaceAuthProxy.enabled=true \
+  --set workspaceAuthProxy.ddnId="my-data-plane-id" \
   hasura-ddn/ddn-workspace
 ```
 
@@ -215,6 +216,7 @@ helm upgrade --install <release-name> \
   --set global.domain="my-dp.domain.com" \
   --set workspaceAuthProxy.enabled=true \
   --set workspaceAuthProxy.auth.enabledMethods="pat,oidc-access-token" \
+  --set workspaceAuthProxy.ddnId="my-data-plane-id" \
   hasura-ddn/ddn-workspace
 ```
 
