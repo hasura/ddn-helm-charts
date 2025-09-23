@@ -12,32 +12,40 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="<namespace>" \
+  --set global.domain="<ingress-domain>" \
+  --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.0" \
-  --set ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN="<pat-token>" \
-  --set ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET="<admin-secret>" \
-  --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
-  --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
-  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
-  --set ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST="<oauth_host>" \
+  --set image.tag="v0.1.1-a4f050b" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="<namespace>" \
+  --set global.domain="<ingress-domain>" \
+  --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.0" \
-  --set ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN="<pat-token>" \
-  --set ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET="<admin-secret>" \
-  --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
-  --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
-  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
-  --set ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST="<oauth_host>" \
+  --set image.tag="v0.1.1-a4f050b" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api
+
+# helm template and create a service account with supplied image pull secret
+helm template v1 \
+  --set namespace="<namespace>" \
+  --set global.domain="<ingress-domain>" \
+  --set global.subDomain="false" \
+  --set global.containerRegistry="gcr.io/hasura-ee" \
+  --set global.imagePullSecrets[0]="hasura-image-pull" \
+  --set serviceAccount.enabled="true " \
+  --set image.repository="ddn-cli-api" \
+  --set image.tag="v0.1.1-a4f050b" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
+  --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
+  .  
 ```
 
 ## Image pull secret

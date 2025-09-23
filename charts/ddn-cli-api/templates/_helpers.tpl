@@ -1,12 +1,6 @@
 {{/* Validate required serviceEnvVars */}}
 {{- define "mychart.validateServiceEnvVars" -}}
-  {{- required "ddnCliApiEnvVars.JWKS_URI is required" .Values.ddnCliApiEnvVars.JWKS_URI | quote -}}
-  {{- required "ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY is required" .Values.ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY | quote -}}
-  {{- required "ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN is required" .Values.ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN | quote -}}
   {{- required "ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT is required" .Values.ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT | quote -}}
-  {{- required "ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET is required" .Values.ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET | quote -}}
-  {{- required "ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST is required" .Values.ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST | quote -}}
-  {{- required "ddnCliApiEnvVars.HASURA_DDN_OAUTH_CLIENT_ID is required" .Values.ddnCliApiEnvVars.HASURA_DDN_OAUTH_CLIENT_ID | quote -}}
   {{- required "ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST is required" .Values.ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST | quote -}}
 {{- end }}
 
