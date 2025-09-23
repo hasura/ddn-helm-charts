@@ -2,6 +2,30 @@
 
 This chart deploys DDN Workspace (Native Runtime).
 
+## DDN ID and Workspace Identification
+
+When using the auth-proxy, workspaces can be associated with a specific DDN ID that identifies the data plane. This provides:
+
+- **Workspace Isolation**: Ensures workspaces are scoped to the correct data plane
+- **Resource Organization**: Allows filtering and managing workspaces by DDN ID using kubectl
+- **Access Control**: Restricts workspace access to users with permissions on the specific data plane
+
+### Usage with DDN ID
+
+```bash
+# Deploy workspace with DDN ID (auth-proxy only)
+helm upgrade --install my-workspace \
+  --set workspaceAuthProxy.enabled=true \
+  --set workspaceAuthProxy.ddnId="my-data-plane-id" \
+  hasura-ddn/ddn-workspace
+
+# Find all resources for a specific DDN ID
+kubectl get all -l ddn-id=my-data-plane-id
+
+# Find all workspaces across all DDN IDs
+kubectl get pods -l group=ddn-workspace
+```
+
 ## Install Chart
 
 See all [configuration](#parameters) below.
@@ -124,6 +148,114 @@ helm upgrade --install <release-name> \
   -f overrides.yaml \
   hasura-ddn/ddn-workspace
 ```
+
+## Workspace Auth-Proxy
+
+The DDN Workspace supports optional control plane authentication via an auth-proxy sidecar container. When enabled, the auth-proxy handles authentication against the control plane and checks workspace access of the token bearer via their access on the dataplane and forwards authenticated requests to the workspace.
+
+**Important: If you are planning on using Workspace auth-proxy, you will need to ensure that you first have a workspace entry present in your database.  This entry would be created by running the below mutation on the data service.  A Control Plane Admin would be able to run this:**
+
+- CLOUD: Match with `cloud` value which is present for your data plane within `ddn.private_ddn` table.  Example: `gcp`
+- DDN_ID: Match with `id` value which is present for your data plane within `ddn.private_ddn` table.  Example: `f11afce9-ab0c-4620-b565-af9d94ce24ec`
+- HELM_RELEASE_NAME: Match with the Helm release name which you are using for your Workspace installation.  This needs to be between 3 and 32 characters logs.  Example: `ws1`
+- REGION: Match with `region` value which is present for your data plane within `ddn.private_ddn_region` table.  Example: `us-west2`
+
+```
+mutation {
+  ddnInsertWorkspace(cloud: "CLOUD", ddn_id: "DDN_ID", name: "HELM_RELEASE_NAME", region: "REGION") {
+    hashed_password
+    id
+  }
+}
+```
+
+### Architecture Overview
+
+![DDN Workspace with Auth Proxy](../../imgs/ddn-workspace/workspace-auth-proxy.svg)
+
+### Authentication Methods
+
+The auth-proxy supports multiple authentication methods:
+- **PAT (Personal Access Token)**: Token-based authentication
+- **OIDC Access Token**: OAuth 2.0 access token authentication
+- **OIDC ID Token**: OpenID Connect ID token authentication
+
+### Session Management
+
+The auth-proxy provides comprehensive session management:
+- **Login Endpoint**: `/auth` (POST) - Authenticate and create session
+- **Logout Endpoint**: `/logout` (GET/POST) - Immediately invalidate session and clear cookies
+- **Automatic Expiry**: Sessions automatically expire after the configured `maxAge` (default: 1 hour)
+- **Secure Cookies**: HttpOnly, SameSite=Lax, Secure cookies for session management
+
+### Usage Patterns
+
+**Without Auth-Proxy (Default):**
+```bash
+# Direct workspace access - no authentication
+helm upgrade --install <release-name> \
+  --set global.domain="my-dp.domain.com" \
+  --set secrets.password="argon2id_hashed_password" \
+  hasura-ddn/ddn-workspace
+```
+
+**With Auth-Proxy Enabled:**
+```bash
+# Enable auth-proxy with all authentication methods (no password needed)
+helm upgrade --install <release-name> \
+  --set global.domain="my-dp.domain.com" \
+  --set workspaceAuthProxy.enabled=true \
+  --set workspaceAuthProxy.ddnId="my-data-plane-id" \
+  hasura-ddn/ddn-workspace
+```
+
+**With Specific Auth Methods:**
+```bash
+# Enable only PAT and OIDC access token authentication
+helm upgrade --install <release-name> \
+  --set global.domain="my-dp.domain.com" \
+  --set workspaceAuthProxy.enabled=true \
+  --set workspaceAuthProxy.auth.enabledMethods="pat,oidc-access-token" \
+  --set workspaceAuthProxy.ddnId="my-data-plane-id" \
+  hasura-ddn/ddn-workspace
+```
+
+### Logout Usage
+
+To logout from a workspace with auth-proxy enabled:
+
+**Subdomain Mode:**
+```bash
+# GET request
+curl -X GET https://my-workspace.my-dp.domain.com/logout
+
+# POST request
+curl -X POST https://my-workspace.my-dp.domain.com/logout
+```
+
+**Path-based Mode:**
+```bash
+# GET request
+curl -X GET https://my-dp.domain.com/my-workspace/logout
+
+# POST request
+curl -X POST https://my-dp.domain.com/my-workspace/logout
+```
+
+Both methods will immediately invalidate the session cookie and return:
+```json
+{"status":"success","message":"Logged out successfully"}
+```
+
+### Important Notes
+
+- **Only `workspaceAuthProxy.enabled=true` is required** for auth-proxy to be active
+- When auth-proxy is enabled, `secrets.password` is ignored (auth-proxy handles authentication)
+- When auth-proxy is disabled, `secrets.password` is required for workspace access
+- When auth-proxy is enabled, only port 8080 is exposed externally (auth-proxy port)
+- When auth-proxy is disabled, only port 8123 is exposed externally (workspace port)
+- Auth-proxy admin port (9901) is never exposed externally for security
+- **Logout endpoint** (`/logout`) immediately invalidates sessions for enhanced security
 
 ## Trusting CA certs
 
@@ -252,4 +384,20 @@ To explore the release notes, which include details on connector support and oth
 | `ingress.hostName`                                | Ingress override hostname                                                                                  | `""`                            |
 | `ingress.additionalAnnotations`                   | Ingress additional annotations                                                                             | `""`                            |
 | `ingress.path`                                    | Ingress override path                                                                                      | `""`                            |
-| `routes.enabled`                                  | Enable routes (For OpenShift)                                                                              | `false`                         |      
+| `routes.enabled`                                  | Enable routes (For OpenShift)                                                                              | `false`                         |
+| `workspaceAuthProxy.enabled`                      | Enable workspace auth-proxy sidecar (ignores secrets.password when enabled)                               | `false`                         |
+| `workspaceAuthProxy.ddnId`                        | DDN ID that identifies the data plane this workspace belongs to (required when auth-proxy is enabled)      | `""`                            |
+| `workspaceAuthProxy.debug.enabled`                | Enable debug logging for auth-proxy                                                                        | `false`                         |
+| `workspaceAuthProxy.image.repository`             | Auth-proxy image repository                                                                                 | `auth-proxy`                    |
+| `workspaceAuthProxy.image.tag`                    | Auth-proxy image tag                                                                                        | `latest`                        |
+| `workspaceAuthProxy.image.pullPolicy`             | Auth-proxy image pull policy                                                                               | `IfNotPresent`                  |
+| `workspaceAuthProxy.cookie.name`                  | Session cookie name                                                                                         | `workspace-session`             |
+| `workspaceAuthProxy.cookie.maxAge`                | Session cookie max age in seconds                                                                           | `3600`                          |
+| `workspaceAuthProxy.cookieDomain`                 | Session cookie domain (auto-configured if empty)                                                           | `""`                            |
+| `workspaceAuthProxy.auth.enabledMethods`          | Comma-separated auth methods: pat,oidc-access-token,oidc-id-token                                          | `pat,oidc-access-token,oidc-id-token` |
+| `workspaceAuthProxy.auth.ui.title`                | Auth login page title                                                                                       | `DDN Workspace \| Login`        |
+| `workspaceAuthProxy.service.port`                 | Auth-proxy HTTP port                                                                                        | `8080`                          |
+| `workspaceAuthProxy.resources.requests.cpu`       | Auth-proxy CPU request                                                                                      | `100m`                          |
+| `workspaceAuthProxy.resources.requests.memory`    | Auth-proxy memory request                                                                                   | `128Mi`                         |
+| `workspaceAuthProxy.resources.limits.cpu`         | Auth-proxy CPU limit                                                                                        | `200m`                          |
+| `workspaceAuthProxy.resources.limits.memory`      | Auth-proxy memory limit                                                                                     | `256Mi`                         |
