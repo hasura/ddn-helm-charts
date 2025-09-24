@@ -45,7 +45,7 @@ helm template v1 \
   --set image.tag="v0.1.1-a4f050b.1" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
-  .  
+  hasura-ddn/ddn-cli-api
 ```
 
 ## Image pull secret
@@ -56,6 +56,15 @@ contact the Hasura engineering team in order to obtain alternate methods for fet
 ## Images
 
 Contact Hasura engineering team for this information.
+
+## Custom Environment variables (For Custom CLI Hooks)
+
+Let's assume you want to add custom validation hooks per instructions [here](https://https://ddn-cp-docs.hasura.io//control-plane/guides/cli-wrapper/#custom-cli-hooks).  When running either `helm template` or `helm upgrade` command, you will also need to pass these as installation parameters:
+
+```yaml
+--set additionalEnv[0].name="ENABLE_CUSTOM_HOOK" --set additionalEnv[0].value=true \
+--set additionalEnv[0].name="CUSTOM_HOOK_ENDPOINT_URL" --set additionalEnv[0].value="custom_hook_endpoint_url"
+```
 
 ## Post-Install
 
