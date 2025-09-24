@@ -63,7 +63,7 @@ Let's assume you want to add custom validation hooks per instructions [here](htt
 
 ```yaml
 --set additionalEnv[0].name="ENABLE_CUSTOM_HOOK" --set additionalEnv[0].value=true \
---set additionalEnv[0].name="CUSTOM_HOOK_ENDPOINT_URL" --set additionalEnv[0].value="custom_hook_endpoint_url"
+--set additionalEnv[1].name="CUSTOM_HOOK_ENDPOINT_URL" --set additionalEnv[1].value="custom_hook_endpoint_url"
 ```
 
 ## Post-Install
