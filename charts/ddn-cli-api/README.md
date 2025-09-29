@@ -12,30 +12,38 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="<namespace>" \
+  --set global.domain="<ingress-domain>" \
+  --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.0" \
-  --set ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN="<pat-token>" \
-  --set ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET="<admin-secret>" \
-  --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
-  --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
-  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
-  --set ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST="<oauth_host>" \
+  --set image.tag="v0.1.1-a4f050b.1" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="<namespace>" \
+  --set global.domain="<ingress-domain>" \
+  --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.0" \
-  --set ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN="<pat-token>" \
-  --set ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET="<admin-secret>" \
-  --set ddnCliApiEnvVars.JWKS_URI="<jwks_uri>" \
-  --set ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY="<claim_key>" \
-  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<graphql_endpoint>" \
-  --set ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST="<oauth_host>" \
+  --set image.tag="v0.1.1-a4f050b.1" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
+  --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
+  hasura-ddn/ddn-cli-api
+
+# helm template and create a service account with supplied image pull secret
+helm template v1 \
+  --set namespace="<namespace>" \
+  --set global.domain="<ingress-domain>" \
+  --set global.subDomain="false" \
+  --set global.containerRegistry="gcr.io/hasura-ee" \
+  --set global.imagePullSecrets[0]="hasura-image-pull" \
+  --set serviceAccount.enabled="true " \
+  --set image.repository="ddn-cli-api" \
+  --set image.tag="v0.1.1-a4f050b.1" \
+  --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api
 ```
@@ -48,6 +56,15 @@ contact the Hasura engineering team in order to obtain alternate methods for fet
 ## Images
 
 Contact Hasura engineering team for this information.
+
+## Custom Environment variables (For Custom CLI Hooks)
+
+Let's assume you want to add custom validation hooks per instructions [here](https://https://ddn-cp-docs.hasura.io//control-plane/guides/cli-wrapper/#custom-cli-hooks).  When running either `helm template` or `helm upgrade` command, you will also need to pass these as installation parameters:
+
+```yaml
+--set additionalEnv[0].name="ENABLE_CUSTOM_HOOK" --set additionalEnv[0].value=true \
+--set additionalEnv[1].name="CUSTOM_HOOK_ENDPOINT_URL" --set additionalEnv[1].value="custom_hook_endpoint_url"
+```
 
 ## Post-Install
 
@@ -65,7 +82,7 @@ See Hasura's documentation for more information.  Link will be provided here in 
 | `labels.app`                                   | Application label for K8s resources                | `ddn-cli-api`                                                               |                |
 | `additionalAnnotations`                        | Custom annotations like config checksums           | \`checksum/config: {{ include (print \$.Template.BasePath "/secret.yaml") . | sha256sum }}\` |
 | `image.repository`                             | Container image name                               | `ddn-cli-api`                                                               |                |
-| `image.tag`                                    | Container image version tag                        | `v0.1.0`                                                                    |                |
+| `image.tag`                                    | Container image version tag                        | `v0.1.1-a4f050b.1`                                                                    |                |
 | `image.pullPolicy`                             | Image pull policy                                  | `IfNotPresent`                                                              |                |
 | `replicas`                                     | Number of pod replicas                             | `"1"`                                                                       |                |
 | `httpPort`                                     | HTTP port exposed by the container                 | `3000`                                                                      |                |
@@ -88,11 +105,5 @@ See Hasura's documentation for more information.  Link will be provided here in 
 | `ingress.hostName`                             | Hostname template for ingress                      | `{{ template "ddn-cli-api.domain" . }}`                                     |                |
 | `ingress.additionalAnnotations`                | Extra annotations for ingress                      | `{{ template "ddn-cli-api.ingress.annotations" . }}`                        |                |
 | `ingress.path`                                 | Ingress path                                       | `{{ template "ddn-cli-api.path" . }}`                                       |                |
-| `ddnCliApiEnvVars.JWKS_URI`                    | URL of your JWKS endpoint for JWT validation       | e.g. `https://your-auth-server/.well-known/jwks.json`                       |                |
-| `ddnCliApiEnvVars.SSO_GROUP_CLAIM_KEY`         | JWT claim field containing role information        | e.g. `roles` or `groups`                                                    |                |
-| `ddnCliApiEnvVars.DDN_CLI_PAT_TOKEN`           | Personal Access Token for CLI authentication       | `""`                                                                        |                |
 | `ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT`         | Control Plane GraphQL API endpoint                 | e.g. `https://data.<domain>/v1/graphql`                                     |                |
-| `ddnCliApiEnvVars.HASURA_GRAPHQL_ADMIN_SECRET` | Admin secret for Control Plane API access          | `""`                                                                        |                |
-| `ddnCliApiEnvVars.HASURA_DDN_OAUTH_HOST`       | Hasura DDN Oauth Host                              | e.g. `https://oauth.<domain>`                                               |                |
-| `ddnCliApiEnvVars.HASURA_DDN_OAUTH_CLIENT_ID`  | Hasura DDN Oauth Client ID                         | `"ddn-cli"`                                                                 |                |
 | `ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST`     | Hasura DDN Console Host                            | e.g. `https://console.<domain>`                                             |                |
