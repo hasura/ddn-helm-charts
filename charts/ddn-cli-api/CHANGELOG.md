@@ -1,6 +1,10 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ddn-cli-api@v2025.09.23"></a>
+## [ddn-cli-api@v2025.09.23] - 2025-09-24
+- remove env vars that are no longer needed
+
 <a name="ddn-cli-api@v2025.06.18"></a>
 ## [ddn-cli-api@v2025.06.18] - 2025-06-18
 
