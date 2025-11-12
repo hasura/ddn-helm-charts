@@ -56,6 +56,14 @@ securityContext:
   fsGroup: 10001
   runAsNonRoot: true
 
+containerSecurityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+
 resources: |
   requests:
     cpu: 500m
@@ -205,6 +213,13 @@ extraContainers: |
     - name: auth-proxy-config
       mountPath: /etc/envoy
       readOnly: true
+    securityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: false
     env:
     - name: DATA_HOST
       value: {{ include "common.extractHost" .Values.dataHost | quote }}
