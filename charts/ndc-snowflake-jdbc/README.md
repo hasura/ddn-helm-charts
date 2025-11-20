@@ -111,6 +111,39 @@ You can achieve the same configuration from the command line using the following
 --set-file secrets.imagePullSecret.auths.gcr\.io.password=company-sa.json
 ```
 
+## Container Level Security Context
+
+By default, no container-level `securityContext` values are set.
+
+To enable them, you can specify the settings you need. For example, the following Helm values configure `readOnlyRootFilesystem: true`, `runAsNonRoot: true`, `allowPrivilegeEscalation: false`, and `drop all` Linux capabilities:
+
+```yaml
+--set containerSecurityContext.readOnlyRootFilesystem=true \
+--set containerSecurityContext.runAsNonRoot=true \
+--set containerSecurityContext.allowPrivilegeEscalation=false \
+--set containerSecurityContext.capabilities.drop[0]=ALL
+```
+
+You may add any additional fields that are valid container-level Kubernetes `securityContext` options.
+
+**Important Note**
+
+During installation, if you set any value under `containerSecurityContext`, the resulting rendered manifest will include all of the default security settings—merged with the values you explicitly provide.
+
+For example, let's assume that we are only overriding `readOnlyRootFilesystem` to `false`.  The final manifest will look like this:
+
+```yaml
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false # Only this value was overridden. All other securityContext fields are still included with their default values.
+          runAsNonRoot: true
+```
+
+These defaults appear even if you did not explicitly configure every field, because the chart merges its defaults with your overrides.
+
 ## Connector ENV Inputs
 
 | Name                                              | Description                                                                                                | Value                           |
@@ -146,6 +179,7 @@ You can achieve the same configuration from the command line using the following
 | `replicas`                                        | Replicas setting for pod                                                                                   | `1`                                 |
 | `wsInactiveExpiryMins`                            | To be documented                                                                                           | `1`                                 |
 | `securityContext`                                 | Define privilege and access control settings for a Pod or Container                                        | `{}`                                |
+| `containerSecurityContext`                        | Define privilege and access control settings for a Container                                               | ``                                |
 | `healthChecks.enabled`                            | Enable health check for ndc-snowflake-jdbc container                                                              | `false`                             |
 | `healthChecks.livenessProbePath`                  | Health check liveness Probe path ndc-snowflake-jdbc container                                                     | `"/healthz"`                        |
 | `healthChecks.readinessProbePath`                 | Health check readiness Probe path mongo-connector container                                                | `"/healthz"`                        |

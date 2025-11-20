@@ -1,6 +1,6 @@
 apiVersion: v2
-name: ndc-mongodb
-description: (DDN) A Helm chart for deploying ndc-mongodb
+name: ndc-sqlserver-jdbc
+description: (DDN) A Helm chart for deploying ndc-sqlserver-jdbc
 
 # A chart can be either an 'application' or a 'library' chart.
 #

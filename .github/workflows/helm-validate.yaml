@@ -241,15 +241,26 @@ jobs:
                 --values tests/ndc-snowflake-git-sync-values.yaml \
                 --namespace connector-ns
               ;;
-            ndc-snowflake=jdbc)
-              echo "Rendering ndc-snowflake=jdbc"
-              helm template connector charts/ndc-snowflake=jdbc \
-                --values tests/ndc-snowflake=jdbc-values.yaml \
+            ndc-snowflake-jdbc)
+              echo "Rendering ndc-snowflake-jdbc"
+              helm template connector charts/ndc-snowflake-jdbc \
+                --values tests/ndc-snowflake-jdbc-values.yaml \
                 --namespace connector-ns
 
-              echo "Rendering ndc-snowflake=jdbc-git-sync"
-              helm template connector-git-sync charts/ndc-snowflake=jdbc \
-                --values tests/ndc-snowflake=jdbc-git-sync-values.yaml \
+              echo "Rendering ndc-snowflake-jdbc-git-sync"
+              helm template connector-git-sync charts/ndc-snowflake-jdbc \
+                --values tests/ndc-snowflake-jdbc-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
+            ndc-sqlserver-jdbc)
+              echo "Rendering ndc-sqlserver-jdbc"
+              helm template connector charts/ndc-sqlserver-jdbc \
+                --values tests/ndc-sqlserver-jdbc-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendering ndc-sqlserver-jdbc-git-sync"
+              helm template connector-git-sync charts/ndc-sqlserver-jdbc \
+                --values tests/ndc-sqlserver-jdbc-git-sync-values.yaml \
                 --namespace connector-ns
               ;;
           esac
