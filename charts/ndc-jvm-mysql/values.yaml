@@ -23,6 +23,14 @@ securityContext:
   runAsUser: 1000
   fsGroup: 1000
 
+containerSecurityContext:
+#  runAsNonRoot: true
+#  allowPrivilegeEscalation: false
+#  capabilities:
+#    drop:
+#    - ALL
+#  readOnlyRootFilesystem: true
+
 serviceAccount:
   enabled: false
   name: ""

@@ -15,3 +15,4 @@ ndc-postgres
 ndc-postgres-jdbc
 ndc-snowflake
 ndc-snowflake-jdbc
+ndc-sqlserver-jdbc
