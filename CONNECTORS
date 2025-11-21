@@ -11,6 +11,7 @@ ndc-mongodb
 ndc-mysql-jdbc
 ndc-nodejs-lambda
 ndc-open-api-lambda
+ndc-oracle-jdbc
 ndc-postgres
 ndc-postgres-jdbc
 ndc-snowflake

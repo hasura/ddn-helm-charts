@@ -1,0 +1,107 @@
+useReleaseName: true
+
+additionalAnnotations: |
+  checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+  app.kubernetes.io/access-group: connector
+
+networkPolicy:
+  ingress:
+    enabled: true
+    allowedApps:
+      - v3-engine
+
+# Container Configs
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+replicas: "1"
+wsInactiveExpiryMins: "1"
+securityContext:
+  runAsNonRoot: true
+  runAsGroup: 1000
+  runAsUser: 1000
+  fsGroup: 1000
+
+containerSecurityContext:
+#  runAsNonRoot: true
+#  allowPrivilegeEscalation: false
+#  capabilities:
+#    drop:
+#    - ALL
+#  readOnlyRootFilesystem: true
+
+serviceAccount:
+  enabled: false
+  name: ""
+
+initContainers:
+  gitSync:
+    enabled: false
+    repo: "git@github.com:<org>/<repo>"
+    branch: "main"
+    secretName: ""
+
+healthChecks:
+  enabled: false
+  livenessProbePath: "/healthz"
+  readinessProbePath: "/healthz"
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50  # Target 50% CPU utilization per pod
+
+resources: |
+  requests:
+    cpu: "500m"
+    memory: "500Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+connectorEnvVars:
+  HASURA_SERVICE_TOKEN_SECRET: ""
+  JDBC_URL: ""
+  HASURA_LOG_LEVEL: "info"
+  configDirectory: ""
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
+  OTEL_SERVICE_NAME: ""
+
+env: |
+  {{- if .Values.connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET }}
+  - name: HASURA_SERVICE_TOKEN_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: HASURA_SERVICE_TOKEN_SECRET
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- end }}
+  - name: JDBC_URL
+    valueFrom:
+      secretKeyRef:
+        key: JDBC_URL
+        name: {{ printf "%s-secret" (include "common.name" .) }}
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+  {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  {{- else }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Chart.Name }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.configDirectory }}
+  - name: HASURA_CONFIGURATION_DIRECTORY
+    value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.HASURA_LOG_LEVEL }}
+  - name: HASURA_LOG_LEVEL
+    value: {{ .Values.connectorEnvVars.HASURA_LOG_LEVEL }}
+  {{- end }}

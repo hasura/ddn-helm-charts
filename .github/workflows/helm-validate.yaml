@@ -263,4 +263,15 @@ jobs:
                 --values tests/ndc-sqlserver-jdbc-git-sync-values.yaml \
                 --namespace connector-ns
               ;;
+            ndc-oracle-jdbc)
+              echo "Rendering ndc-oracle-jdbc"
+              helm template connector charts/ndc-oracle-jdbc \
+                --values tests/ndc-oracle-jdbc-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendering ndc-oracle-jdbc-git-sync"
+              helm template connector-git-sync charts/ndc-oracle-jdbc \
+                --values tests/ndc-oracle-jdbc-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
           esac
