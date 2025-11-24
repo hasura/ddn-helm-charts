@@ -2440,6 +2440,23 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-open-api-lambda@v2024.11.11/ndc-open-api-lambda-v2024.11.11.tgz
     version: v2024.11.11
+  ndc-oracle-jdbc:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2025-11-24T16:08:47.33808521Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.16
+    description: (DDN) A Helm chart for deploying ndc-oracle-jdbc
+    digest: a53035b2fb563f10978fe2fc101bd4d8aa1f3d92febfc19cd07df16655d693af
+    name: ndc-oracle-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-oracle-jdbc@v2025.11.24/ndc-oracle-jdbc-v2025.11.24.tgz
+    version: v2025.11.24
   ndc-postgres:
   - annotations:
       artifacthub.io/changes: ""
@@ -3110,4 +3127,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-11-20T04:16:39.504433538Z"
+generated: "2025-11-24T16:08:48.155930404Z"
