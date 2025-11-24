@@ -70,6 +70,7 @@ resources: |
 connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
   JDBC_URL: ""
+  JDBC_SCHEMAS: ""
   HASURA_LOG_LEVEL: "info"
   configDirectory: ""
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
@@ -88,6 +89,10 @@ env: |
       secretKeyRef:
         key: JDBC_URL
         name: {{ printf "%s-secret" (include "common.name" .) }}
+  {{- if .Values.connectorEnvVars.JDBC_SCHEMAS }}
+  - name: JDBC_SCHEMAS
+    value: {{ .Values.connectorEnvVars.JDBC_SCHEMAS | quote }}
+  {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
   {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
