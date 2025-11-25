@@ -291,7 +291,6 @@ initContainers:
               echo "Persistent home already initialized (once strategy)"
             fi
             ;;
-
           "always")
             # Copy every time - only add new files, preserve existing
             echo "Always strategy - syncing /home to persistent storage..."
@@ -299,7 +298,6 @@ initContainers:
             touch "$INITIALIZED_FILE"
             echo "Sync complete (always strategy)"
             ;;
-
           "version-aware")
             # Copy when image version changes - only add new files, preserve existing
             if [ ! -f "$INITIALIZED_VERSION_FILE" ] || [ "$(cat $INITIALIZED_VERSION_FILE 2>/dev/null)" != "$IMAGE_VERSION" ]; then
@@ -312,7 +310,6 @@ initContainers:
               echo "Persistent home already up-to-date for version $IMAGE_VERSION"
             fi
             ;;
-
           *)
             echo "Unknown update strategy: $UPDATE_STRATEGY. Using 'version-aware' as fallback."
             if [ ! -f "$INITIALIZED_VERSION_FILE" ] || [ "$(cat $INITIALIZED_VERSION_FILE 2>/dev/null)" != "$IMAGE_VERSION" ]; then
