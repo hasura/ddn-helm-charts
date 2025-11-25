@@ -257,6 +257,163 @@ Both methods will immediately invalidate the session cookie and return:
 - Auth-proxy admin port (9901) is never exposed externally for security
 - **Logout endpoint** (`/logout`) immediately invalidates sessions for enhanced security
 
+## Home Persistence
+
+The DDN Workspace supports persistent storage of the container's `/home` directory, which contains pre-installed tools, configurations, and development environment setup. This feature ensures that updates to the workspace image can be automatically applied while preserving user customizations.
+
+**⚠️ Important: Home Persistence is disabled by default.** You must explicitly enable it by setting `homePersistence.enabled=true` in your configuration.
+
+### How Home Persistence Works
+
+**By default, home persistence is disabled** and the workspace uses the `/home` directory directly from the container image on each restart.
+
+When you enable home persistence by setting `homePersistence.enabled=true`, the workspace creates a separate persistent volume specifically for home directory data. An init container runs before the main workspace container starts and handles copying data from the image's `/home` directory to the persistent volume based on the configured update strategy.
+
+### Update Strategies
+
+The `homePersistence.updateStrategy` parameter controls when and how the home directory is updated:
+
+#### 1. `version-aware` (Default - Recommended for All Environments)
+- **When it updates**: Only when the image tag changes
+- **Behavior**: Copies `/home` from the new image to persistent storage
+- **User data**: Automatically backed up before updates with timestamps
+- **Use case**: Ideal for both development and production environments - provides automatic updates with complete safety
+
+```yaml
+homePersistence:
+  updateStrategy: "version-aware"
+```
+
+**Example workflow:**
+1. First deployment with `image.tag: "v1.0.0"` → Copies `/home` to persistent volume
+2. User customizes tools and configs in `/home`
+3. Upgrade to `image.tag: "v1.1.0"` → Backs up user data, copies new `/home` content
+4. User data is preserved in timestamped backup directory
+
+#### 2. `once` (Conservative - Legacy Approach)
+- **When it updates**: Only on the very first pod start
+- **Behavior**: Never updates after initial copy
+- **User data**: Always preserved (no overwrites)
+- **Use case**: Legacy environments where you prefer manual control over updates
+
+```yaml
+homePersistence:
+  updateStrategy: "once"
+```
+
+**Example workflow:**
+1. First deployment → Copies `/home` to persistent volume, creates `.initialized` marker
+2. All subsequent deployments → Skips copy entirely, even with new image versions
+3. User gets initial tools but **misses important updates, security fixes, and new features**
+
+#### 3. `always` (Aggressive)
+- **When it updates**: Every pod restart
+- **Behavior**: Always copies `/home` from current image
+- **Use case**: Testing environments where you want fresh state
+
+```yaml
+homePersistence:
+  updateStrategy: "always"
+```
+
+### Storage Configuration
+
+Home persistence uses a separate PVC from the main workspace storage:
+
+```yaml
+# Workspace data (user projects, files)
+persistence:
+  enabled: true
+  size: 10Gi
+
+# Home directory data (tools, configs, environment)
+homePersistence:
+  enabled: true
+  size: 10Gi                    # Usually smaller than workspace data
+  accessMode: ReadWriteOnce
+  storageClassName: "fast-ssd" # Optional: specify storage class
+```
+
+### Volume Mounts
+
+The feature creates two separate persistent volumes:
+
+- **Workspace Volume**: Mounted at `/workspace` (user projects and files)
+- **Home Volume**: Mounted at `/persistent-home` (tools, configs, environment)
+
+### Configuration Examples
+
+**Production Environment (Recommended):**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "version-aware"
+```
+
+**Development Environment:**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "version-aware"
+```
+
+**Legacy Environment (Conservative - Not Recommended):**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "once"
+```
+
+**Testing Environment (Always Fresh):**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "always"
+```
+
+**Disabled (Default - No Home Persistence):**
+```yaml
+homePersistence:
+  enabled: false  # This is the default behavior
+```
+
+When disabled, the workspace uses the `/home` directory directly from the container image on each restart. No persistent storage is created for home directory data.
+
+### Important Notes
+
+- **Disabled by Default**: Home persistence must be explicitly enabled with `homePersistence.enabled=true`
+- **Separate from Workspace Data**: Home persistence is independent of the main workspace persistence
+- **Image Updates**: Only `version-aware` strategy automatically applies image updates
+- **Backup Location**: User data backups are stored in `.backup-*` directories within the persistent volume
+- **Init Container**: Uses the same image as the main container to ensure consistency
+- **Storage Requirements**: Home directory typically needs 2-5GB depending on installed tools
+
+### Troubleshooting
+
+**Check Init Container Logs:**
+```bash
+kubectl logs <pod-name> -c copy-home
+```
+
+**View Backup History:**
+```bash
+kubectl exec <pod-name> -- ls -la /persistent-home/.backup-*
+```
+
+**Check Current Image Version:**
+```bash
+kubectl exec <pod-name> -- cat /persistent-home/.image-version
+```
+
+**Manual Recovery from Backup:**
+```bash
+kubectl exec <pod-name> -- cp -r /persistent-home/.backup-20241124-143022/my-config /persistent-home/
+```
+
 ## Trusting CA certs
 
 If you are using an SSL Certificate under your Control Plane ingresses which is tied to a CA (Certificate Authority) that is only trusted by your company, you
@@ -362,6 +519,12 @@ To explore the release notes, which include details on connector support and oth
 | `setControlPlaneUrls`                             | Sets necessary Control Plane URLs                                                                          | `true`                          |
 | `persistence.enabled`                             | Create a PVC for persisting `/workspace` directory within the DDN Workspace                                | `true`                          |
 | `persistence.size`                                | PVC size                                                                                                   | `10Gi`                          |
+| `homePersistence.enabled`                         | Create a separate PVC for persisting `/home` directory data from the container image                       | `false`                          |
+| `homePersistence.size`                            | Home persistence PVC size                                                                                  | `10Gi`                           |
+| `homePersistence.accessMode`                      | Home persistence PVC access mode                                                                           | `ReadWriteOnce`                 |
+| `homePersistence.storageClassName`                | Home persistence storage class name (optional)                                                            | `""`                            |
+| `homePersistence.existingClaim`                   | Use existing PVC for home persistence (optional)                                                          | `""`                            |
+| `homePersistence.updateStrategy`                  | Strategy for updating home directory: `once`, `always`, `version-aware`                                   | `version-aware`                 |
 | `healthChecks.enabled`                            | Enable Health checks                                                                                       | `true`                          |
 | `healthChecks.livenessProbe`                      | Health check liveness probe                                                                                | `httpGet:\n  path: /healthz\n  port: 8123\n` |
 | `healthChecks.readinessProbe`                     | Health check readiness probe                                                                               | `httpGet:\n  path: /healthz\n  port: 8123\n` |
