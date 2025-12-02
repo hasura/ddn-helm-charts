@@ -41,77 +41,34 @@ initContainers:
     repo: "git@github.com:<org>/<repo>"
     branch: "main"
     secretName: ""
-  # Images for config setup initContainer
-  # Automatically selected based on connectorConfig.s3Config.enabled
-  configSetup:
-    # Used when s3Config.enabled=false (ConfigMaps)
-    image:
-      repository: gcr.io/hasura-ee/busybox
-      tag: 1.37.0
-      pullPolicy: IfNotPresent
+  # S3 config setup (only used when s3Config.enabled=true)
   s3ConfigSetup:
-    # Used when s3Config.enabled=true (S3)
     image:
       repository: gcr.io/hasura-ee/aws-cli
       tag: 2.32.7
       pullPolicy: IfNotPresent
-  # Extra init containers for setting up configuration
+  # Extra init containers - only for S3 downloads
   extraInitContainers: |
-    {{- if .Values.connectorConfig.enabled }}
-    {{- if or .Values.connectorConfig.s3Config.enabled (and .Values.connectorConfig.rootConfig.enabled .Values.connectorConfig.schemaConfig.enabled) }}
-    - name: setup-connector-config
-      {{- if .Values.connectorConfig.s3Config.enabled }}
+    {{- if and .Values.connectorConfig.enabled .Values.connectorConfig.s3Config.enabled }}
+    - name: setup-s3-config
       image: {{ .Values.initContainers.s3ConfigSetup.image.repository }}:{{ .Values.initContainers.s3ConfigSetup.image.tag }}
       imagePullPolicy: {{ .Values.initContainers.s3ConfigSetup.image.pullPolicy }}
-      {{- else }}
-      image: {{ .Values.initContainers.configSetup.image.repository }}:{{ .Values.initContainers.configSetup.image.tag }}
-      imagePullPolicy: {{ .Values.initContainers.configSetup.image.pullPolicy }}
-      {{- end }}
       command:
       - sh
       - -c
       - |
         set -e
-        echo "Setting up connector configuration..."
-        {{- if .Values.connectorConfig.s3Config.enabled }}
-        # S3 Configuration
-        echo "Downloading configuration from S3..."
-        {{- if .Values.connectorConfig.s3Config.rootFiles.enabled }}
-        # Download root files from S3
-        echo "Downloading root configuration files from S3..."
-        {{- range .Values.connectorConfig.s3Config.rootFiles.files }}
-        echo "  Downloading {{ .source }} to {{ $.Values.connectorConfig.mountPath }}/{{ .dest }}"
-        aws s3 cp s3://{{ $.Values.connectorConfig.s3Config.bucket }}/{{ .source }} {{ $.Values.connectorConfig.mountPath }}/{{ .dest }}
-        {{- end }}
-        {{- end }}
-        {{- if .Values.connectorConfig.s3Config.schemaFolder.enabled }}
-        # Download schema folder from S3
-        echo "Creating schema directory..."
-        mkdir -p {{ .Values.connectorConfig.mountPath }}/schema
-        echo "Syncing schema files from s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.schemaFolder.prefix }}"
-        aws s3 sync s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.schemaFolder.prefix }} {{ .Values.connectorConfig.mountPath }}/schema/
-        {{- end }}
-
-        {{- else }}
-        # ConfigMap Configuration
-        {{- if .Values.connectorConfig.rootConfig.enabled }}
-        # Copy root files from ConfigMap
-        echo "Copying root configuration files from ConfigMap: {{ .Values.connectorConfig.rootConfig.configMapName }}"
-        cp /tmp/root-config/* {{ .Values.connectorConfig.mountPath }}/
-        {{- end }}
-
-        {{- if .Values.connectorConfig.schemaConfig.enabled }}
-        # Create schema directory and copy schema files from ConfigMap
-        echo "Creating schema directory..."
-        mkdir -p {{ .Values.connectorConfig.mountPath }}/schema
-        echo "Copying schema files from ConfigMap: {{ .Values.connectorConfig.schemaConfig.configMapName }}"
-        cp /tmp/schema-config/* {{ .Values.connectorConfig.mountPath }}/schema/
-        {{- end }}
-        {{- end }}
-
-        echo "Configuration setup complete:"
-        find {{ .Values.connectorConfig.mountPath }} -type f
-      {{- if .Values.connectorConfig.s3Config.enabled }}
+        echo "Syncing configuration from S3..."
+        echo "Source: s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }}"
+        echo "Destination: {{ .Values.connectorConfig.mountPath }}/"
+        
+        aws s3 sync \
+          s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }} \
+          {{ .Values.connectorConfig.mountPath }}/ \
+          --delete
+        
+        echo "S3 sync complete. Files synced:"
+        find {{ .Values.connectorConfig.mountPath }} -type f | sort
       env:
       {{- if not .Values.connectorConfig.s3Config.useIRSA }}
       - name: AWS_ACCESS_KEY_ID
@@ -127,27 +84,13 @@ initContainers:
       {{- end }}
       - name: AWS_DEFAULT_REGION
         value: {{ .Values.connectorConfig.s3Config.region | quote }}
-      {{- end }}
       volumeMounts:
-      {{- if not .Values.connectorConfig.s3Config.enabled }}
-      {{- if .Values.connectorConfig.rootConfig.enabled }}
-      - name: connector-root-config
-        mountPath: /tmp/root-config
-        readOnly: true
-      {{- end }}
-      {{- if .Values.connectorConfig.schemaConfig.enabled }}
-      - name: connector-schema-config
-        mountPath: /tmp/schema-config
-        readOnly: true
-      {{- end }}
-      {{- end }}
       - name: connector-config-dest
         mountPath: {{ .Values.connectorConfig.mountPath }}
       {{- if and (not ((.Values.global).securityContext).disabled) .Values.securityContext }}
       securityContext:
         {{- toYaml .Values.securityContext | nindent 8 }}
       {{- end }}
-    {{- end }}
     {{- end }}
 
 healthChecks:
@@ -175,47 +118,38 @@ resources: |
     cpu: "1"
     memory: "1Gi"
 
-# Connector Configuration - Using ConfigMaps OR S3
+# Connector Configuration
 connectorConfig:
   enabled: false
   mountPath: "/etc/connector"
-
-  # ConfigMap-based configuration (Option 1)
+  
+  # ConfigMap-based configuration (Option 1 - Direct Mount)
   # Root-level configuration files from ConfigMap
   rootConfig:
     enabled: false
-    # Name of externally-created ConfigMap
     configMapName: "connector-root-config"
-
+  
   # Schema directory configuration files from ConfigMap
   schemaConfig:
     enabled: false
-    # Name of externally-created ConfigMap
     configMapName: "connector-schema-config"
-
-  # S3-based configuration (Option 2)
+  
+  # S3-based configuration (Option 2 - Requires InitContainer)
   s3Config:
     enabled: false
     bucket: "my-config-bucket"
     region: "us-east-1"
-
-    # AWS Credentials (not needed if using IRSA)
+    
+    # AWS Credentials (not needed if using IRSA on EKS)
     useIRSA: false
-    credentialsSecret: "aws-credentials"  # Secret with access-key-id and secret-access-key
-
-    # Root files to download from S3
-    rootFiles:
-      enabled: false
-      files:
-        - source: "configuration.json"
-          dest: "configuration.json"
-        - source: "connector.yaml"
-          dest: "connector.yaml"
-
-    # Schema folder to sync from S3
-    schemaFolder:
-      enabled: false
-      prefix: "schema/"  # S3 prefix/folder path
+    credentialsSecret: "aws-credentials"
+    
+    # S3 prefix to sync (everything under this prefix will be copied)
+    # Examples:
+    #   "" - sync entire bucket
+    #   "configs/" - sync everything from configs/ folder
+    #   "prod/mongodb/" - sync everything from prod/mongodb/ folder
+    prefix: ""
 
 connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
@@ -257,7 +191,12 @@ env: |
 # Extra volumes for connector config
 extraVolumes: |
   {{- if .Values.connectorConfig.enabled }}
-  {{- if not .Values.connectorConfig.s3Config.enabled }}
+  {{- if .Values.connectorConfig.s3Config.enabled }}
+  {{- /* S3 mode: need emptyDir for downloads */}}
+  - name: connector-config-dest
+    emptyDir: {}
+  {{- else }}
+  {{- /* ConfigMap mode: direct mounts (no emptyDir needed) */}}
   {{- if .Values.connectorConfig.rootConfig.enabled }}
   - name: connector-root-config
     configMap:
@@ -269,13 +208,24 @@ extraVolumes: |
       name: {{ .Values.connectorConfig.schemaConfig.configMapName }}
   {{- end }}
   {{- end }}
-  - name: connector-config-dest
-    emptyDir: {}
   {{- end }}
 
 # Extra volume mounts for main container
 extraVolumeMounts: |
   {{- if .Values.connectorConfig.enabled }}
+  {{- if .Values.connectorConfig.s3Config.enabled }}
+  {{- /* S3 mode: mount emptyDir */}}
   - name: connector-config-dest
     mountPath: {{ .Values.connectorConfig.mountPath }}
+  {{- else }}
+  {{- /* ConfigMap mode: direct mounts */}}
+  {{- if .Values.connectorConfig.rootConfig.enabled }}
+  - name: connector-root-config
+    mountPath: {{ .Values.connectorConfig.mountPath }}
+  {{- end }}
+  {{- if .Values.connectorConfig.schemaConfig.enabled }}
+  - name: connector-schema-config
+    mountPath: {{ .Values.connectorConfig.mountPath }}/schema
+  {{- end }}
+  {{- end }}
   {{- end }}

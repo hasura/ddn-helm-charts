@@ -142,16 +142,16 @@ connectorConfig:
     configMapName: "connector-schema-config"
 ```
 
-### How It Works
+### How ConfigMap Configuration Works
 
 When ConfigMap-based configuration is enabled:
 
-1. **Init Container Setup**: An init container (`setup-connector-config`) runs before the main connector container
-2. **File Copying**: The init container copies files from the ConfigMaps to the connector's configuration directory
-3. **Directory Structure**:
-   - Root config files are copied to `/etc/connector/` (or your specified `mountPath`)
-   - Schema config files are copied to `/etc/connector/schema/`
-4. **Environment Variable**: The `HASURA_CONFIGURATION_DIRECTORY` environment variable is automatically set to point to the configuration directory
+1. **Direct Volume Mounts**: ConfigMaps are mounted directly as volumes (no init container needed)
+2. **Directory Structure**:
+   - Root config files are mounted to `/etc/connector/` (or your specified `mountPath`)
+   - Schema config files are mounted to `/etc/connector/schema/`
+3. **Environment Variable**: The `HASURA_CONFIGURATION_DIRECTORY` environment variable is automatically set to point to the configuration directory
+4. **Real-time Updates**: Changes to ConfigMaps are reflected in the pod (with Kubernetes' ConfigMap update propagation delay)
 
 ### Complete Example Workflow
 
@@ -205,10 +205,11 @@ The ndc-mongodb connector also supports downloading configuration files directly
 
 ### S3 Configuration Structure
 
-The S3 configuration system supports:
+The S3 configuration system uses **recursive sync** to download all files from a specified S3 prefix to the connector's configuration directory. This approach is simple and flexible:
 
-1. **Individual root files** - Specific files downloaded to the connector's root configuration directory
-2. **Schema folder sync** - Entire folder/prefix synced to the `schema/` subdirectory
+1. **Recursive Sync** - All files and folders under the specified S3 prefix are downloaded
+2. **Automatic Directory Structure** - The S3 folder structure is preserved in the local mount path
+3. **No File Specification Required** - No need to list individual files or folders
 
 ### AWS Authentication Options
 
@@ -249,7 +250,7 @@ connectorConfig:
 
 ### S3 Configuration Examples
 
-#### Downloading Individual Root Files
+#### Sync Entire Bucket
 
 ```yaml
 connectorConfig:
@@ -259,17 +260,9 @@ connectorConfig:
     bucket: "my-config-bucket"
     region: "us-east-1"
     useIRSA: true
-
-    rootFiles:
-      enabled: true
-      files:
-        - source: "configuration.json"
-          dest: "configuration.json"
-        - source: "connector.yaml"
-          dest: "connector.yaml"
 ```
 
-#### Syncing Schema Folder
+#### Sync Specific Folder/Prefix
 
 ```yaml
 connectorConfig:
@@ -279,13 +272,10 @@ connectorConfig:
     bucket: "my-config-bucket"
     region: "us-east-1"
     useIRSA: true
-
-    schemaFolder:
-      enabled: true
-      prefix: "schema/"  # Downloads all files from s3://my-config-bucket/schema/
+    prefix: "configs/"  # Sync everything from configs/ folder
 ```
 
-#### Combined Root Files and Schema Folder
+#### Environment-Specific Configuration
 
 ```yaml
 connectorConfig:
@@ -296,18 +286,7 @@ connectorConfig:
     bucket: "my-config-bucket"
     region: "us-east-1"
     useIRSA: true
-
-    rootFiles:
-      enabled: true
-      files:
-        - source: "configuration.json"
-          dest: "configuration.json"
-        - source: "connector.yaml"
-          dest: "connector.yaml"
-
-    schemaFolder:
-      enabled: true
-      prefix: "schema/"
+    prefix: "prod/mongodb/"  # Sync everything from prod/mongodb/ folder
 ```
 
 ### S3 Deployment Examples
@@ -321,8 +300,7 @@ helm upgrade --install my-mongodb-connector \
   --set connectorConfig.s3Config.useIRSA=true \
   --set connectorConfig.s3Config.bucket="my-config-bucket" \
   --set connectorConfig.s3Config.region="us-east-1" \
-  --set connectorConfig.s3Config.rootFiles.enabled=true \
-  --set connectorConfig.s3Config.schemaFolder.enabled=true \
+  --set connectorConfig.s3Config.prefix="configs/" \
   --set image.repository="ghcr.io/hasura/ndc-mongodb" \
   --set image.tag="v1.0.0" \
   --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
@@ -337,7 +315,7 @@ kubectl create secret generic aws-credentials \
   --from-literal=access-key-id="YOUR_ACCESS_KEY" \
   --from-literal=secret-access-key="YOUR_SECRET_KEY"
 
-# Deploy with S3 configuration
+# Deploy with S3 configuration.  Copy contents of whole bucket
 helm upgrade --install my-mongodb-connector \
   --set connectorConfig.enabled=true \
   --set connectorConfig.s3Config.enabled=true \
@@ -345,8 +323,6 @@ helm upgrade --install my-mongodb-connector \
   --set connectorConfig.s3Config.credentialsSecret="aws-credentials" \
   --set connectorConfig.s3Config.bucket="my-config-bucket" \
   --set connectorConfig.s3Config.region="us-east-1" \
-  --set connectorConfig.s3Config.rootFiles.enabled=true \
-  --set connectorConfig.s3Config.schemaFolder.enabled=true \
   --set image.repository="ghcr.io/hasura/ndc-mongodb" \
   --set image.tag="v1.0.0" \
   --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
@@ -355,16 +331,44 @@ helm upgrade --install my-mongodb-connector \
 
 ### S3 File Organization
 
-Organize your S3 bucket structure like this:
+Organize your S3 bucket structure based on your prefix configuration:
+
+#### Example 1: Using `prefix: "configs/"`
 
 ```
 my-config-bucket/
-├── configuration.json          # Root configuration file
-├── connector.yaml             # Root connector metadata
-└── schema/                    # Schema directory
-    ├── schema.json           # Schema definition
-    ├── metadata.yaml         # Schema metadata
-    └── types.json            # Type definitions
+└── configs/                   # This folder will be synced
+    ├── configuration.json     # Root configuration file
+    ├── connector.yaml         # Root connector metadata
+    └── schema/                # Schema directory
+        ├── schema.json        # Schema definition
+        ├── metadata.yaml      # Schema metadata
+        └── types.json         # Type definitions
+```
+
+#### Example 2: Using `prefix: "prod/mongodb/"`
+
+```
+my-config-bucket/
+└── prod/
+    └── mongodb/               # This folder will be synced
+        ├── configuration.json
+        ├── connector.yaml
+        └── schema/
+            ├── schema.json
+            └── metadata.yaml
+```
+
+#### Example 3: Using `prefix: ""` (entire bucket)
+
+```
+my-config-bucket/             # Entire bucket will be synced
+├── configuration.json
+├── connector.yaml
+└── schema/
+    ├── schema.json
+    ├── metadata.yaml
+    └── types.json
 ```
 
 ### How S3 Configuration Works
@@ -373,12 +377,10 @@ When S3 configuration is enabled:
 
 1. **Init Container**: Uses `gcr.io/hasura-ee/aws-cli:2.32.7` image with AWS CLI
 2. **Authentication**: Either IRSA or explicit AWS credentials from Kubernetes secret
-3. **File Download**: Downloads individual files using `aws s3 cp`
-4. **Folder Sync**: Syncs entire folders using `aws s3 sync`
-5. **Directory Structure**:
-   - Root files are downloaded to `/etc/connector/` (or your specified `mountPath`)
-   - Schema files are synced to `/etc/connector/schema/`
-6. **Environment Variable**: `HASURA_CONFIGURATION_DIRECTORY` is automatically set
+3. **Recursive Sync**: Uses `aws s3 sync` to download all files from the specified S3 prefix
+4. **Directory Structure**: The S3 folder structure is preserved in the local mount path
+5. **Sync Options**: Uses `--delete` flag to remove local files that don't exist in S3
+6. **Environment Variable**: `HASURA_CONFIGURATION_DIRECTORY` is automatically set to the mount path
 
 ### Benefits of S3-Based Configuration
 
@@ -388,6 +390,9 @@ When S3 configuration is enabled:
 - **Scalability**: Suitable for large configuration files and complex directory structures
 - **Integration**: Works seamlessly with existing AWS infrastructure
 - **Security**: Supports IRSA for secure, credential-less access
+- **Simplicity**: Single prefix configuration - no need to specify individual files or folders
+- **Flexibility**: Supports any directory structure within the specified prefix
+- **Sync Efficiency**: Uses `--delete` flag to keep local files in sync with S3
 
 ## Private Registry Access via Image Pull Secrets (GCR Auth Example)
 
@@ -561,9 +566,6 @@ These defaults appear even if you did not explicitly configure every field, beca
 | `connectorConfig.s3Config.region`                 | AWS region for the S3 bucket                                                                              | `"us-east-1"`                   |
 | `connectorConfig.s3Config.useIRSA`                | Use IAM Roles for Service Accounts (IRSA) for authentication                                               | `false`                         |
 | `connectorConfig.s3Config.credentialsSecret`      | Name of Kubernetes secret containing AWS credentials (when useIRSA=false)                                  | `"aws-credentials"`             |
-| `connectorConfig.s3Config.rootFiles.enabled`      | Enable downloading individual root files from S3                                                           | `false`                         |
-| `connectorConfig.s3Config.rootFiles.files`        | Array of files to download from S3 (source and dest paths)                                                 | `[]`                            |
-| `connectorConfig.s3Config.schemaFolder.enabled`   | Enable syncing schema folder from S3                                                                       | `false`                         |
-| `connectorConfig.s3Config.schemaFolder.prefix`    | S3 prefix/folder path for schema files                                                                     | `"schema/"`                     |
+| `connectorConfig.s3Config.prefix`                 | S3 prefix/folder path to sync (empty string syncs entire bucket)                                           | `""`                            |
 | `serviceAccount.enabled`                          | Enable user of a service account for pod                                                                   | `false`                         |
 | `serviceAccount.name`                             | Name for the service account                                                                               | `""`                            |
