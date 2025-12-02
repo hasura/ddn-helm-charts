@@ -201,7 +201,7 @@ When ConfigMap-based configuration is enabled:
 
 ## S3-Based Configuration Setup
 
-The ndc-mongodb connector also supports downloading configuration files directly from Amazon S3. This approach is ideal for larger configuration files that exceed ConfigMap size limits or when you want to store configuration files in S3.
+The ndc-mongodb connector supports downloading configuration files from **Amazon S3, MinIO, or any S3-compatible storage**. This approach is ideal for larger configuration files that exceed ConfigMap size limits or when you want to store configuration files in cloud storage.
 
 ### S3 Configuration Structure
 
@@ -211,11 +211,11 @@ The S3 configuration system uses **recursive sync** to download all files from a
 2. **Automatic Directory Structure** - The S3 folder structure is preserved in the local mount path
 3. **No File Specification Required** - No need to list individual files or folders
 
-### AWS Authentication Options
+### Authentication Options
 
-#### Option 1: IAM Roles for Service Accounts (IRSA) - Recommended
+#### Option 1: IAM Roles for Service Accounts (IRSA) - AWS EKS Only
 
-When using IRSA, no explicit credentials are needed:
+IRSA allows pods to assume AWS IAM roles without storing credentials. **This only works with AWS S3, not MinIO or other S3-compatible storage.**
 
 ```yaml
 connectorConfig:
@@ -224,16 +224,25 @@ connectorConfig:
     useIRSA: true
     bucket: "my-config-bucket"
     region: "us-east-1"
+    endpoint: ""  # Must be empty for AWS S3
 ```
 
-#### Option 2: AWS Access Keys via Kubernetes Secret
+#### Option 2: Access Keys via Kubernetes Secret (AWS S3, MinIO, S3-Compatible)
 
-Create a secret with AWS credentials:
+Create a secret with your storage credentials:
 
+**For AWS S3:**
 ```bash
 kubectl create secret generic aws-credentials \
   --from-literal=access-key-id="AKIAIOSFODNN7EXAMPLE" \
   --from-literal=secret-access-key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+```
+
+**For MinIO:**
+```bash
+kubectl create secret generic minio-credentials \
+  --from-literal=access-key-id="minioadmin" \
+  --from-literal=secret-access-key="minioadmin"
 ```
 
 Then configure the connector:
@@ -243,9 +252,10 @@ connectorConfig:
   s3Config:
     enabled: true
     useIRSA: false
-    credentialsSecret: "aws-credentials"
+    credentialsSecret: "storage-credentials"  # aws-credentials, minio-credentials, etc.
     bucket: "my-config-bucket"
     region: "us-east-1"
+    endpoint: ""  # Optional: specify for MinIO or S3-compatible storage
 ```
 
 ### S3 Configuration Examples
@@ -275,7 +285,7 @@ connectorConfig:
     prefix: "configs/"  # Sync everything from configs/ folder
 ```
 
-#### Environment-Specific Configuration
+#### Environment-Specific Configuration (AWS S3)
 
 ```yaml
 connectorConfig:
@@ -287,6 +297,37 @@ connectorConfig:
     region: "us-east-1"
     useIRSA: true
     prefix: "prod/mongodb/"  # Sync everything from prod/mongodb/ folder
+    endpoint: ""  # Empty for AWS S3
+```
+
+#### MinIO Configuration (In-Cluster)
+
+```yaml
+connectorConfig:
+  enabled: true
+  s3Config:
+    enabled: true
+    bucket: "connector-configs"
+    region: "us-east-1"  # Can be any region for MinIO
+    useIRSA: false
+    credentialsSecret: "minio-credentials"
+    endpoint: "http://minio.default.svc.cluster.local:9000"
+    prefix: ""
+```
+
+#### MinIO Configuration (External)
+
+```yaml
+connectorConfig:
+  enabled: true
+  s3Config:
+    enabled: true
+    bucket: "connector-configs"
+    region: "us-east-1"
+    useIRSA: false
+    credentialsSecret: "minio-credentials"
+    endpoint: "https://minio.example.com"
+    prefix: ""
 ```
 
 ### S3 Deployment Examples
@@ -300,7 +341,6 @@ helm upgrade --install my-mongodb-connector \
   --set connectorConfig.s3Config.useIRSA=true \
   --set connectorConfig.s3Config.bucket="my-config-bucket" \
   --set connectorConfig.s3Config.region="us-east-1" \
-  --set connectorConfig.s3Config.prefix="configs/" \
   --set image.repository="ghcr.io/hasura/ndc-mongodb" \
   --set image.tag="v1.0.0" \
   --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
@@ -323,6 +363,30 @@ helm upgrade --install my-mongodb-connector \
   --set connectorConfig.s3Config.credentialsSecret="aws-credentials" \
   --set connectorConfig.s3Config.bucket="my-config-bucket" \
   --set connectorConfig.s3Config.region="us-east-1" \
+  --set image.repository="ghcr.io/hasura/ndc-mongodb" \
+  --set image.tag="v1.0.0" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  hasura-ddn/ndc-mongodb
+```
+
+#### Using Helm CLI with MinIO
+
+```bash
+# Create MinIO credentials secret first
+kubectl create secret generic minio-credentials \
+  --from-literal=access-key-id="minioadmin" \
+  --from-literal=secret-access-key="minioadmin"
+
+# Deploy with MinIO configuration
+# For connectorConfig.s3Config.region, you can use any region, it's just a placeholder
+helm upgrade --install my-mongodb-connector \
+  --set connectorConfig.enabled=true \
+  --set connectorConfig.s3Config.enabled=true \
+  --set connectorConfig.s3Config.useIRSA=false \
+  --set connectorConfig.s3Config.credentialsSecret="minio-credentials" \
+  --set connectorConfig.s3Config.bucket="connector-configs" \
+  --set connectorConfig.s3Config.region="us-east-1" \
+  --set connectorConfig.s3Config.endpoint="http://minio.default.svc.cluster.local:9000" \
   --set image.repository="ghcr.io/hasura/ndc-mongodb" \
   --set image.tag="v1.0.0" \
   --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
@@ -386,13 +450,14 @@ When S3 configuration is enabled:
 
 - **No Size Limits**: Unlike ConfigMaps, S3 has no practical size limitations
 - **Version Control**: S3 supports object versioning
-- **Access Control**: Fine-grained IAM permissions
+- **Access Control**: Fine-grained permissions (IAM for AWS, policies for MinIO)
 - **Scalability**: Suitable for large configuration files and complex directory structures
-- **Integration**: Works seamlessly with existing AWS infrastructure
-- **Security**: Supports IRSA for secure, credential-less access
+- **Integration**: Works with AWS S3, MinIO, and other S3-compatible storage systems
+- **Security**: Supports IRSA for AWS S3 or credential-based authentication for all storage types
 - **Simplicity**: Single prefix configuration - no need to specify individual files or folders
 - **Flexibility**: Supports any directory structure within the specified prefix
-- **Sync Efficiency**: Uses `--delete` flag to keep local files in sync with S3
+- **Sync Efficiency**: Uses `--delete` flag to keep local files in sync with remote storage
+- **Storage Options**: Choose between AWS S3, self-hosted MinIO, or other S3-compatible solutions
 
 ## Private Registry Access via Image Pull Secrets (GCR Auth Example)
 
@@ -564,8 +629,9 @@ These defaults appear even if you did not explicitly configure every field, beca
 | `connectorConfig.s3Config.enabled`                | Enable S3-based configuration download                                                                     | `false`                         |
 | `connectorConfig.s3Config.bucket`                 | S3 bucket name containing configuration files                                                              | `"my-config-bucket"`            |
 | `connectorConfig.s3Config.region`                 | AWS region for the S3 bucket                                                                              | `"us-east-1"`                   |
-| `connectorConfig.s3Config.useIRSA`                | Use IAM Roles for Service Accounts (IRSA) for authentication                                               | `false`                         |
-| `connectorConfig.s3Config.credentialsSecret`      | Name of Kubernetes secret containing AWS credentials (when useIRSA=false)                                  | `"aws-credentials"`             |
+| `connectorConfig.s3Config.useIRSA`                | Use IAM Roles for Service Accounts (IRSA) for authentication (AWS S3 only)                                | `false`                         |
+| `connectorConfig.s3Config.credentialsSecret`      | Name of Kubernetes secret containing storage credentials (when useIRSA=false)                              | `"aws-credentials"`             |
+| `connectorConfig.s3Config.endpoint`               | S3 endpoint URL (optional - for MinIO or S3-compatible storage, empty for AWS S3)                          | `""`                            |
 | `connectorConfig.s3Config.prefix`                 | S3 prefix/folder path to sync (empty string syncs entire bucket)                                           | `""`                            |
 | `serviceAccount.enabled`                          | Enable user of a service account for pod                                                                   | `false`                         |
 | `serviceAccount.name`                             | Name for the service account                                                                               | `""`                            |
