@@ -61,12 +61,12 @@ initContainers:
         echo "Syncing configuration from S3..."
         echo "Source: s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }}"
         echo "Destination: {{ .Values.connectorConfig.mountPath }}/"
-        
+
         aws s3 sync \
           s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }} \
           {{ .Values.connectorConfig.mountPath }}/ \
           --delete
-        
+
         echo "S3 sync complete. Files synced:"
         find {{ .Values.connectorConfig.mountPath }} -type f | sort
       env:
@@ -122,28 +122,28 @@ resources: |
 connectorConfig:
   enabled: false
   mountPath: "/etc/connector"
-  
+
   # ConfigMap-based configuration (Option 1 - Direct Mount)
   # Root-level configuration files from ConfigMap
   rootConfig:
     enabled: false
     configMapName: "connector-root-config"
-  
+
   # Schema directory configuration files from ConfigMap
   schemaConfig:
     enabled: false
     configMapName: "connector-schema-config"
-  
+
   # S3-based configuration (Option 2 - Requires InitContainer)
   s3Config:
     enabled: false
     bucket: "my-config-bucket"
     region: "us-east-1"
-    
+
     # AWS Credentials (not needed if using IRSA on EKS)
     useIRSA: false
     credentialsSecret: "aws-credentials"
-    
+
     # S3 prefix to sync (everything under this prefix will be copied)
     # Examples:
     #   "" - sync entire bucket
