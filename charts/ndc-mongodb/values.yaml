@@ -73,11 +73,9 @@ initContainers:
       - |
         set -e
         echo "Setting up connector configuration..."
-        
         {{- if .Values.connectorConfig.s3Config.enabled }}
         # S3 Configuration
         echo "Downloading configuration from S3..."
-        
         {{- if .Values.connectorConfig.s3Config.rootFiles.enabled }}
         # Download root files from S3
         echo "Downloading root configuration files from S3..."
@@ -86,7 +84,6 @@ initContainers:
         aws s3 cp s3://{{ $.Values.connectorConfig.s3Config.bucket }}/{{ .source }} {{ $.Values.connectorConfig.mountPath }}/{{ .dest }}
         {{- end }}
         {{- end }}
-        
         {{- if .Values.connectorConfig.s3Config.schemaFolder.enabled }}
         # Download schema folder from S3
         echo "Creating schema directory..."
@@ -94,7 +91,7 @@ initContainers:
         echo "Syncing schema files from s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.schemaFolder.prefix }}"
         aws s3 sync s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.schemaFolder.prefix }} {{ .Values.connectorConfig.mountPath }}/schema/
         {{- end }}
-        
+
         {{- else }}
         # ConfigMap Configuration
         {{- if .Values.connectorConfig.rootConfig.enabled }}
@@ -102,7 +99,7 @@ initContainers:
         echo "Copying root configuration files from ConfigMap: {{ .Values.connectorConfig.rootConfig.configMapName }}"
         cp /tmp/root-config/* {{ .Values.connectorConfig.mountPath }}/
         {{- end }}
-        
+
         {{- if .Values.connectorConfig.schemaConfig.enabled }}
         # Create schema directory and copy schema files from ConfigMap
         echo "Creating schema directory..."
@@ -111,7 +108,7 @@ initContainers:
         cp /tmp/schema-config/* {{ .Values.connectorConfig.mountPath }}/schema/
         {{- end }}
         {{- end }}
-        
+
         echo "Configuration setup complete:"
         find {{ .Values.connectorConfig.mountPath }} -type f
       {{- if .Values.connectorConfig.s3Config.enabled }}
@@ -182,30 +179,30 @@ resources: |
 connectorConfig:
   enabled: false
   mountPath: "/etc/connector"
-  
+
   # ConfigMap-based configuration (Option 1)
   # Root-level configuration files from ConfigMap
   rootConfig:
     enabled: false
     # Name of externally-created ConfigMap
     configMapName: "connector-root-config"
-  
+
   # Schema directory configuration files from ConfigMap
   schemaConfig:
     enabled: false
     # Name of externally-created ConfigMap
     configMapName: "connector-schema-config"
-  
+
   # S3-based configuration (Option 2)
   s3Config:
     enabled: false
     bucket: "my-config-bucket"
     region: "us-east-1"
-    
+
     # AWS Credentials (not needed if using IRSA)
     useIRSA: false
     credentialsSecret: "aws-credentials"  # Secret with access-key-id and secret-access-key
-    
+
     # Root files to download from S3
     rootFiles:
       enabled: false
@@ -214,7 +211,7 @@ connectorConfig:
           dest: "configuration.json"
         - source: "connector.yaml"
           dest: "connector.yaml"
-    
+
     # Schema folder to sync from S3
     schemaFolder:
       enabled: false
