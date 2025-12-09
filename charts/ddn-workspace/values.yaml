@@ -18,7 +18,6 @@ global:
 
 additionalLabels:
   group: ddn-workspace
-  # ddn-id label will be added automatically when auth-proxy is enabled
 
 networkPolicy:
   ingress:
@@ -48,9 +47,7 @@ homePersistence:
   enabled: false
   size: 10Gi
   accessMode: ReadWriteOnce
-  # storageClassName: ""  # Optional: specify storage class
-  # existingClaim: ""     # Optional: use existing PVC
-  updateStrategy: "version-aware"  # Options: "once", "always", "version-aware"
+  updateStrategy: "version-aware"
 
 healthChecks:
   enabled: true
@@ -96,7 +93,6 @@ skipTlsVerify: false
 secrets:
   password: ""
 
-# Additional Container Envs
 env: |
   - name: CODE_SERVER_PORT
     value: "8123"
@@ -155,9 +151,6 @@ extraVolumeMounts: |
     subPath: home
   {{- end }}
 
-# Ingress Configs
-# enable ingress / routes only if there is no internal network connectivity
-# between control plane and data planes
 ingress:
   enabled: true
   ingressClassName: nginx
@@ -167,35 +160,25 @@ ingress:
 
 routes:
   enabled: false
-# Service ports configuration - handled directly in service.yaml template
-# No additional ports needed as conditional logic is in the service template
 
-# Workspace Auth Proxy Configuration
 workspaceAuthProxy:
-  enabled: false  # Set to true to enable auth-proxy (secrets.password will be ignored)
-  ddnId: ""  # DDN ID that identifies the data plane this workspace belongs to (required when auth-proxy is enabled)
+  enabled: false
+  ddnId: ""
   debug:
     enabled: false
-  # Image Configuration
   image:
     repository: "ddn-workspace-auth-proxy"
     tag: "a61c52b"
     pullPolicy: IfNotPresent
-  # Cookie Configuration
   cookie:
     name: "workspace-session"
-    maxAge: 3600  # Session expiry in seconds (1 hour = 3600 seconds)
-    # domain, path, and secure will be configured automatically based on global settings
-  # Authentication Methods Configuration
+    maxAge: 3600
   auth:
-    # Comma-separated list of enabled auth methods: pat,oidc-access-token,oidc-id-token
     enabledMethods: "pat,oidc-access-token,oidc-id-token"
     ui:
       title: "DDN Workspace | Login"
-  # Service Configuration (used by configmap and ingress)
   service:
-    port: 8080      # Auth-proxy HTTP port
-  # Resource Configuration
+    port: 8080
   resources:
     limits:
       cpu: 200m
@@ -204,7 +187,6 @@ workspaceAuthProxy:
       cpu: 100m
       memory: 128Mi
 
-# Extra containers (sidecars) - Auth Proxy (only when enabled)
 extraContainers: |
   {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - name: auth-proxy
@@ -275,8 +257,28 @@ initContainers:
         IMAGE_VERSION="{{ .Values.image.tag }}"
         INITIALIZED_FILE="/persistent-home/.initialized"
         INITIALIZED_VERSION_FILE="/persistent-home/.image-version"
+        HASURA_LIB_PATH="/home/hasura/.local/lib/hasura"
 
         echo "Home persistence update strategy: $UPDATE_STRATEGY"
+
+        # Function to force sync Hasura library directory
+        force_sync_hasura_lib() {
+          if [ -d "$HASURA_LIB_PATH" ]; then
+            echo "Force syncing $HASURA_LIB_PATH to persistent storage (always overwrites)..."
+            mkdir -p "/persistent-home/hasura/.local/lib"
+            rm -rf "/persistent-home/hasura/.local/lib/hasura"
+            cp -a "$HASURA_LIB_PATH" "/persistent-home/hasura/.local/lib/hasura"
+            echo "Hasura library sync complete"
+          else
+            echo "Warning: $HASURA_LIB_PATH not found in image"
+          fi
+        }
+
+        # Check if version changed
+        version_changed=false
+        if [ ! -f "$INITIALIZED_VERSION_FILE" ] || [ "$(cat $INITIALIZED_VERSION_FILE 2>/dev/null)" != "$IMAGE_VERSION" ]; then
+          version_changed=true
+        fi
 
         case "$UPDATE_STRATEGY" in
           "once")
@@ -285,9 +287,18 @@ initContainers:
               echo "First run. Copying /home to persistent storage..."
               cp -a /home/. /persistent-home/
               touch "$INITIALIZED_FILE"
+              echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
               echo "Copy complete"
             else
               echo "Persistent home already initialized (once strategy)"
+              # Force sync Hasura lib only if version changed
+              if [ "$version_changed" = true ]; then
+                echo "Image version changed - force syncing Hasura library..."
+                force_sync_hasura_lib
+                echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
+              else
+                echo "Image version unchanged - skipping Hasura library sync"
+              fi
             fi
             ;;
           "always")
@@ -295,27 +306,41 @@ initContainers:
             echo "Always strategy - syncing /home to persistent storage..."
             cp -a --update=none /home/. /persistent-home/
             touch "$INITIALIZED_FILE"
+            # Force sync Hasura lib only if version changed
+            if [ "$version_changed" = true ]; then
+              echo "Image version changed - force syncing Hasura library..."
+              force_sync_hasura_lib
+              echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
+            else
+              echo "Image version unchanged - skipping Hasura library sync"
+            fi
             echo "Sync complete (always strategy)"
             ;;
           "version-aware")
             # Copy when image version changes - only add new files, preserve existing
-            if [ ! -f "$INITIALIZED_VERSION_FILE" ] || [ "$(cat $INITIALIZED_VERSION_FILE 2>/dev/null)" != "$IMAGE_VERSION" ]; then
+            if [ "$version_changed" = true ]; then
               echo "Image version changed or first run. Syncing /home to persistent storage..."
               cp -a --update=none /home/. /persistent-home/
+              # Force sync Hasura lib on version change
+              force_sync_hasura_lib
               echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
               touch "$INITIALIZED_FILE"
               echo "Sync complete for version $IMAGE_VERSION"
             else
               echo "Persistent home already up-to-date for version $IMAGE_VERSION"
+              echo "Skipping Hasura library sync (version unchanged)"
             fi
             ;;
           *)
             echo "Unknown update strategy: $UPDATE_STRATEGY. Using 'version-aware' as fallback."
-            if [ ! -f "$INITIALIZED_VERSION_FILE" ] || [ "$(cat $INITIALIZED_VERSION_FILE 2>/dev/null)" != "$IMAGE_VERSION" ]; then
+            if [ "$version_changed" = true ]; then
               cp -a --update=none /home/. /persistent-home/
+              force_sync_hasura_lib
               echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
               touch "$INITIALIZED_FILE"
               echo "Sync complete (fallback to version-aware strategy)"
+            else
+              echo "Version unchanged - no sync needed"
             fi
             ;;
         esac
