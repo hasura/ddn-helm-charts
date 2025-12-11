@@ -1,0 +1,28 @@
+{{- define "common.pdb" -}}
+{{- $serviceName := include "common.name" . -}}
+{{- with .Values.pdb }}
+{{- if .enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ template "common.namespace" $ }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}  
+spec:
+{{ if .minAvailable }}
+  minAvailable: {{ .minAvailable }}
+{{- end }}
+{{ if .maxUnavailable }}
+  maxUnavailable: {{ .maxUnavailable }}
+{{- end }}
+  selector:
+{{- if .selector }}
+    {{- include "common.tplOrYaml" (set (deepCopy $) "value" .selector) | nindent 4 }}
+{{- else }}
+    matchLabels:
+      app: {{ $serviceName }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

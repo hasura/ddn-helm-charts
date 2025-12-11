@@ -1,0 +1,29 @@
+{{- define "common.service" -}}
+{{- $serviceName := include "common.name" . -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ template "common.namespace" . }}
+  annotations: 
+{{- if (.Values.ingress).zuul }} 
+    zuul/route-path: {{ .Values.ingress.context }}
+{{- end }}
+{{- with (.Values.service).additionalAnnotations}}
+  {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+{{- end }} 
+  labels:
+{{- include "common.labels" . | nindent 4 }}
+spec:
+  selector: 
+    app: {{ $serviceName }}
+  ports:
+    - name: {{ .Values.defaultPortName }}
+      port: {{ .Values.httpPort }}
+      targetPort: {{ .Values.httpPort }}
+  {{- with .Values.servicePorts }}
+    {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+  {{- end }}
+  type: {{ default "ClusterIP" (.Values.service).type }}
+{{- end -}}

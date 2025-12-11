@@ -69,9 +69,10 @@ When you enable git-sync, the code will be fetched from the repository specified
 
 The ndc-mongodb connector supports multiple approaches for loading configuration files:
 
-1. **ConfigMap-based configuration** - Load files from Kubernetes ConfigMaps
-2. **S3-based configuration** - Download files directly from Amazon S3
-3. **Git-sync configuration** - Sync files from a Git repository (see [Enabling git-sync](#enabling-git-sync))
+1. **Creating custom docker images** - Create custom docker images with your configuration files included
+2. **ConfigMap-based configuration** - Load files from Kubernetes ConfigMaps
+3. **S3-based configuration** - Download files directly from Amazon S3 (or Minio endpoint)
+4. **Git-sync configuration** - Sync files from a Git repository (see [Enabling git-sync](#enabling-git-sync))
 
 ### ConfigMap-Based Configuration Setup
 
@@ -86,14 +87,15 @@ The connector configuration system supports two types of configuration:
 
 ### Creating ConfigMaps from Files
 
+Note: Take a look at the note below regarding ConfigMap size limits.  If you are running into issues with your ConfigMap being too large, consider using the `jq` command shown below to minify your JSON files before creating the ConfigMap.
+
 #### Method 1: Using kubectl create configmap from files
 
 **For root-level configuration files:**
 ```bash
 # Create ConfigMap from individual files
 kubectl create configmap connector-root-config \
-  --from-file=configuration.json \
-  --from-file=connector.yaml
+  --from-file=configuration.json
 ```
 
 **For schema configuration files:**
@@ -160,8 +162,7 @@ When ConfigMap-based configuration is enabled:
 2. **Create ConfigMaps:**
    ```bash
    kubectl create configmap connector-root-config \
-     --from-file=configuration.json \
-     --from-file=connector.yaml
+     --from-file=configuration.json
 
    kubectl create configmap connector-schema-config \
      --from-file=schema/
@@ -193,11 +194,20 @@ When ConfigMap-based configuration is enabled:
 
 **ConfigMap Size Limits**: ConfigMaps have a maximum size limit of **1 MiB (1,048,576 bytes)** in Kubernetes. This includes all keys and values combined. If your configuration files exceed this limit, consider:
 
-- **Alternative approaches**: Use git-sync for large configuration files
+- **JSON minification**: Use `jq` to minify JSON files and remove unnecessary whitespace:
+  ```bash
+  # Minify configuration.json to reduce size
+  jq -c . configuration.json > configuration.min.json
+
+  # Create ConfigMap with minified file
+  kubectl create configmap ndc-mongodb-config \
+    --from-file=configuration.json=configuration.min.json
+  ```
+- **Alternative approaches**: Use S3-based configuration for large configuration files
 - **File splitting**: Break large configuration files into smaller, more manageable pieces
 - **External storage**: Store large files in external storage and reference them in your configuration
 
-**Note**: The 1 MiB limit applies to the entire ConfigMap, not individual files. Monitor your total configuration size when using multiple files in a single ConfigMap.
+**Note**: The 1 MiB limit applies to the entire ConfigMap, not individual files. JSON minification with `jq -c` can significantly reduce file sizes by removing whitespace and formatting.
 
 ## S3-Based Configuration Setup
 
@@ -403,7 +413,6 @@ Organize your S3 bucket structure based on your prefix configuration:
 my-config-bucket/
 └── configs/                   # This folder will be synced
     ├── configuration.json     # Root configuration file
-    ├── connector.yaml         # Root connector metadata
     └── schema/                # Schema directory
         ├── schema.json        # Schema definition
         ├── metadata.yaml      # Schema metadata
@@ -417,7 +426,6 @@ my-config-bucket/
 └── prod/
     └── mongodb/               # This folder will be synced
         ├── configuration.json
-        ├── connector.yaml
         └── schema/
             ├── schema.json
             └── metadata.yaml
@@ -428,7 +436,6 @@ my-config-bucket/
 ```
 my-config-bucket/             # Entire bucket will be synced
 ├── configuration.json
-├── connector.yaml
 └── schema/
     ├── schema.json
     ├── metadata.yaml

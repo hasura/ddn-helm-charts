@@ -1,0 +1,29 @@
+# Openshift Route
+{{- define "common.route" -}}
+{{- $serviceName := include "common.name" . -}}
+{{- if and (((.Values.global).routes).enabled) ((.Values.routes).enabled) -}}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ template "common.namespace" . }}
+  labels:
+{{- include "common.labels" . | nindent 4 }}
+spec:
+  host: {{ tpl .Values.ingress.hostName . }}
+  path: /
+  port:
+    targetPort: http
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: {{ $serviceName }}
+    weight: 100
+  tls:     
+  {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.global.routes.tls) | nindent 4 }}
+  wildcardPolicy: {{ .Values.ingress.wildcardPolicy | default "None" }}
+{{- end }}
+{{- end -}}

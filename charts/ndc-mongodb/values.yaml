@@ -55,26 +55,7 @@ initContainers:
       imagePullPolicy: {{ .Values.initContainers.s3ConfigSetup.image.pullPolicy }}
       command:
       - sh
-      - -c
-      - |
-        set -e
-        echo "Syncing configuration from S3..."
-        {{- if .Values.connectorConfig.s3Config.endpoint }}
-        echo "Using custom endpoint: {{ .Values.connectorConfig.s3Config.endpoint }}"
-        {{- end }}
-        echo "Source: s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }}"
-        echo "Destination: {{ .Values.connectorConfig.mountPath }}/"
-
-        aws s3 sync \
-          {{- if .Values.connectorConfig.s3Config.endpoint }}
-          --endpoint-url {{ .Values.connectorConfig.s3Config.endpoint }} \
-          {{- end }}
-          s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }} \
-          {{ .Values.connectorConfig.mountPath }}/ \
-          --delete
-
-        echo "S3 sync complete. Files synced:"
-        find {{ .Values.connectorConfig.mountPath }} -type f | sort
+      - /scripts/s3-sync.sh
       env:
       {{- if not .Values.connectorConfig.s3Config.useIRSA }}
       - name: AWS_ACCESS_KEY_ID
@@ -93,9 +74,17 @@ initContainers:
       volumeMounts:
       - name: connector-config-dest
         mountPath: {{ .Values.connectorConfig.mountPath }}
+      - name: s3-sync-script
+        mountPath: /scripts
+        readOnly: true
       {{- if and (not ((.Values.global).securityContext).disabled) .Values.securityContext }}
       securityContext:
-        {{- toYaml .Values.securityContext | nindent 8 }}
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        readOnlyRootFilesystem: true
       {{- end }}
     {{- end }}
 
@@ -129,7 +118,7 @@ connectorConfig:
   enabled: false
   mountPath: "/etc/connector"
 
-  # ConfigMap-based configuration (Option 1 - Direct Mount)
+  # ConfigMap-based configuration (Direct Mount)
   # Root-level configuration files from ConfigMap
   rootConfig:
     enabled: false
@@ -140,7 +129,7 @@ connectorConfig:
     enabled: false
     configMapName: "connector-schema-config"
 
-  # S3-based configuration (Option 2 - Requires InitContainer)
+  # S3-based configuration
   # Works with AWS S3, MinIO, or any S3-compatible storage
   s3Config:
     enabled: false
@@ -210,6 +199,10 @@ extraVolumes: |
   {{- /* S3 mode: need emptyDir for downloads */}}
   - name: connector-config-dest
     emptyDir: {}
+  - name: s3-sync-script
+    configMap:
+      name: {{ include "common.name" . }}-s3-sync-script
+      defaultMode: 0755
   {{- else }}
   {{- /* ConfigMap mode: direct mounts (no emptyDir needed) */}}
   {{- if .Values.connectorConfig.rootConfig.enabled }}

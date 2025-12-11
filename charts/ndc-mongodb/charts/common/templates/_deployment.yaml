@@ -1,0 +1,241 @@
+{{- define "common.deployment" -}}
+{{- $serviceName := include "common.name" . -}}
+{{- $hpaEnabled := eq "true" (include "common.hpaEnabled" .) }}
+{{- $requiresExternalSecretSetup := eq "true" (include "common.enableExternalSecretsSupport" .) }}
+{{- if .Capabilities.APIVersions.Has "apps/v1" }}
+apiVersion: apps/v1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Deployment
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ template "common.namespace" . }}
+  labels:
+{{- include "common.labels" . | nindent 4 }}
+{{- include "common.derivedLabels" . | indent 4 }}
+spec:
+{{- if .Capabilities.APIVersions.Has "apps/v1" }}
+  selector:
+    matchLabels:
+      app: {{ $serviceName }}
+{{- end }}
+{{- $persistence := .Values.persistence | default dict -}}
+{{- if and (eq (index $persistence "enabled") false) (eq (.Values.replicas | int) 1) }}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+{{- end }}
+{{- if eq (index $persistence "enabled") true }}
+  strategy:
+    type: Recreate
+{{- end }}
+{{- if and .Values.replicas (not $hpaEnabled)  }}
+  replicas: {{ .Values.replicas }}
+{{- end }}
+  template:
+    metadata:
+      annotations:
+      {{- if not .Values.disableAnnotationTimestamp }}
+        deployment-timestamp: "{{ date "20060102150405" now }}"
+      {{- end }}
+      {{- if and (.Values.vault).enabled (.Values.vault).annotations }}
+        {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.vault.annotations) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.additionalAnnotations }}
+        {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.additionalAnnotations) | nindent 8 }}
+      {{- end }}
+      {{- include "common.derivedAnnotations" . | nindent 8 }}
+      labels:
+      {{- include "common.labels" . | nindent 8 }}
+    spec:
+      {{- if .Values.global.priorityClassName }}
+      priorityClassName: {{ .Values.global.priorityClassName }} 
+      {{- end }}    
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+    {{- if and (not ((.Values.global).securityContext).disabled) .Values.securityContext }}
+      securityContext:
+      {{- if ((.Values.initContainers).gitSync).enabled }}
+        fsGroup: 65533 # to make SSH key readable
+      {{- end }}
+        {{- toYaml .Values.securityContext | nindent 8 }}
+    {{- end }}
+    {{- if or ((.Values.initContainers).gitSync).enabled $requiresExternalSecretSetup .Values.extraVolumes }}
+      volumes:
+    {{- if ((.Values.initContainers).gitSync).enabled }}
+      - name: git-secret
+        secret:
+          secretName: {{ coalesce .Values.initContainers.gitSync.secretName "git-creds" }}
+          defaultMode: 288 # = mode 0440
+      - name: workdir
+        emptyDir: {}
+    {{- end }}
+    {{- if $requiresExternalSecretSetup }}
+      - name: secrets-refresh-config
+        configMap:
+          name: {{ $serviceName}}-ext-secrets-config
+          items:
+            - key: secret-refresh-config.yaml
+              path: config.yaml
+            - key: secret-refresh-init-config.yaml
+              path: config-init.yaml
+      - name: shared-secret-volume
+        emptyDir: {}
+    {{- end }}    
+      {{- with .Values.extraVolumes }}
+        {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 6 }}
+      {{- end }}
+    {{- end }}
+    {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 8 }}
+    {{- end }}
+    {{/* Configure service account if enabled globally or locally */}}
+    {{- if or (((.Values.global).serviceAccount).enabled) ((.Values.serviceAccount).enabled) }}
+    {{/* Use global default account if specified, otherwise use local service account configuration */}}
+    {{- if ((.Values.global).serviceAccount).defaultAccount }}
+      serviceAccountName: {{ ((.Values.global).serviceAccount).defaultAccount }}
+    {{- else }}
+    {{/* Use local service account name, fallback to service name, but skip if it's "default" */}}
+    {{- $saName := .Values.serviceAccount.name | default $serviceName }}
+    {{- if and $saName (ne $saName "default") }}
+      serviceAccountName: {{ $saName }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+      initContainers:
+        {{- if and $requiresExternalSecretSetup (or (eq .Values.global.externalSecrets.type "initcontainer") .Values.externalSecrets.forceInitContainer) }}
+          {{- include "common.secretRefresherContainer" (merge (dict "externalSecretsOverrideType" "initcontainer") .) | nindent 6 }}
+        {{- end }}        
+        {{- with .Values.initContainers.extraInitContainers }}
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.initContainers.dbMigration.enabled }}
+        {{ with .Values.initContainers.dbMigration}}
+        - name: "db-migration"
+          image: "{{ template "common.image" (dict "Values" $.Values "Chart" $.Chart "repository" .image.repository "tag" .image.tag) }}"
+          imagePullPolicy: {{ default "IfNotPresent" .image.pullPolicy }}
+        {{- end }}
+          {{- with .Values.initContainers.dbMigration.env }}
+          env:
+            {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if (.Values.initContainers.gitSync).enabled }}
+        {{ with .Values.initContainers.gitSync }}
+        - name: "git-sync"
+          image: "{{ template "common.image" (dict "Values" $.Values "Chart" $.Chart "repository" .image.repository "tag" .image.tag) }}"
+          imagePullPolicy: {{ .image.pullPolicy }}
+        {{- end }}
+          {{- if (not ((.Values.global).securityContext).disabled) }}
+          securityContext:
+            runAsUser: 65533 # git-sync user
+          {{- end }}
+          volumeMounts:
+          - name: git-secret
+            mountPath: /etc/git-secret
+          - name: workdir
+            mountPath: "/work-dir"
+          {{ with .Values.initContainers.gitSync }}
+          {{- if .env }}
+          env:
+            {{- include "common.tplOrYaml" (set (deepCopy $) "value" .env) | nindent 12 }}
+            {{- if .additionalEnv }}
+              {{- include "common.tplOrYaml" (set (deepCopy $) "value" .additionalEnv) | nindent 12 }}
+            {{- end -}}
+          {{- end }}
+          {{- end }}
+        {{- end }}
+    {{- with .Values.hostAliases }}
+      hostAliases:
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 8 }}
+    {{- end }}
+      containers:
+      {{- if and $requiresExternalSecretSetup (eq .Values.global.externalSecrets.type "sidecar") }}
+        {{- include "common.secretRefresherContainer" . | nindent 6 }}
+      {{- end }}        
+      {{- with .Values.extraContainers }}
+        {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 8 }}
+      {{- end }}
+        - name: {{ template "common.name" . }}
+          image: "{{ template "common.image" (dict "Values" $.Values "Chart" $.Chart "repository" .Values.image.repository "tag" .Values.image.tag "tagSuffix" (tpl .Values.image.tagSuffix .)) }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+      {{- if and (not ((.Values.global).securityContext).disabled) .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+      {{- end }}
+      {{- with .Values.command }}
+          command:
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 12 }}
+      {{- end }}
+      {{- with .Values.args }}
+          args:
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 12 }}
+      {{- end }}
+          ports:
+            - name: {{ .Values.defaultPortName }}
+              containerPort: {{ .Values.httpPort }}
+              protocol: TCP
+          {{- with .Values.containerPorts }}
+            {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 12 }}
+          {{- end }}
+      {{- if .Values.healthChecks.enabled }}
+          readinessProbe:
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.healthChecks.readinessProbe) | nindent 12 }}
+          livenessProbe:
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.healthChecks.livenessProbe) | nindent 12 }}
+       {{- end }}
+        {{- if .Values.lifecycle }}
+          lifecycle:
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.lifecycle) | nindent 12 }}
+        {{- end }}
+        {{- if or ((.Values.initContainers).gitSync).enabled $requiresExternalSecretSetup .Values.extraVolumeMounts }}
+          volumeMounts:
+        {{- if ((.Values.initContainers).gitSync).enabled }}
+          - name: workdir
+            mountPath: "/work-dir"
+        {{- end }}
+        {{- if $requiresExternalSecretSetup }}
+          - name: shared-secret-volume
+            mountPath: "/secrets"
+        {{- end }}
+        {{- with .Values.extraVolumeMounts }}
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 10 }}
+        {{- end }}
+        {{- end }}
+      {{- if or .Values.env .Values.additionalEnv (eq .Values.appType "java-spring") (index .Values "global" "tracing-enabled") }}
+          env:
+        {{- if eq .Values.appType "java-spring" }}
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.extraEnv.java) | nindent 12 }}
+        {{- end -}}
+        {{- if .Values.env }}
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.env) | nindent 12 }}
+        {{- end -}}
+        {{- if .Values.additionalEnv }}
+          {{- include "common.tplOrYaml" (set (deepCopy $) "value" .Values.additionalEnv) | nindent 12 }}
+        {{- end -}}
+        {{- if include "common.derivedEnvs" . }}    
+          {{- include "common.derivedEnvs" . | nindent 12 }}
+        {{- end -}}          
+      {{- end }}
+        {{- with .Values.envFrom }}
+          envFrom:
+            {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 12 }}
+        {{- end -}}
+        {{- with .Values.resources }}
+          resources:
+            {{- include "common.tplOrYaml"  (set (deepCopy $) "value" .) | nindent 12 }}
+        {{- end }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{ include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{ include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 8 }}
+    {{- end }}
+{{- end -}}
