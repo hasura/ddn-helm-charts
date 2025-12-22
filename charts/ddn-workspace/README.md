@@ -297,9 +297,10 @@ The `homePersistence.updateStrategy` parameter controls when and how the home di
 
 #### 1. `version-aware` (Default - Recommended for All Environments)
 - **When it updates**: Only when the image tag changes
-- **Behavior**: Copies `/home` from the new image to persistent storage
-- **User data**: Automatically backed up before updates with timestamps
-- **Use case**: Ideal for both development and production environments - provides automatic updates with complete safety
+- **Behavior**: Syncs new files from `/home` in the image to persistent storage, preserving existing user files
+- **User data**: Existing files are preserved (not overwritten)
+- **Special handling**: The `/home/hasura/.local/lib/hasura` directory is always force-synced (overwritten) when the image version changes to ensure Connector plugins compatibility
+- **Use case**: Ideal for both development and production environments - provides automatic updates while preserving user customizations
 
 ```yaml
 homePersistence:
@@ -308,14 +309,16 @@ homePersistence:
 
 **Example workflow:**
 1. First deployment with `image.tag: "v1.0.0"` → Copies `/home` to persistent volume
-2. User customizes tools and configs in `/home`
-3. Upgrade to `image.tag: "v1.1.0"` → Backs up user data, copies new `/home` content
-4. User data is preserved in timestamped backup directory
+2. User customizes tools and configs in `/home` (e.g., `.bashrc`, SSH keys)
+3. Upgrade to `image.tag: "v1.1.0"` → Syncs new files from image, preserves user customizations
+4. User customizations remain intact, new tools/configs from the image are added
+5. The `/home/hasura/.local/lib/hasura` directory is overwritten with the new version to ensure Connector splugins compatibility
 
 #### 2. `once` (Conservative - Legacy Approach)
 - **When it updates**: Only on the very first pod start
-- **Behavior**: Never updates after initial copy
+- **Behavior**: Never updates after initial copy (except for Hasura library directory)
 - **User data**: Always preserved (no overwrites)
+- **Special handling**: The `/home/hasura/.local/lib/hasura` directory is still force-synced when the image version changes, even with this strategy
 - **Use case**: Legacy environments where you prefer manual control over updates
 
 ```yaml
@@ -327,11 +330,13 @@ homePersistence:
 1. First deployment → Copies `/home` to persistent volume, creates `.initialized` marker
 2. All subsequent deployments → Skips copy entirely, even with new image versions
 3. User gets initial tools but **misses important updates, security fixes, and new features**
+4. Exception: `/home/hasura/.local/lib/hasura` is still updated when image version changes
 
 #### 3. `always` (Aggressive)
 - **When it updates**: Every pod restart
-- **Behavior**: Always copies `/home` from current image
-- **Use case**: Testing environments where you want fresh state
+- **Behavior**: Syncs files from `/home` in the image to persistent storage, preserving existing user files
+- **Special handling**: The `/home/hasura/.local/lib/hasura` directory is force-synced when the image version changes
+- **Use case**: Testing environments where you want to ensure all new files from the image are present
 
 ```yaml
 homePersistence:
@@ -446,12 +451,32 @@ source ~/.bashrc
 
 **Note:** This configuration is only effective when home persistence is enabled (`homePersistence.enabled=true`). Without home persistence, the `~/.bashrc` file and `~/.bash_history` will be lost on pod restarts.
 
+### Special Handling: DDN CLI Library Directory
+
+The `/home/hasura/.local/lib/hasura` directory receives special treatment during updates to ensure Connector plugins compatibility:
+
+**Behavior:**
+- This directory is **always force-synced** (completely overwritten) when the image version changes
+- This happens regardless of the `updateStrategy` setting (`once`, `always`, or `version-aware`)
+- The force-sync ensures that the DDN CLI libraries match the version expected by the workspace image
+
+**Why this is necessary:**
+- The DDN CLI relies on specific library versions that must match the workspace environment
+- Preserving old library versions could cause compatibility issues or runtime errors
+- This ensures users always have the correct DDN CLI version after image updates
+
+**What this means for users:**
+- Custom modifications to `/home/hasura/.local/lib/hasura` will be lost on image version changes
+- DDN CLI customizations should be done through configuration files, not by modifying library files
+- All other directories in `/home` preserve user customizations according to the update strategy
+
 ### Important Notes
 
 - **Disabled by Default**: Home persistence must be explicitly enabled with `homePersistence.enabled=true`
 - **Separate from Workspace Data**: Home persistence is independent of the main workspace persistence
 - **Image Updates**: Only `version-aware` strategy automatically applies image updates
-- **Backup Location**: User data backups are stored in `.backup-*` directories within the persistent volume
+- **No Backups Created**: The sync process preserves existing files rather than creating backups. Files are only added, not overwritten (except for the Hasura library directory)
+- **Hasura Library Exception**: The `/home/hasura/.local/lib/hasura` directory is always overwritten on version changes to ensure Connector plugins compatibility
 - **Init Container**: Uses the same image as the main container to ensure consistency
 - **Storage Requirements**: Home directory typically needs 2-5GB depending on installed tools
 
@@ -462,20 +487,27 @@ source ~/.bashrc
 kubectl logs <pod-name> -c copy-home
 ```
 
-**View Backup History:**
-```bash
-kubectl exec <pod-name> -- ls -la /persistent-home/.backup-*
-```
-
 **Check Current Image Version:**
 ```bash
-kubectl exec <pod-name> -- cat /persistent-home/.image-version
+kubectl exec <pod-name> -- cat /home/.image-version
 ```
 
-**Manual Recovery from Backup:**
+**Verify Initialization Status:**
 ```bash
-kubectl exec <pod-name> -- cp -r /persistent-home/.backup-20241124-143022/my-config /persistent-home/
+kubectl exec <pod-name> -- ls -la /home/.initialized /home/.image-version
 ```
+
+**Check Hasura Library Directory:**
+```bash
+kubectl exec <pod-name> -- ls -la /home/hasura/.local/lib/hasura
+```
+
+**Manually Trigger Home Directory Refresh:**
+If you need to force a refresh of the home directory content, you can delete the pod to trigger a restart:
+```bash
+kubectl delete pod <pod-name>
+```
+The init container will run again and sync files according to the configured update strategy.
 
 ## Trusting CA certs
 
