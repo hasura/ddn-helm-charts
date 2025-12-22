@@ -453,7 +453,7 @@ source ~/.bashrc
 
 ### Special Handling: DDN CLI Library Directory
 
-The `/home/hasura/.local/lib/hasura` directory receives special treatment during updates to ensure Connector plugins compatibility:
+The `/home/hasura/.local/lib/hasura` directory receives special treatment during updates to ensure DDN CLI compatibility:
 
 **Behavior:**
 - This directory is **always force-synced** (completely overwritten) when the image version changes
