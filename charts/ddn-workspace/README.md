@@ -263,6 +263,28 @@ The DDN Workspace supports persistent storage of the container's `/home` directo
 
 **⚠️ Important: Home Persistence is disabled by default.** You must explicitly enable it by setting `homePersistence.enabled=true` in your configuration.
 
+### Benefits of Home Persistence
+
+When home persistence is enabled, users gain several important advantages:
+
+**Development Continuity:**
+- **DDN CLI version persistence**: The DDN CLI version remains static during pod reboots, ensuring consistent tooling
+- **Authentication persistence**: Users stay logged in via `ddn auth login` - no need to re-authenticate after pod restarts
+- **Command history persistence**: Shell command history is preserved across pod restarts for improved productivity
+
+**Configuration & Customization:**
+- **Custom tool installations persist**: Additional CLI tools, packages, or utilities installed by users remain available
+- **SSH keys and credentials persist**: SSH keys, Git credentials, and authentication tokens are preserved
+- **IDE/Editor configurations persist**: VS Code settings, extensions, and workspace configurations are maintained
+- **Environment variables persist**: Custom `.bashrc`, `.zshrc`, `.profile` settings and environment customizations are retained
+- **Git configuration persists**: User's Git config (name, email, aliases, signing keys) remains configured
+
+**Performance & Efficiency:**
+- **Project dependencies cache persist**: Node modules cache, Python virtual environments, and dependency caches speed up builds
+- **Custom scripts and aliases persist**: User-defined scripts, shell aliases, and automation tools are preserved
+- **Faster pod startup times**: After initial setup, pods start faster since tools and configurations are already in place
+- **Consistent development environment**: Ensures the same development environment across pod restarts and team members
+
 ### How Home Persistence Works
 
 **By default, home persistence is disabled** and the workspace uses the `/home` directory directly from the container image on each restart.
@@ -382,6 +404,47 @@ homePersistence:
 ```
 
 When disabled, the workspace uses the `/home` directory directly from the container image on each restart. No persistent storage is created for home directory data.
+
+### Configuring Bash History Persistence
+
+To ensure your command history is properly persisted across pod restarts when home persistence is enabled, you need to configure bash to use a persistent history file. This configuration ensures that your shell history is saved immediately and survives pod restarts.
+
+**Setup Instructions:**
+
+1. Create or update your `~/.bashrc` file with the following configuration:
+
+```bash
+cat > ~/.bashrc <<'EOF'
+# ---- Bash history persistence ----
+export HISTFILE="$HOME/.bash_history"
+export HISTSIZE=100000
+export HISTFILESIZE=200000
+
+shopt -s histappend
+PROMPT_COMMAND='history -a; history -n'
+
+# mise
+eval "$(mise activate bash)"
+EOF
+```
+
+2. Apply the configuration to your current session:
+
+```bash
+source ~/.bashrc
+```
+
+**Configuration Explanation:**
+
+- `HISTFILE="$HOME/.bash_history"`: Explicitly sets the history file location in the home directory
+- `HISTSIZE=100000`: Sets the number of commands to remember in the current session
+- `HISTFILESIZE=200000`: Sets the maximum number of lines in the history file
+- `shopt -s histappend`: Appends to the history file instead of overwriting it
+- `PROMPT_COMMAND='history -a; history -n'`: Saves history after each command and reloads it
+  - `history -a`: Appends current session history to the history file
+  - `history -n`: Reads new history entries from the history file
+
+**Note:** This configuration is only effective when home persistence is enabled (`homePersistence.enabled=true`). Without home persistence, the `~/.bashrc` file and `~/.bash_history` will be lost on pod restarts.
 
 ### Important Notes
 
