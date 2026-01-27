@@ -73,8 +73,7 @@ spec:
                 fi
               }
 
-              INFO_RESPONSE=$(curl -s -X GET "$API_URL/management/v1/info" \
-                -H "Authorization: Bearer $TOKEN")
+              INFO_RESPONSE=$(curl -s -X GET "$API_URL/management/v1/info")
               check_error "$INFO_RESPONSE" "Get info"
               BOOTSTRAPPED=$(echo "$INFO_RESPONSE" | jq -r ".bootstrapped")
 
@@ -89,8 +88,7 @@ spec:
                 echo "System already bootstrapped."
               fi
 
-              WAREHOUSE_CHECK=$(curl -s -X GET "$API_URL/management/v1/warehouse" \
-                -H "Authorization: Bearer $TOKEN")
+              WAREHOUSE_CHECK=$(curl -s -X GET "$API_URL/management/v1/warehouse")
               echo "Warehouse check response: $WAREHOUSE_CHECK"
               check_error "$WAREHOUSE_CHECK" "List warehouses"
               if echo "$WAREHOUSE_CHECK" | jq -e ".warehouses[] | select(.name == \"$WAREHOUSE_NAME\")" > /dev/null; then
