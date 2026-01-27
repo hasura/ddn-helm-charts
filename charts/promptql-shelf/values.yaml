@@ -31,7 +31,6 @@ lakekeeper:
       LAKEKEEPER__ENABLE_GCP_SYSTEM_CREDENTIALS: "true"
       LAKEKEEPER__ENABLE_AZURE_SYSTEM_CREDENTIALS: "true"
 
-
   secretBackend:
     # -- the type of secret store to use.
     # Available values: "Postgres", "KV2"
@@ -78,7 +77,7 @@ lakekeeper:
 
   serviceAccount:
     # -- Specifies whether a service account should be created.
-    # If `false`, you must create the you must create the service account outside this chart with name: `serviceAccount.name`
+    # If `false`, you must create the service account outside this chart with name: `serviceAccount.name`
     create: true
 
 trino:
