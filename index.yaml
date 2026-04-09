@@ -3078,6 +3078,23 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-sqlserver-jdbc@v2025.11.20/ndc-sqlserver-jdbc-v2025.11.20.tgz
     version: v2025.11.20
+  ndc-trino-jdbc:
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
+    created: "2026-04-09T19:38:01.224527641Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.16
+    description: (DDN) A Helm chart for deploying ndc-trino-jdbc
+    digest: 78899ad6a935e412231fd59f7d2e7aaff1f6c338fb79d82d5a6f798eaefb9739
+    name: ndc-trino-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-trino-jdbc@v2026.04.09/ndc-trino-jdbc-v2026.04.09.tgz
+    version: v2026.04.09
   v3-engine:
   - annotations:
       artifacthub.io/changes: ""
@@ -3127,4 +3144,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2025-11-24T16:08:48.155930404Z"
+generated: "2026-04-09T19:38:01.224877692Z"
