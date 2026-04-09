@@ -17,3 +17,4 @@ ndc-postgres-jdbc
 ndc-snowflake
 ndc-snowflake-jdbc
 ndc-sqlserver-jdbc
+ndc-trino-jdbc
