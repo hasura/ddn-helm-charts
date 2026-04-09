@@ -71,7 +71,7 @@ connectorEnvVars:
   HASURA_SERVICE_TOKEN_SECRET: ""
   JDBC_URL: ""
   JDBC_SCHEMAS: ""
-  HASURA_LOG_LEVEL: ""
+  HASURA_LOG_LEVEL: "info"
   configDirectory: ""
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://dp-otel-collector:4317"
   OTEL_SERVICE_NAME: ""
@@ -93,10 +93,6 @@ env: |
   - name: JDBC_SCHEMAS
     value: {{ .Values.connectorEnvVars.JDBC_SCHEMAS | quote }}
   {{- end }}
-  {{- if .Values.connectorEnvVars.HASURA_LOG_LEVEL }}
-  - name: HASURA_LOG_LEVEL
-    value: {{ .Values.connectorEnvVars.HASURA_LOG_LEVEL | quote }}
-  {{- end }}
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
   {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
@@ -109,4 +105,8 @@ env: |
   {{- if .Values.connectorEnvVars.configDirectory }}
   - name: HASURA_CONFIGURATION_DIRECTORY
     value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.HASURA_LOG_LEVEL }}
+  - name: HASURA_LOG_LEVEL
+    value: {{ .Values.connectorEnvVars.HASURA_LOG_LEVEL }}
   {{- end }}
