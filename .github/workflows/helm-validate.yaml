@@ -274,4 +274,15 @@ jobs:
                 --values tests/ndc-oracle-jdbc-git-sync-values.yaml \
                 --namespace connector-ns
               ;;
+            ndc-trino-jdbc)
+              echo "Rendering ndc-trino-jdbc"
+              helm template connector charts/ndc-trino-jdbc \
+                --values tests/ndc-trino-jdbc-values.yaml \
+                --namespace connector-ns
+
+              echo "Rendering ndc-trino-jdbc-git-sync"
+              helm template connector-git-sync charts/ndc-trino-jdbc \
+                --values tests/ndc-trino-jdbc-git-sync-values.yaml \
+                --namespace connector-ns
+              ;;
           esac
