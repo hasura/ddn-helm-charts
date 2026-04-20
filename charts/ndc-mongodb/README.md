@@ -65,6 +65,407 @@ helm upgrade --install <release-name> \
 
 When you enable git-sync, the code will be fetched from the repository specified in `initContainers.gitSync.repo`, using the branch defined in `initContainers.gitSync.branch`.
 
+## Configuration Setup Options
+
+The ndc-mongodb connector supports multiple approaches for loading configuration files:
+
+1. **Creating custom docker images** - Create custom docker images with your configuration files included
+2. **ConfigMap-based configuration** - Load files from Kubernetes ConfigMaps
+3. **S3-based configuration** - Download files directly from Amazon S3 (or Minio endpoint)
+4. **Git-sync configuration** - Sync files from a Git repository (see [Enabling git-sync](#enabling-git-sync))
+
+### ConfigMap-Based Configuration Setup
+
+This approach uses external ConfigMaps to provide configuration files. It's useful when you want to manage connector configuration files separately from the Helm chart deployment.
+
+### Configuration Structure
+
+The connector configuration system supports two types of configuration:
+
+1. **Root-level configuration files** - Files placed directly in the connector's root directory
+2. **Schema directory configuration files** - Files placed in a `schema/` subdirectory
+
+### Creating ConfigMaps from Files
+
+Note: Take a look at the note below regarding ConfigMap size limits.  If you are running into issues with your ConfigMap being too large, consider using the `jq` command shown below to minify your JSON files before creating the ConfigMap.
+
+#### Method 1: Using kubectl create configmap from files
+
+**For root-level configuration files:**
+```bash
+# Create ConfigMap from individual files
+kubectl create configmap connector-root-config \
+  --from-file=configuration.json
+```
+
+**For schema configuration files:**
+```bash
+# Create ConfigMap from schema directory
+kubectl create configmap connector-schema-config \
+  --from-file=schema/
+```
+
+### Enabling ConfigMap-Based Configuration
+
+To enable ConfigMap-based configuration in your Helm deployment:
+
+```bash
+# Enable both root and schema configuration from ConfigMaps
+helm upgrade --install <release-name> \
+  --set namespace="default" \
+  --set image.repository="my_repo/ndc-mongodb" \
+  --set image.tag="my_custom_image_tag" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
+  --set connectorConfig.enabled=true \
+  --set connectorConfig.rootConfig.enabled=true \
+  --set connectorConfig.rootConfig.configMapName="connector-root-config" \
+  --set connectorConfig.schemaConfig.enabled=true \
+  --set connectorConfig.schemaConfig.configMapName="connector-schema-config" \
+  hasura-ddn/ndc-mongodb
+```
+
+### Configuration via values.yaml
+
+Alternatively, you can configure this in your `values.yaml` file:
+
+```yaml
+connectorConfig:
+  enabled: true
+
+  # Root-level configuration files
+  rootConfig:
+    enabled: true
+    configMapName: "connector-root-config"
+
+  # Schema directory configuration files
+  schemaConfig:
+    enabled: true
+    configMapName: "connector-schema-config"
+```
+
+### How ConfigMap Configuration Works
+
+When ConfigMap-based configuration is enabled:
+
+1. **Direct Volume Mounts**: ConfigMaps are mounted directly as volumes (no init container needed)
+2. **Directory Structure**:
+   - Root config files are mounted to `/etc/connector/` (or your specified `mountPath`)
+   - Schema config files are mounted to `/etc/connector/schema/`
+3. **Environment Variable**: The `HASURA_CONFIGURATION_DIRECTORY` environment variable is automatically set to point to the configuration directory
+4. **Real-time Updates**: Changes to ConfigMaps are reflected in the pod (with Kubernetes' ConfigMap update propagation delay)
+
+### Complete Example Workflow
+
+1. **Copy connector folder and files from Supergraph to a local folder**
+
+2. **Create ConfigMaps:**
+   ```bash
+   kubectl create configmap connector-root-config \
+     --from-file=configuration.json
+
+   kubectl create configmap connector-schema-config \
+     --from-file=schema/
+   ```
+
+3. **Deploy with ConfigMap configuration:**
+   ```bash
+   helm upgrade --install my-mongodb-connector \
+     --set namespace="default" \
+     --set image.repository="my_repo/ndc-mongodb" \
+     --set image.tag="my_custom_image_tag" \
+     --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+     --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
+     --set connectorConfig.enabled=true \
+     --set connectorConfig.rootConfig.enabled=true \
+     --set connectorConfig.schemaConfig.enabled=true \
+     hasura-ddn/ndc-mongodb
+   ```
+
+### Benefits of ConfigMap-Based Configuration
+
+- **Separation of Concerns**: Configuration files are managed separately from the Helm chart
+- **Version Control**: ConfigMaps can be version controlled independently
+- **Dynamic Updates**: Configuration can be updated by updating ConfigMaps and restarting pods
+- **Flexibility**: Mix and match root-level and schema configurations as needed
+- **Reusability**: Same ConfigMaps can be shared across multiple connector deployments
+
+### Important Limitations
+
+**ConfigMap Size Limits**: ConfigMaps have a maximum size limit of **1 MiB (1,048,576 bytes)** in Kubernetes. This includes all keys and values combined. If your configuration files exceed this limit, consider:
+
+- **JSON minification**: Use `jq` to minify JSON files and remove unnecessary whitespace:
+  ```bash
+  # Minify configuration.json to reduce size
+  jq -c . configuration.json > configuration.min.json
+
+  # Create ConfigMap with minified file
+  kubectl create configmap ndc-mongodb-config \
+    --from-file=configuration.json=configuration.min.json
+  ```
+- **Alternative approaches**: Use S3-based configuration for large configuration files
+- **File splitting**: Break large configuration files into smaller, more manageable pieces
+- **External storage**: Store large files in external storage and reference them in your configuration
+
+**Note**: The 1 MiB limit applies to the entire ConfigMap, not individual files. JSON minification with `jq -c` can significantly reduce file sizes by removing whitespace and formatting.
+
+## S3-Based Configuration Setup
+
+The ndc-mongodb connector supports downloading configuration files from **Amazon S3, MinIO, or any S3-compatible storage**. This approach is ideal for larger configuration files that exceed ConfigMap size limits or when you want to store configuration files in cloud storage.
+
+### S3 Configuration Structure
+
+The S3 configuration system uses **recursive sync** to download all files from a specified S3 prefix to the connector's configuration directory. This approach is simple and flexible:
+
+1. **Recursive Sync** - All files and folders under the specified S3 prefix are downloaded
+2. **Automatic Directory Structure** - The S3 folder structure is preserved in the local mount path
+3. **No File Specification Required** - No need to list individual files or folders
+
+### Authentication Options
+
+#### Option 1: IAM Roles for Service Accounts (IRSA) - AWS EKS Only
+
+IRSA allows pods to assume AWS IAM roles without storing credentials. **This only works with AWS S3, not MinIO or other S3-compatible storage.**
+
+```yaml
+connectorConfig:
+  s3Config:
+    enabled: true
+    useIRSA: true
+    bucket: "my-config-bucket"
+    region: "us-east-1"
+    endpoint: ""  # Must be empty for AWS S3
+```
+
+#### Option 2: Access Keys via Kubernetes Secret (AWS S3, MinIO, S3-Compatible)
+
+Create a secret with your storage credentials:
+
+**For AWS S3:**
+```bash
+kubectl create secret generic aws-credentials \
+  --from-literal=access-key-id="AKIAIOSFODNN7EXAMPLE" \
+  --from-literal=secret-access-key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+```
+
+**For MinIO:**
+```bash
+kubectl create secret generic minio-credentials \
+  --from-literal=access-key-id="minioadmin" \
+  --from-literal=secret-access-key="minioadmin"
+```
+
+Then configure the connector:
+
+```yaml
+connectorConfig:
+  s3Config:
+    enabled: true
+    useIRSA: false
+    credentialsSecret: "storage-credentials"  # aws-credentials, minio-credentials, etc.
+    bucket: "my-config-bucket"
+    region: "us-east-1"
+    endpoint: ""  # Optional: specify for MinIO or S3-compatible storage
+```
+
+### S3 Configuration Examples
+
+#### Sync Entire Bucket
+
+```yaml
+connectorConfig:
+  enabled: true
+  s3Config:
+    enabled: true
+    bucket: "my-config-bucket"
+    region: "us-east-1"
+    useIRSA: true
+```
+
+#### Sync Specific Folder/Prefix
+
+```yaml
+connectorConfig:
+  enabled: true
+  s3Config:
+    enabled: true
+    bucket: "my-config-bucket"
+    region: "us-east-1"
+    useIRSA: true
+    prefix: "configs/"  # Sync everything from configs/ folder
+```
+
+#### Environment-Specific Configuration (AWS S3)
+
+```yaml
+connectorConfig:
+  enabled: true
+  mountPath: "/etc/connector"
+  s3Config:
+    enabled: true
+    bucket: "my-config-bucket"
+    region: "us-east-1"
+    useIRSA: true
+    prefix: "prod/mongodb/"  # Sync everything from prod/mongodb/ folder
+    endpoint: ""  # Empty for AWS S3
+```
+
+#### MinIO Configuration (In-Cluster)
+
+```yaml
+connectorConfig:
+  enabled: true
+  s3Config:
+    enabled: true
+    bucket: "connector-configs"
+    region: "us-east-1"  # Can be any region for MinIO
+    useIRSA: false
+    credentialsSecret: "minio-credentials"
+    endpoint: "http://minio.default.svc.cluster.local:9000"
+    prefix: ""
+```
+
+#### MinIO Configuration (External)
+
+```yaml
+connectorConfig:
+  enabled: true
+  s3Config:
+    enabled: true
+    bucket: "connector-configs"
+    region: "us-east-1"
+    useIRSA: false
+    credentialsSecret: "minio-credentials"
+    endpoint: "https://minio.example.com"
+    prefix: ""
+```
+
+### S3 Deployment Examples
+
+#### Using Helm CLI with IRSA
+
+```bash
+helm upgrade --install my-mongodb-connector \
+  --set connectorConfig.enabled=true \
+  --set connectorConfig.s3Config.enabled=true \
+  --set connectorConfig.s3Config.useIRSA=true \
+  --set connectorConfig.s3Config.bucket="my-config-bucket" \
+  --set connectorConfig.s3Config.region="us-east-1" \
+  --set image.repository="ghcr.io/hasura/ndc-mongodb" \
+  --set image.tag="v1.0.0" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  hasura-ddn/ndc-mongodb
+```
+
+#### Using Helm CLI with AWS Credentials
+
+```bash
+# First create the AWS credentials secret
+kubectl create secret generic aws-credentials \
+  --from-literal=access-key-id="YOUR_ACCESS_KEY" \
+  --from-literal=secret-access-key="YOUR_SECRET_KEY"
+
+# Deploy with S3 configuration.  Copy contents of whole bucket
+helm upgrade --install my-mongodb-connector \
+  --set connectorConfig.enabled=true \
+  --set connectorConfig.s3Config.enabled=true \
+  --set connectorConfig.s3Config.useIRSA=false \
+  --set connectorConfig.s3Config.credentialsSecret="aws-credentials" \
+  --set connectorConfig.s3Config.bucket="my-config-bucket" \
+  --set connectorConfig.s3Config.region="us-east-1" \
+  --set image.repository="ghcr.io/hasura/ndc-mongodb" \
+  --set image.tag="v1.0.0" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  hasura-ddn/ndc-mongodb
+```
+
+#### Using Helm CLI with MinIO
+
+```bash
+# Create MinIO credentials secret first
+kubectl create secret generic minio-credentials \
+  --from-literal=access-key-id="minioadmin" \
+  --from-literal=secret-access-key="minioadmin"
+
+# Deploy with MinIO configuration
+# For connectorConfig.s3Config.region, you can use any region, it's just a placeholder
+helm upgrade --install my-mongodb-connector \
+  --set connectorConfig.enabled=true \
+  --set connectorConfig.s3Config.enabled=true \
+  --set connectorConfig.s3Config.useIRSA=false \
+  --set connectorConfig.s3Config.credentialsSecret="minio-credentials" \
+  --set connectorConfig.s3Config.bucket="connector-configs" \
+  --set connectorConfig.s3Config.region="us-east-1" \
+  --set connectorConfig.s3Config.endpoint="http://minio.default.svc.cluster.local:9000" \
+  --set image.repository="ghcr.io/hasura/ndc-mongodb" \
+  --set image.tag="v1.0.0" \
+  --set connectorEnvVars.MONGODB_DATABASE_URI="db_connection_string" \
+  hasura-ddn/ndc-mongodb
+```
+
+### S3 File Organization
+
+Organize your S3 bucket structure based on your prefix configuration:
+
+#### Example 1: Using `prefix: "configs/"`
+
+```
+my-config-bucket/
+└── configs/                   # This folder will be synced
+    ├── configuration.json     # Root configuration file
+    └── schema/                # Schema directory
+        ├── schema.json        # Schema definition
+        ├── metadata.yaml      # Schema metadata
+        └── types.json         # Type definitions
+```
+
+#### Example 2: Using `prefix: "prod/mongodb/"`
+
+```
+my-config-bucket/
+└── prod/
+    └── mongodb/               # This folder will be synced
+        ├── configuration.json
+        └── schema/
+            ├── schema.json
+            └── metadata.yaml
+```
+
+#### Example 3: Using `prefix: ""` (entire bucket)
+
+```
+my-config-bucket/             # Entire bucket will be synced
+├── configuration.json
+└── schema/
+    ├── schema.json
+    ├── metadata.yaml
+    └── types.json
+```
+
+### How S3 Configuration Works
+
+When S3 configuration is enabled:
+
+1. **Init Container**: Uses `gcr.io/hasura-ee/aws-cli:2.32.7` image with AWS CLI
+2. **Authentication**: Either IRSA or explicit AWS credentials from Kubernetes secret
+3. **Recursive Sync**: Uses `aws s3 sync` to download all files from the specified S3 prefix
+4. **Directory Structure**: The S3 folder structure is preserved in the local mount path
+5. **Sync Options**: Uses `--delete` flag to remove local files that don't exist in S3
+6. **Environment Variable**: `HASURA_CONFIGURATION_DIRECTORY` is automatically set to the mount path
+
+### Benefits of S3-Based Configuration
+
+- **No Size Limits**: Unlike ConfigMaps, S3 has no practical size limitations
+- **Version Control**: S3 supports object versioning
+- **Access Control**: Fine-grained permissions (IAM for AWS, policies for MinIO)
+- **Scalability**: Suitable for large configuration files and complex directory structures
+- **Integration**: Works with AWS S3, MinIO, and other S3-compatible storage systems
+- **Security**: Supports IRSA for AWS S3 or credential-based authentication for all storage types
+- **Simplicity**: Single prefix configuration - no need to specify individual files or folders
+- **Flexibility**: Supports any directory structure within the specified prefix
+- **Sync Efficiency**: Uses `--delete` flag to keep local files in sync with remote storage
+- **Storage Options**: Choose between AWS S3, self-hosted MinIO, or other S3-compatible solutions
+
 ## Private Registry Access via Image Pull Secrets (GCR Auth Example)
 
 To pull container images from a private registry, such as when deploying connectors hosted in a restricted environment, you can configure an image pull secret using either a YAML override or Helm CLI flags.
@@ -99,16 +500,45 @@ secrets:
 
 You can achieve the same configuration from the command line using the following steps:
 
-- Save the service account key (JSON) into a file, e.g., `company-sa.json`
+- Save the service account key (JSON) into a file, e.g., `company-sa.json`.  The file will look something like this:
+
+```yaml
+{
+  "type": "service_account",
+  "project_id": "project",
+  "private_key_id": "guid",
+  ...
+  ...
+}
+```
+
+- Create temporary values file with proper structure (Substitute username and email with proper values):
+
+```bash
+cat > /tmp/temp-values.yaml <<'EOF'
+secrets:
+  imagePullSecret:
+    auths:
+      gcr.io:
+        username: _json_key
+        email: support@hasura.io
+        password: |
+EOF
+```
+
+- Append the service account JSON with proper indentation
+
+```bash
+cat company-sa.json | sed 's/^/          /' >> /tmp/temp-values.yaml
+```
+
 - Run Helm by adding the following flags:
 
 ```yaml
 --set global.dataPlane.deployImagePullSecret=true \
 --set global.imagePullSecrets[0]=hasura-image-pull \
 --set global.serviceAccount.enabled=true \
---set secrets.imagePullSecret.auths.gcr\.io.username="_json_key" \
---set secrets.imagePullSecret.auths.gcr\.io.email="support@hasura.io" \
---set-file secrets.imagePullSecret.auths.gcr\.io.password=company-sa.json
+-f /tmp/temp-values.yaml \
 ```
 
 ## Container Level Security Context
@@ -191,5 +621,24 @@ These defaults appear even if you did not explicitly configure every field, beca
 | `initContainers.gitSync.repo`                     | Git repository to read from (Used when initContainers.gitSync.enabled is set to true)                      | `git@github.com:<org>/<repo>`       |
 | `initContainers.gitSync.branch`                   | Branch to read from (Used when initContainers.gitSync.enabled is set to true)                              | `main`                              |
 | `initContainers.gitSync.secretName`               | Secret name for private key & known hosts (Used when initContainers.gitSync.enabled is set to true)        | `git-creds`                         |
+| `initContainers.configSetup.image.repository`     | Image repository for the config setup init container                                                       | `gcr.io/hasura-ee/busybox`                       |
+| `initContainers.configSetup.image.tag`            | Image tag for the config setup init container                                                              | `1.37.0`                        |
+| `initContainers.configSetup.image.pullPolicy`     | Image pull policy for the config setup init container                                                      | `IfNotPresent`                  |
+| `initContainers.s3ConfigSetup.image.repository`   | Image repository for the S3 config setup init container                                                    | `gcr.io/hasura-ee/aws-cli`     |
+| `initContainers.s3ConfigSetup.image.tag`          | Image tag for the S3 config setup init container                                                           | `2.32.7`                        |
+| `initContainers.s3ConfigSetup.image.pullPolicy`   | Image pull policy for the S3 config setup init container                                                   | `IfNotPresent`                  |
+| `connectorConfig.enabled`                         | Enable connector configuration (ConfigMap or S3-based)                                                     | `false`                         |
+| `connectorConfig.mountPath`                       | Path where connector configuration files will be mounted                                                   | `"/etc/connector"`              |
+| `connectorConfig.rootConfig.enabled`              | Enable root-level configuration files from ConfigMap                                                       | `false`                         |
+| `connectorConfig.rootConfig.configMapName`        | Name of ConfigMap containing root-level configuration files                                                 | `"connector-root-config"`       |
+| `connectorConfig.schemaConfig.enabled`            | Enable schema directory configuration files from ConfigMap                                                 | `false`                         |
+| `connectorConfig.schemaConfig.configMapName`      | Name of ConfigMap containing schema configuration files                                                     | `"connector-schema-config"`     |
+| `connectorConfig.s3Config.enabled`                | Enable S3-based configuration download                                                                     | `false`                         |
+| `connectorConfig.s3Config.bucket`                 | S3 bucket name containing configuration files                                                              | `"my-config-bucket"`            |
+| `connectorConfig.s3Config.region`                 | AWS region for the S3 bucket                                                                              | `"us-east-1"`                   |
+| `connectorConfig.s3Config.useIRSA`                | Use IAM Roles for Service Accounts (IRSA) for authentication (AWS S3 only)                                | `false`                         |
+| `connectorConfig.s3Config.credentialsSecret`      | Name of Kubernetes secret containing storage credentials (when useIRSA=false)                              | `"aws-credentials"`             |
+| `connectorConfig.s3Config.endpoint`               | S3 endpoint URL (optional - for MinIO or S3-compatible storage, empty for AWS S3)                          | `""`                            |
+| `connectorConfig.s3Config.prefix`                 | S3 prefix/folder path to sync (empty string syncs entire bucket)                                           | `""`                            |
 | `serviceAccount.enabled`                          | Enable user of a service account for pod                                                                   | `false`                         |
 | `serviceAccount.name`                             | Name for the service account                                                                               | `""`                            |

@@ -1,0 +1,114 @@
+{{- define "common.networkPolicy" -}}
+{{- $serviceName := include "common.name" . -}}
+{{- $globals := .Values.global -}}
+{{- if or (((.Values.global).networkPolicy).enabled) ((.Values.networkPolicy).enabled) -}}
+{{- with .Values.networkPolicy }}
+{{- if or .egress.enabled .ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $serviceName }}
+  namespace: {{ template "common.namespace" $ }}
+  labels:
+{{- include "common.labels" $ | nindent 4 }}
+  annotations: 
+{{- with .additionalAnnotations}}
+  {{- include "common.tplOrYaml"  (set (deepCopy $) "value" .) | nindent 4 }}
+{{- end }}
+spec:
+  policyTypes:
+    {{- if .ingress }}
+    - Ingress
+    {{- end }}
+    {{- if .egress.enabled }}
+    - Egress
+    {{- end }}
+  podSelector:
+    matchLabels:
+      {{- include "common.labels" $ | nindent 6 }}
+
+  {{- if .egress.enabled }}
+  egress:
+  {{- if .egress.allowedApps }}  
+  {{- range $name := .egress.allowedApps }}
+    - to:
+      - podSelector:
+          matchLabels:
+            app: {{ include "common.getServiceHost" (dict "name" $name "catalog" $globals.serviceCatalog "additionalCatalog" $globals.additionalServiceCatalog) }}
+      ports: 
+        - port: {{ include "common.getServicePort" (dict "name" $name "catalog" $globals.serviceCatalog "additionalCatalog" $globals.additionalServiceCatalog) }}
+  {{- end }}
+  {{- end }}
+  {{- if .egress.allowedSelectors }}  
+  {{- range $selector := .egress.allowedSelectors }}
+    - to:
+      - podSelector:
+          matchLabels:
+            {{ toYaml $selector.matchLabels | nindent 12 }}
+  {{- end }}
+  {{- end }}    
+    {{- if not $globals.networkPolicy.egress.blockDNSResolution }}
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+    {{- end }}
+    {{- if not $globals.networkPolicy.egress.blockOtelExporter }}
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: opentelemetry-collector
+      ports:
+        - port: 4317
+          protocol: TCP
+    {{- end }}
+    {{- with .egress.extraRules }}
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+    {{- end }}
+    {{- with $globals.networkPolicy.egress.extraRules }}
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  {{- if .ingress.enabled }}
+  ingress:
+  {{- if .ingress.allowedApps }}
+  {{- range $name := .ingress.allowedApps }}
+    - from:
+      - podSelector:
+          matchLabels:
+            app: {{ $name }}
+      ports:
+        - port: {{ $.Values.httpPort }}
+  {{- end }}
+  {{- end }}
+  {{- if .ingress.allowedSelectors }}  
+  {{- range $selector := .ingress.allowedSelectors }}
+    - from:
+      - podSelector:
+          matchLabels:
+            {{ toYaml $selector.matchLabels | nindent 12 }}
+      ports:
+        - port: {{ $.Values.httpPort }}
+  {{- end }}
+  {{- end }}  
+    {{- with .ingress.extraRules }}
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+    {{- end }}
+  {{- if $.Values.ingress.enabled }}
+    {{- with $globals.networkPolicy.ingress.ingressRules }}
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+    {{- with $globals.networkPolicy.ingress.extraRules }}
+      {{- include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end -}}

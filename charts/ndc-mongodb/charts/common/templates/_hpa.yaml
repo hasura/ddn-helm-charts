@@ -1,0 +1,29 @@
+{{- define "common.hpa" -}}
+{{- $serviceName := include "common.name" . -}}
+{{- $globals := .Values.global -}}
+{{- $hpaEnabled := eq "true" (include "common.hpaEnabled" .) }}
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion ($globals).kubeTargetVersionOverride }}
+{{- if $hpaEnabled -}}
+---
+{{- if semverCompare ">=1.23-0" $kubeTargetVersion }}
+apiVersion: autoscaling/v2
+{{- else }}
+apiVersion: autoscaling/v2beta2
+{{- end }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $serviceName }}-hpa
+  namespace: {{ template "common.namespace" . }}
+  labels:
+{{- include "common.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $serviceName }}
+  minReplicas: {{ coalesce .Values.hpa.minReplicas (($globals).hpa).minReplicas 1 }}
+  maxReplicas: {{ coalesce .Values.hpa.maxReplicas (($globals).hpa).maxReplicas 2 }}
+  metrics: 
+    {{- include "common.tplOrYaml" (set (deepCopy $) "value" (coalesce .Values.hpa.metrics ((.Values.global).hpa).metrics)) | nindent 4 }}
+{{- end }} 
+{{- end -}}

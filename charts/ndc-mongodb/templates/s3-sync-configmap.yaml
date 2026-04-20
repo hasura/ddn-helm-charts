@@ -1,0 +1,1 @@
+{{- include "common.s3-sync-configmap" . }}

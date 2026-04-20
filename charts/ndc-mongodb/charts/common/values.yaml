@@ -1,0 +1,325 @@
+# Default values for commons.
+# This is a YAML-formatted file.
+# Declare name/value pairs to be passed into your templates.
+global:
+  containerRegistry: ""
+  serviceAccount:
+    enabled: false
+  externalSecrets:
+    enabled: false
+    secretName: '{{ include "common.name" . }}'
+    secretPrefix: ""
+    cloud: "" # aws, azure
+    # aws:
+    #   region: us-east-1
+    type: "initcontainer"
+    transform:
+      mode: "keep_all"  # Options: "keep_all", "transformed_only"
+  ingress:
+    uriScheme: ""
+    annotations: ""
+    additionalAnnotations: ""
+  networkPolicy:
+    ingress:
+      extraRules: ""
+      ingressRules: ""
+    egress:
+      extraRules: ""
+      blockDNSResolution: false 
+      blockOtelExporter: false
+  routes:
+    enabled: false
+    tls: {}
+replicas: 1
+defaultPortName: http
+httpPort: 8080
+appType: ""
+
+disableAnnotationTimestamp: true
+
+ingress:
+  enabled: false
+  zuul: false
+  annotations: |
+    {{- if semverCompare "<1.18-0" (default .Capabilities.KubeVersion.GitVersion .Values.global.kubeTargetVersionOverride) }}
+    kubernetes.io/ingress.class: {{ coalesce .Values.global.ingress.ingressClassName "nginx" }}
+    {{- end  }}
+    nginx.ingress.kubernetes.io/use-regex: "true" 
+    certmanager.k8s.io/cluster-issuer: {{ coalesce .Values.global.certIssuer "letsencrypt-staging"}}
+    cert-manager.io/cluster-issuer: {{ coalesce .Values.global.certIssuer "letsencrypt-staging"}}
+  waf:
+    enabled: false
+    annotations:
+      nginx.ingress.kubernetes.io/lua-resty-waf: "active"
+      nginx.ingress.kubernetes.io/lua-resty-waf-debug: "true"
+      nginx.ingress.kubernetes.io/lua-resty-waf-score-threshold: "10"
+      nginx.ingress.kubernetes.io/lua-resty-waf-allow-unknown-content-types: "true"
+      nginx.ingress.kubernetes.io/lua-resty-waf-process-multipart-body: "false"
+
+hpa: {}
+  # enabled: false
+  # minReplicas: 
+  # maxReplicas: 
+  # metrics: []
+
+image:
+  pullPolicy: IfNotPresent
+  tagSuffix: ""
+
+# affinity:
+#     preferSpreadAcrossAZ: true
+externalSecrets:
+  enabled: false
+  forceInitContainer: false
+  # Additional key mappings to include beyond auto-detected ones from env
+  additionalKeyMappings: []
+  # Example:
+  # additionalKeyMappings:
+  #   - from: CUSTOM_SECRET
+  #     to: custom-secret-key
+  #   - from: MANUAL_MAPPING
+  #     to: manual-mapping-value
+  secretRefresher:
+    image:
+      repository: secrets-management-proxy
+      pullPolicy: IfNotPresent      
+    configYaml: |
+      {{- with .Values.global.externalSecrets }}
+      {{- $secretName := (tpl .secretName $) }}
+      {{- $autoMappings := include "common.extractSecretKeyRefs" (dict "context" $ "envString" $.Values.env) }}
+      {{- $additionalMappings := $.Values.externalSecrets.additionalKeyMappings | default list }}
+      {{- $allMappings := "" }}
+      {{- if or $autoMappings $additionalMappings }}
+        {{- if and $autoMappings $additionalMappings }}
+          {{- $allMappings = printf "%s\n%s" $autoMappings ($additionalMappings | toYaml) }}
+        {{- else if $autoMappings }}
+          {{- $allMappings = $autoMappings }}
+        {{- else }}
+          {{- $allMappings = $additionalMappings | toYaml }}
+        {{- end }}
+      {{- end }}
+
+      {{- if eq .cloud "aws"  -}}
+      aws_secrets_manager_file_json:
+        type: "file_aws_secrets_manager"
+        region: {{ .aws.region}}
+        refresh: 300
+        secret_id: {{ if .secretPrefix }}{{ .secretPrefix }}/{{ end }}{{ $secretName }}
+        path: /secrets/{{ $secretName }}.json
+        {{- if $allMappings }}
+        transform:
+          mode: {{ .transform.mode | default "keep_all" | quote }}
+          key_mappings: {{ $allMappings | nindent 6 }}
+        {{- end }}
+      {{- end }}
+      {{- if eq .cloud "azure"  -}}
+      azure_api:
+        type: file_azure_key_vault
+        vault_url: {{ .azure.vaultUrl}}
+        secret_name: {{ $secretName }}
+        path: /secrets/{{ $secretName }}.json
+        refresh: 300
+        {{- if $allMappings }}
+        transform:
+          mode: {{ .transform.mode | default "keep_all" | quote }}
+          key_mappings: {{ $allMappings | nindent 6 }}
+        {{- end }}
+      {{- end }}
+      log_config:
+        level: "info"
+      refresh_config:
+        endpoint: /refresh
+      type: {{ coalesce $.externalSecretsOverrideType .type }}
+      {{- end }}  
+initContainers:
+  dbMigration:
+    enabled: false
+    image:
+      pullPolicy: IfNotPresent
+      tag: latest
+    env: |
+      - name: "DB_URL"
+        valueFrom: 
+          configMapKeyRef:
+            name: configs
+            key: db-url
+      - name: "SCHEMA_TABLE"
+        value: {{ .Values.initContainers.dbMigration.schemaTable | quote }}
+      - name: "FLYWAY_USER"
+        valueFrom: 
+          secretKeyRef: 
+              name: db
+              key: flyway-username
+      - name: "FLYWAY_PASSWORD"
+        valueFrom:
+          secretKeyRef: 
+              name: db
+              key: flyway-password
+      - name: "FLYWAY_LOCATIONS"
+        valueFrom: 
+          configMapKeyRef: 
+              name: configs
+              key: flyway-locations
+
+  gitSync:
+    enabled: false
+    image:
+      repository: registry.k8s.io/git-sync/git-sync
+      pullPolicy: IfNotPresent
+    env: |
+      - name: "GITSYNC_REPO"
+        value: "{{ .Values.initContainers.gitSync.repo }}"
+      - name: "GITSYNC_REF"
+        value: "{{ .Values.initContainers.gitSync.branch }}"
+      - name: "GITSYNC_DEPTH"
+        value: "1"
+      - name: "GITSYNC_ONE_TIME"
+        value: "true"
+      - name: "GITSYNC_ROOT"
+        value: "/work-dir"
+
+healthChecks:
+  enabled: false
+  livenessProbe: |
+    httpGet:
+        path: "{{ .Values.healthChecks.livenessProbePath }}"
+        port: {{ .Values.httpPort }}
+    initialDelaySeconds: 30
+    timeoutSeconds: 5
+    periodSeconds: 60
+    successThreshold: 1
+    failureThreshold: 5
+  readinessProbe: |
+    httpGet:
+        path: "{{ .Values.healthChecks.readinessProbePath }}"
+        port: {{ .Values.httpPort }}
+    initialDelaySeconds: 30
+    timeoutSeconds: 5
+    periodSeconds: 30
+    successThreshold: 1
+    failureThreshold: 5
+
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - sh
+        - -c
+        - "sleep 10"
+persistence:
+  enabled: false
+  accessMode: ReadWriteOnce
+memory_limits: "512Mi"
+resources: |
+  {{- if eq .Values.appType "java-spring" -}}
+  requests:
+    memory: {{ .Values.memory_limits | quote }}
+  limits:
+    memory: {{ .Values.memory_limits | quote }}
+  {{- end -}}
+## Allows specification of additional environment variables
+extraEnv:
+  jaeger: |
+    - name: JAEGER_SERVICE_NAME
+      value: {{ template "common.name" . }}
+    - name: JAEGER_SAMPLER_TYPE
+      value: remote
+    - name: JAEGER_AGENT_HOST
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+    - name: JAEGER_AGENT_PORT
+      value: "6831"
+    - name: JAEGER_SAMPLER_MANAGER_HOST_PORT
+      value: "$(JAEGER_AGENT_HOST):5778"
+    - name: TRACER_OPENTRACING_ENABLED
+      value: "true"
+serviceAccount: {}
+## Additional init containers
+extraInitContainers: |
+
+## Additional sidecar containers
+extraContainers: |
+
+## Add additional volumes and mounts, e. g. for custom themes
+extraVolumes: |
+extraVolumeMounts: |
+
+additionalLabels: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+automountServiceAccountToken: false
+securityContext:
+  {}
+
+containerSecurityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+initContainerSecurityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+additionalAnnotations: |
+
+vault:
+  enabled: false
+  annotations: |
+    {{- if .Values.vault.enabled -}}
+    vault.security.banzaicloud.io/vault-addr: {{ default .Values.global.vault.addr .Values.vault.addr }}
+    vault.security.banzaicloud.io/vault-path: {{ default .Values.global.vault.path .Values.vault.path }}
+    vault.security.banzaicloud.io/vault-role: {{ default .Values.global.vault.role .Values.vault.role }}
+    vault.security.banzaicloud.io/vault-skip-verify: "true"
+    vault.security.banzaicloud.io/inline-mutation: "true"
+    {{- end }}
+service:
+  type: ClusterIP
+  additionalAnnotations: {}
+
+serviceMonitor:
+  enabled: false
+  honorLabels: true
+  path: /metrics
+
+cron:
+  namespace: default
+  concurrencyPolicy: Forbid
+  restartPolicy: OnFailure
+  httpPort: 8080
+  ## Additional sidecar containers
+  extraContainers: |
+
+  ## Add additional volumes and mounts
+  extraVolumes: |
+
+  ## Add additional mounts
+  extraVolumeMounts: |
+
+# enabled only if global.routes is also enabled
+routes:
+  enabled: true
+
+networkPolicy:
+  additionalAnnotations: {}
+
+  enabled: false
+  egress: 
+    enabled: false   
+    blockDNSResolution: true
+    defaultPorts: 
+      - port: 8080
+
+pdb:
+  enabled: false
+

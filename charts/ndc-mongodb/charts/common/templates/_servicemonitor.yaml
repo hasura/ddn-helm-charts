@@ -1,0 +1,39 @@
+{{- define "common.servicemonitor" -}}
+{{- if or (((.Values.global).serviceMonitor).enabled) ((.Values.serviceMonitor).enabled) -}}
+{{ $namespace := include "common.namespace" . }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "common.name" . }}
+  namespace: {{ $namespace }}
+  labels:
+{{- include "common.labels" . | nindent 4 }}  
+spec:
+  endpoints:
+  - port: {{ coalesce .Values.serviceMonitor.port "http" }}
+    path: {{ coalesce .Values.serviceMonitor.path "/metrics" }}
+    honorLabels: {{ .Values.serviceMonitor.honorLabels }}
+    {{- with .Values.serviceMonitor.interval }}
+    interval: {{ . }}
+    {{- end }}
+  {{- with .Values.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{ include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 6 }}
+  {{- end }}
+  {{- with .Values.serviceMonitor.relabelings }}
+    relabelings:
+      {{ include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 6 }}
+  {{- end }}
+  {{- with .Values.serviceMonitor.authorization }}
+    authorization:
+      {{ include "common.tplOrYaml" (set (deepCopy $) "value" .) | nindent 6 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "common.labels" . | nindent 6 }}  
+  namespaceSelector:
+    matchNames:
+      - {{ $namespace }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,89 @@
+{{/*
+S3 Sync ConfigMap Template
+This template creates a ConfigMap containing the S3 sync script for downloading configuration files.
+Supports AWS S3, MinIO, and other S3-compatible storage systems.
+
+Usage: {{ include "common.s3-sync-configmap" . }}
+
+Requirements:
+- .Values.connectorConfig.enabled: true
+- .Values.connectorConfig.s3Config.enabled: true
+- .Values.connectorConfig.s3Config.bucket: S3 bucket name
+- .Values.connectorConfig.s3Config.region: AWS region
+- .Values.connectorConfig.mountPath: Local mount path for downloaded files
+
+Optional:
+- .Values.connectorConfig.s3Config.endpoint: Custom endpoint for MinIO/S3-compatible storage
+- .Values.connectorConfig.s3Config.prefix: S3 prefix/folder to sync (defaults to entire bucket)
+*/}}
+{{- define "common.s3-sync-configmap" -}}
+{{- if and .Values.connectorConfig.enabled .Values.connectorConfig.s3Config.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "common.name" . }}-s3-sync-script
+  namespace: {{ include "common.namespace" . }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+    app.kubernetes.io/component: s3-sync
+data:
+  s3-sync.sh: |
+    #!/bin/sh
+    set -e
+
+    echo "=== S3 Configuration Sync ==="
+    echo "Syncing configuration from S3..."
+    {{- if .Values.connectorConfig.s3Config.endpoint }}
+    echo "Using custom endpoint: {{ .Values.connectorConfig.s3Config.endpoint }}"
+    {{- else }}
+    echo "Using AWS S3 default endpoints"
+    {{- end }}
+    echo "Source: s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }}"
+    echo "Destination: {{ .Values.connectorConfig.mountPath }}/"
+    echo "Region: {{ .Values.connectorConfig.s3Config.region }}"
+    echo ""
+
+    # Perform S3 sync
+    aws s3 sync \
+      {{- if .Values.connectorConfig.s3Config.endpoint }}
+      --endpoint-url {{ .Values.connectorConfig.s3Config.endpoint }} \
+      {{- end }}
+      s3://{{ .Values.connectorConfig.s3Config.bucket }}/{{ .Values.connectorConfig.s3Config.prefix }} \
+      {{ .Values.connectorConfig.mountPath }}/ \
+      --delete \
+      --exact-timestamps
+
+    echo ""
+    echo "=== S3 sync complete ==="
+    echo "Files synced to {{ .Values.connectorConfig.mountPath }}:"
+    find {{ .Values.connectorConfig.mountPath }} -type f | sort
+    echo "=== End S3 sync ==="
+{{- end }}
+{{- end }}
+
+{{/*
+S3 Sync Volume Template
+This template creates the volume definition for the S3 sync script ConfigMap.
+Usage: {{ include "common.s3-sync-volume" . }}
+*/}}
+{{- define "common.s3-sync-volume" -}}
+{{- if and .Values.connectorConfig.enabled .Values.connectorConfig.s3Config.enabled }}
+- name: s3-sync-script
+  configMap:
+    name: {{ include "common.name" . }}-s3-sync-script
+    defaultMode: 0755
+{{- end }}
+{{- end }}
+
+{{/*
+S3 Sync Volume Mount Template
+This template creates the volume mount definition for the S3 sync script.
+Usage: {{ include "common.s3-sync-volume-mount" . }}
+*/}}
+{{- define "common.s3-sync-volume-mount" -}}
+{{- if and .Values.connectorConfig.enabled .Values.connectorConfig.s3Config.enabled }}
+- name: s3-sync-script
+  mountPath: /scripts
+  readOnly: true
+{{- end }}
+{{- end }}
