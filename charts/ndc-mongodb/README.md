@@ -204,14 +204,6 @@ env: |
     value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
   - name: OTEL_SERVICE_NAME
     value: ndc-mongodb
-
-resources: |
-  requests:
-    cpu: 100m
-    memory: 100Mi
-  limits:
-    cpu: 500m
-    memory: 1Gi
 ```
 
 ### How It Works
