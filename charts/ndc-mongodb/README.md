@@ -111,6 +111,121 @@ You can achieve the same configuration from the command line using the following
 --set-file secrets.imagePullSecret.auths.gcr\.io.password=company-sa.json
 ```
 
+## External Secrets (HashiCorp Vault)
+
+When using an external secrets provider such as HashiCorp Vault, the connector can load sensitive environment variables from JSON files written by the `secrets-management-proxy` init container, instead of from Kubernetes Secrets.
+
+### Prerequisites
+
+1. **HashiCorp Vault** must be running and accessible from the cluster.
+2. **Vault Kubernetes auth** must be enabled and configured to trust the cluster's service account issuer.
+3. A **Vault KV v2 secret** must exist at the configured path containing the required keys.
+4. A **Vault role** must be created that binds the connector's Kubernetes ServiceAccount.
+5. The connector image must be the **`-env-loader` variant** (e.g., `ndc-mongodb:v2.0.1-env-loader`).
+
+### Required Vault Secret Keys
+
+Create a secret in Vault at your configured path (e.g., `secret/mongodb-secrets`) with the following keys:
+
+| Key | Description | Required |
+| --- | ----------- | -------- |
+| `MONGODB_DATABASE_URI` | MongoDB connection string | Yes |
+| `HASURA_SERVICE_TOKEN_SECRET` | Hasura service token secret (from your Supergraph `.env` file) | Optional |
+
+Example using the Vault CLI:
+
+```bash
+vault kv put secret/mongodb-secrets \
+  MONGODB_DATABASE_URI="mongodb+srv://user:pass@cluster.example.net/mydb?retryWrites=true&w=majority" \
+  HASURA_SERVICE_TOKEN_SECRET="my-service-token-secret"
+```
+
+### Vault Role Setup
+
+Create a Vault role that authorizes the connector's ServiceAccount:
+
+```bash
+vault write auth/kubernetes/role/hasura-secrets \
+  bound_service_account_names=ndc-mongodb \
+  bound_service_account_namespaces=<your-namespace> \
+  policies=hasura-secrets \
+  ttl=1h
+```
+
+### Example Override File
+
+```yaml
+global:
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Disable Kubernetes Secret creation — secrets come from Vault
+  deploySecrets: false
+
+  externalSecrets:
+    enabled: true
+    secretName: "mongodb-secrets"
+    cloud: hashicorp
+    transform:
+      mode: "transformed_only"
+    hashicorp:
+      vaultAddr: "http://vault.vault.svc.cluster.local:8200"
+      mount: "secret"
+      path: "mongodb-secrets"
+      auth:
+        method: kubernetes
+        role: "hasura-secrets"
+        mountPath: "kubernetes"
+        jwtPath: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+# Use the env-loader variant of the connector image
+image:
+  repository: "gcr.io/hasura-ee/ndc-mongodb"
+  tag: "v2.0.1-env-loader"
+
+# ServiceAccount must match the Vault role's bound_service_account_names
+serviceAccount:
+  enabled: true
+  name: "ndc-mongodb"
+
+externalSecrets:
+  enabled: true
+  type: initcontainer  # use "sidecar" for automatic secret refresh
+  secretRefresher:
+    image:
+      repository: "gcr.io/hasura-ee/secrets-management-proxy"
+      tag: "<secrets-management-proxy-tag>"
+
+# Override the default env block to remove secretKeyRef entries.
+# MONGODB_DATABASE_URI and HASURA_SERVICE_TOKEN_SECRET are injected
+# by the env-loader entrypoint from /secrets/*.json at startup.
+env: |
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+  - name: OTEL_SERVICE_NAME
+    value: ndc-mongodb
+
+resources: |
+  requests:
+    cpu: 100m
+    memory: 100Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+```
+
+### How It Works
+
+1. The `secrets-management-proxy` init container authenticates to Vault using the pod's ServiceAccount token and fetches the secret.
+2. The secret is written as a JSON file to `/secrets/mongodb-secrets.json` on a shared `emptyDir` volume.
+3. The main container uses the `-env-loader` image variant, whose entrypoint script reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the connector.
+4. The connector starts with `MONGODB_DATABASE_URI` (and any other keys) available as environment variables.
+
+### Init Container vs Sidecar
+
+- **`type: initcontainer`** — secrets are fetched once at startup. If the Vault secret is rotated, a pod restart is required to pick up the new values.
+- **`type: sidecar`** — the secret refresher runs alongside the connector and periodically re-fetches secrets (default: every 5 minutes). The connector's env-loader entrypoint only reads secrets at startup, so a pod restart is still needed for the connector to pick up refreshed values. The sidecar mode is useful when combined with other consumers of the `/secrets/` volume.
+
 ## Container Level Security Context
 
 By default, no container-level `securityContext` values are set.
