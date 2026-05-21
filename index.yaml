@@ -1713,6 +1713,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2026-05-21T01:07:56.852234842Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.18
+    description: (DDN) A Helm chart for deploying ndc-mongodb
+    digest: 584d9060a6430bd4f77431bea76ad7e14000aa57f0a1d1f98f41745d27a00896
+    name: ndc-mongodb
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-mongodb@v2026.05.19/ndc-mongodb-v2026.05.19.tgz
+    version: v2026.05.19
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2025-11-20T04:16:38.123117636Z"
     dependencies:
     - name: common
@@ -3144,4 +3160,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2026-04-09T19:38:01.224877692Z"
+generated: "2026-05-21T01:07:57.038757411Z"
