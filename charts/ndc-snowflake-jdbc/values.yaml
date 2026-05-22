@@ -1,7 +1,21 @@
 useReleaseName: true
 
+# Global values shared across charts. Overridden by parent/umbrella charts.
+global:
+  # Toggle to read secrets from an external secret store (Azure Key Vault / AWS
+  # Secrets Manager) via the secret-refresher init container. When true, the
+  # main container image tag is suffixed with `-env-loader` so the entrypoint
+  # loads env vars from `/secrets/*.json` written by secret-refresher-init.
+  externalSecrets:
+    enabled: false
+  # When false, the chart skips rendering Kubernetes Secret resources — secret
+  # values are expected to come from the external secret store instead.
+  deploySecrets: true
+
 additionalAnnotations: |
+  {{- if .Values.global.deploySecrets }}
   checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+  {{- end }}
   app.kubernetes.io/access-group: connector
 
 networkPolicy:
@@ -10,11 +24,24 @@ networkPolicy:
     allowedApps:
       - v3-engine
 
+# When externalSecrets is enabled the secret-refresher pattern in the `common`
+# library is used: an init container fetches secrets from the configured cloud
+# vault and writes them as JSON to a shared emptyDir at /secrets, which the
+# main container's `-env-loader` entrypoint reads at startup.
+externalSecrets:
+  enabled: false
+
 # Container Configs
 image:
   repository: ""
   tag: ""
   pullPolicy: IfNotPresent
+  # Appended to the image tag when external secrets are enabled so the chart
+  # selects the env-loader variant of the image. Evaluated by `common.image`.
+  tagSuffix: |
+    {{- if and .Values.global.externalSecrets.enabled .Values.externalSecrets.enabled -}}
+    {{- print "-env-loader" -}}
+    {{- end -}}
 replicas: "1"
 wsInactiveExpiryMins: "1"
 securityContext:
