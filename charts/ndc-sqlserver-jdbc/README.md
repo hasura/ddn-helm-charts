@@ -181,7 +181,7 @@ global:
 # Use the env-loader variant of the connector image
 image:
   repository: "gcr.io/hasura-ee/ndc-sqlserver-jdbc"
-  tag: "v3.0.0-env-loader"
+  tag: "v1.5.3-env-loader"
 
 # ServiceAccount must match the Vault role's bound_service_account_names
 serviceAccount:
