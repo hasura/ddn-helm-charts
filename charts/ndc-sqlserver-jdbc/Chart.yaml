@@ -1,6 +1,6 @@
 apiVersion: v2
-name: ndc-snowflake-jdbc
-description: (DDN) A Helm chart for deploying ndc-snowflake-jdbc
+name: ndc-sqlserver-jdbc
+description: (DDN) A Helm chart for deploying ndc-sqlserver-jdbc
 
 # A chart can be either an 'application' or a 'library' chart.
 #
