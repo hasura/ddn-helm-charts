@@ -58,6 +58,19 @@ containerSecurityContext:
 #    - ALL
 #  readOnlyRootFilesystem: true
 
+# Writable /tmp for the env-loader entrypoint (mktemp requires it).
+extraVolumes: |
+  {{- if and .Values.global.externalSecrets.enabled .Values.externalSecrets.enabled }}
+  - name: tmp
+    emptyDir: {}
+  {{- end }}
+
+extraVolumeMounts: |
+  {{- if and .Values.global.externalSecrets.enabled .Values.externalSecrets.enabled }}
+  - name: tmp
+    mountPath: /tmp
+  {{- end }}
+
 serviceAccount:
   enabled: false
   name: ""
