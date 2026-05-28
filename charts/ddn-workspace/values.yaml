@@ -111,11 +111,13 @@ env: |
   - name: CODE_SERVER_PORT
     value: "8123"
   {{- if not (include "ddn-workspace.workspaceAuthProxy.enabled" .) }}
+  {{- if .Values.global.deploySecrets }}
   - name: HASHED_PASSWORD
     valueFrom:
       secretKeyRef:
         name: {{ include "common.secretsName" $ }}
         key: WORKSPACE_PASSWORD
+  {{- end }}
   {{- else }}
   - name: CODE_SERVER_NO_AUTH
     value: "true"
