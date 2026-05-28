@@ -259,7 +259,7 @@ Both methods will immediately invalidate the session cookie and return:
 
 ## External Secrets (HashiCorp Vault)
 
-When using an external secrets provider such as HashiCorp Vault, the workspace can load the `WORKSPACE_PASSWORD` environment variable from JSON files written by the `secrets-management-proxy` init container, instead of from a Kubernetes Secret. This is an alternative to setting `secrets.password` directly when `workspaceAuthProxy` is disabled.
+When using an external secrets provider such as HashiCorp Vault, the workspace can load the `HASHED_PASSWORD` environment variable from JSON files written by the `secrets-management-proxy` init container, instead of from a Kubernetes Secret. This is an alternative to setting `secrets.password` directly when `workspaceAuthProxy` is disabled.
 
 ### Prerequisites
 
@@ -275,13 +275,13 @@ Create a secret in Vault at your configured path (e.g., `secret/workspace-secret
 
 | Key | Description | Required |
 | --- | ----------- | -------- |
-| `WORKSPACE_PASSWORD` | Argon2id-hashed workspace password (same value you would pass to `secrets.password`) | Yes |
+| `HASHED_PASSWORD` | Argon2id-hashed workspace password. The workspace's entrypoint expects this exact key name. | Yes |
 
 Example using the Vault CLI:
 
 ```bash
 vault kv put secret/workspace-secrets \
-  WORKSPACE_PASSWORD='$argon2id$v=19$m=16,t=2,p=1$TGY1cnNQblpGNmlCSnV4VQ$1/DpAKkaZhEtHDyVBqpF9A'
+  HASHED_PASSWORD='$argon2id$v=19$m=16,t=2,p=1$TGY1cnNQblpGNmlCSnV4VQ$1/DpAKkaZhEtHDyVBqpF9A'
 ```
 
 ### Vault Role Setup
@@ -343,32 +343,16 @@ externalSecrets:
       repository: "gcr.io/hasura-ee/secrets-management-proxy"
       tag: "<secrets-management-proxy-tag>"
 
-# Override the default env block to remove the secretKeyRef entry for
-# WORKSPACE_PASSWORD. HASHED_PASSWORD is injected by the env-loader entrypoint
-# from /secrets/*.json (read as WORKSPACE_PASSWORD) at startup.
-env: |
-  - name: CODE_SERVER_PORT
-    value: "8123"
-  - name: HASHED_PASSWORD
-    value: "$(WORKSPACE_PASSWORD)"
-  - name: HASURA_DDN_INSECURE_SKIP_TLS_VERIFY
-    value: {{ .Values.skipTlsVerify | quote }}
-  {{- if .Values.setControlPlaneUrls }}
-  - name: HASURA_DDN_CONSOLE_HOST
-    value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}
-  - name: HASURA_DDN_CONTROL_PLANE_HOST
-    value: {{ required "Data URL is required" .Values.dataHost | quote }}
-  - name: HASURA_DDN_CONNECTOR_HUB_REGISTRY_HOST
-    value: {{ required "DDN CPS Engine URL is required" .Values.ddnCpsEngineHost | quote }}
-  {{- end }}
+# No env override needed: HASHED_PASSWORD is injected automatically by the
+# env-loader entrypoint from /secrets/*.json at startup, matching the key
+# name the workspace already expects.
 ```
 
 ### How It Works
 
 1. The `secrets-management-proxy` init container authenticates to Vault using the pod's ServiceAccount token and fetches the secret.
 2. The secret is written as a JSON file to `/secrets/workspace-secrets.json` on a shared `emptyDir` volume.
-3. The main container uses the `-env-loader` image variant, whose entrypoint script reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the workspace.
-4. The workspace starts with `WORKSPACE_PASSWORD` available as an environment variable, which is wired through to `HASHED_PASSWORD` by the chart's `env` block.
+3. The main container uses the `-env-loader` image variant, whose entrypoint script reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the workspace. The workspace starts with `HASHED_PASSWORD` available directly — no mapping or custom `env` block is needed because the Vault key name matches what the workspace expects.
 
 ### Init Container vs Sidecar
 
