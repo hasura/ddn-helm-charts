@@ -115,13 +115,15 @@ You can achieve the same configuration from the command line using the following
 
 When using an external secrets provider such as HashiCorp Vault, the connector can load sensitive environment variables from JSON files written by the `secrets-management-proxy` init container, instead of from Kubernetes Secrets.
 
+**Note:** HashiCorp Vault projected ServiceAccount token (`projectedToken`) support is available starting with chart version `v2026.05.27` (which bumps the `common` dependency to 0.0.19).
+
 ### Prerequisites
 
 1. **HashiCorp Vault** must be running and accessible from the cluster.
 2. **Vault Kubernetes auth** must be enabled and configured to trust the cluster's service account issuer.
 3. A **Vault KV v2 secret** must exist at the configured path containing the required keys.
 4. A **Vault role** must be created that binds the connector's Kubernetes ServiceAccount.
-5. The connector image must be the **`-env-loader` variant** (e.g., `ndc-mongodb:v2.0.1-env-loader`).
+5. The connector image must be the **`-env-loader` variant** (e.g., `ndc-mongodb:v2026.05.19-env-loader`).
 
 ### Required Vault Secret Keys
 
@@ -176,12 +178,19 @@ global:
         method: kubernetes
         role: "hasura-secrets"
         mountPath: "kubernetes"
-        jwtPath: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        # When projectedToken.enabled is true, jwtPath defaults to
+        # /var/run/secrets/projectedtokens/vault-token (set by common).
+        # Use a projected, audience-bound ServiceAccount token instead of the
+        # default SA token for Vault Kubernetes auth.
+        projectedToken:
+          enabled: true
+          audience: "vault"
+          expirationSeconds: 7200
 
 # Use the env-loader variant of the connector image
 image:
   repository: "gcr.io/hasura-ee/ndc-mongodb"
-  tag: "v2.0.1-env-loader"
+  tag: "v2026.05.19-env-loader"
 
 # ServiceAccount must match the Vault role's bound_service_account_names
 serviceAccount:
