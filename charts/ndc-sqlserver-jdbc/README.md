@@ -123,7 +123,7 @@ When using an external secrets provider such as HashiCorp Vault, the connector c
 2. **Vault Kubernetes auth** must be enabled and configured to trust the cluster's service account issuer.
 3. A **Vault KV v2 secret** must exist at the configured path containing the required keys.
 4. A **Vault role** must be created that binds the connector's Kubernetes ServiceAccount.
-5. The connector image must be the **`-env-loader` variant** (e.g., `ndc-sqlserver-jdbc:v2026.05.22-env-loader`).
+5. The connector image must be the **`-env-loader` variant** (e.g., `ndc-sqlserver-jdbc:v3.0.0-env-loader`).
 
 ### Required Vault Secret Keys
 
@@ -190,7 +190,7 @@ global:
 # Use the env-loader variant of the connector image
 image:
   repository: "gcr.io/hasura-ee/ndc-sqlserver-jdbc"
-  tag: "v2026.05.22-env-loader"
+  tag: "v1.5.3-env-loader"
 
 # ServiceAccount must match the Vault role's bound_service_account_names
 serviceAccount:
