@@ -261,6 +261,8 @@ Both methods will immediately invalidate the session cookie and return:
 
 When using an external secrets provider such as HashiCorp Vault, the workspace can load the `HASHED_PASSWORD` environment variable from JSON files written by the `secrets-management-proxy` init container, instead of from a Kubernetes Secret. This is an alternative to setting `secrets.password` directly when `workspaceAuthProxy` is disabled.
 
+**Note:** External secrets support is available starting with release 2.7.9.
+
 ### Prerequisites
 
 1. **HashiCorp Vault** must be running and accessible from the cluster.
@@ -321,14 +323,21 @@ global:
         method: kubernetes
         role: "hasura-secrets"
         mountPath: "kubernetes"
-        jwtPath: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        # Use an audience-bound projected ServiceAccount token for Vault
+        # Kubernetes auth. When enabled, jwtPath defaults to
+        # /var/run/secrets/projectedtokens/vault-token (set by the common
+        # chart), so it does not need to be configured explicitly.
+        projectedToken:
+          enabled: true
+          audience: "vault"
+          expirationSeconds: 7200
 
 consoleUrl: "https://console.my-cp.domain.com"
 
 # The chart will append `-env-loader` to image.tag automatically when
 # global.externalSecrets.enabled and externalSecrets.enabled are both true.
 image:
-  tag: "2.6.1"
+  tag: "2.7.9"
 
 # ServiceAccount must match the Vault role's bound_service_account_names
 serviceAccount:
@@ -353,6 +362,14 @@ externalSecrets:
 1. The `secrets-management-proxy` init container authenticates to Vault using the pod's ServiceAccount token and fetches the secret.
 2. The secret is written as a JSON file to `/secrets/workspace-secrets.json` on a shared `emptyDir` volume.
 3. The main container uses the `-env-loader` image variant, whose entrypoint script reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the workspace. The workspace starts with `HASHED_PASSWORD` available directly — no mapping or custom `env` block is needed because the Vault key name matches what the workspace expects.
+
+### Vault Kubernetes Auth: Projected ServiceAccount Tokens
+
+By default, the secret-refresher authenticates to Vault using the pod's default ServiceAccount token (mounted at `/var/run/secrets/kubernetes.io/serviceaccount/token`). Setting `global.externalSecrets.hashicorp.auth.projectedToken.enabled: true` switches to an audience-bound, short-lived projected ServiceAccount token instead, which is the recommended posture for Vault Kubernetes auth. When enabled:
+
+1. A `projected` volume named `vault-projected-token` is added to the pod, with a `serviceAccountToken` source using the configured `audience` (default `"vault"`) and `expirationSeconds` (default `7200`).
+2. The volume is mounted on the secret-refresher container at `/var/run/secrets/projectedtokens`, so the token is available at `/var/run/secrets/projectedtokens/vault-token`.
+3. The secret-refresher's Vault config uses that path as `jwt_path` (the default switches automatically when `projectedToken.enabled` is true), so Vault Kubernetes auth verifies the audience-bound token instead of the default ServiceAccount token.
 
 ### Init Container vs Sidecar
 
