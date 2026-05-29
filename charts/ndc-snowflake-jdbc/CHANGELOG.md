@@ -1,8 +1,11 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ndc-snowflake-jdbc@v2026.05.27"></a>
+## [ndc-snowflake-jdbc@v2026.05.27] - 2026-05-28
+
 <a name="ndc-snowflake-jdbc@v2026.05.22"></a>
-## [ndc-snowflake-jdbc@v2026.05.22] - 2026-05-23
+## [ndc-snowflake-jdbc@v2026.05.22] - 2026-05-22
 - fix: mount writable /tmp for env-loader entrypoint
 
 <a name="ndc-snowflake-jdbc@v2025.11.20"></a>
