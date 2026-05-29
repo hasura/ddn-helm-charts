@@ -15,6 +15,16 @@ global:
     enabled: true
   routes:
     enabled: false
+  # Toggle to read secrets from an external secret store (Azure Key Vault / AWS
+  # Secrets Manager / HashiCorp Vault) via the secret-refresher init container.
+  # When true, the main container image tag is suffixed with `-env-loader` so
+  # the entrypoint loads env vars from `/secrets/*.json` written by
+  # secret-refresher-init.
+  externalSecrets:
+    enabled: false
+  # When false, the chart skips rendering the Kubernetes Secret resource —
+  # secret values are expected to come from the external secret store instead.
+  deploySecrets: true
 
 additionalLabels:
   group: ddn-workspace
@@ -31,10 +41,23 @@ networkPolicy:
 
 useReleaseName: true
 
+# When externalSecrets is enabled the secret-refresher pattern in the `common`
+# library is used: an init container fetches secrets from the configured cloud
+# vault and writes them as JSON to a shared emptyDir at /secrets, which the
+# main container's `-env-loader` entrypoint reads at startup.
+externalSecrets:
+  enabled: false
+
 # Container Configs
 image:
   repository: "ddn-native-workspace"
   tag: ""
+  # Appended to the image tag when external secrets are enabled so the chart
+  # selects the env-loader variant of the image. Evaluated by `common.image`.
+  tagSuffix: |
+    {{- if and .Values.global.externalSecrets.enabled .Values.externalSecrets.enabled -}}
+    {{- print "-env-loader" -}}
+    {{- end -}}
 replicas: "1"
 httpPort: 8123
 setControlPlaneUrls: true
@@ -88,11 +111,13 @@ env: |
   - name: CODE_SERVER_PORT
     value: "8123"
   {{- if not (include "ddn-workspace.workspaceAuthProxy.enabled" .) }}
+  {{- if .Values.global.deploySecrets }}
   - name: HASHED_PASSWORD
     valueFrom:
       secretKeyRef:
         name: {{ include "common.secretsName" $ }}
         key: WORKSPACE_PASSWORD
+  {{- end }}
   {{- else }}
   - name: CODE_SERVER_NO_AUTH
     value: "true"

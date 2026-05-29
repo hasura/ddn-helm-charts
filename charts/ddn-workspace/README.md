@@ -257,6 +257,125 @@ Both methods will immediately invalidate the session cookie and return:
 - Auth-proxy admin port (9901) is never exposed externally for security
 - **Logout endpoint** (`/logout`) immediately invalidates sessions for enhanced security
 
+## External Secrets (HashiCorp Vault)
+
+When using an external secrets provider such as HashiCorp Vault, the workspace can load the `HASHED_PASSWORD` environment variable from JSON files written by the `secrets-management-proxy` init container, instead of from a Kubernetes Secret. This is an alternative to setting `secrets.password` directly when `workspaceAuthProxy` is disabled.
+
+**Note:** External secrets support is available starting with release 2.7.9.
+
+### Prerequisites
+
+1. **HashiCorp Vault** must be running and accessible from the cluster.
+2. **Vault Kubernetes auth** must be enabled and configured to trust the cluster's service account issuer.
+3. A **Vault KV v2 secret** must exist at the configured path containing the required keys.
+4. A **Vault role** must be created that binds the workspace's Kubernetes ServiceAccount.
+5. The workspace image must be the **`-env-loader` variant** (e.g., `ddn-native-workspace:<tag>-env-loader`). When `global.externalSecrets.enabled` and `externalSecrets.enabled` are both true, the chart appends `-env-loader` to the configured `image.tag` automatically.
+
+### Required Vault Secret Keys
+
+Create a secret in Vault at your configured path (e.g., `secret/workspace-secrets`) with the following key:
+
+| Key | Description | Required |
+| --- | ----------- | -------- |
+| `HASHED_PASSWORD` | Argon2id-hashed workspace password. The workspace's entrypoint expects this exact key name. | Yes |
+
+Example using the Vault CLI:
+
+```bash
+vault kv put secret/workspace-secrets \
+  HASHED_PASSWORD='$argon2id$v=19$m=16,t=2,p=1$TGY1cnNQblpGNmlCSnV4VQ$1/DpAKkaZhEtHDyVBqpF9A'
+```
+
+### Vault Role Setup
+
+Create a Vault role that authorizes the workspace's ServiceAccount:
+
+```bash
+vault write auth/kubernetes/role/hasura-secrets \
+  bound_service_account_names=ddn-workspace \
+  bound_service_account_namespaces=<your-namespace> \
+  policies=hasura-secrets \
+  ttl=1h
+```
+
+### Example Override File
+
+```yaml
+global:
+  domain: "hasura-dp.domain.com"
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Disable Kubernetes Secret creation — secrets come from Vault
+  deploySecrets: false
+
+  externalSecrets:
+    enabled: true
+    secretName: "workspace-secrets"
+    cloud: hashicorp
+    transform:
+      mode: "transformed_only"
+    hashicorp:
+      vaultAddr: "http://vault.vault.svc.cluster.local:8200"
+      mount: "secret"
+      path: "workspace-secrets"
+      auth:
+        method: kubernetes
+        role: "hasura-secrets"
+        mountPath: "kubernetes"
+        # Use an audience-bound projected ServiceAccount token for Vault
+        # Kubernetes auth. When enabled, jwtPath defaults to
+        # /var/run/secrets/projectedtokens/vault-token (set by the common
+        # chart), so it does not need to be configured explicitly.
+        projectedToken:
+          enabled: true
+          audience: "vault"
+          expirationSeconds: 7200
+
+consoleUrl: "https://console.my-cp.domain.com"
+
+# The chart will append `-env-loader` to image.tag automatically when
+# global.externalSecrets.enabled and externalSecrets.enabled are both true.
+image:
+  tag: "2.7.9"
+
+# ServiceAccount must match the Vault role's bound_service_account_names
+serviceAccount:
+  enabled: true
+  name: "ddn-workspace"
+
+externalSecrets:
+  enabled: true
+  type: initcontainer  # use "sidecar" for automatic secret refresh
+  secretRefresher:
+    image:
+      repository: "gcr.io/hasura-ee/secrets-management-proxy"
+      tag: "<secrets-management-proxy-tag>"
+
+# No env override needed: HASHED_PASSWORD is injected automatically by the
+# env-loader entrypoint from /secrets/*.json at startup, matching the key
+# name the workspace already expects.
+```
+
+### How It Works
+
+1. The `secrets-management-proxy` init container authenticates to Vault using the pod's ServiceAccount token and fetches the secret.
+2. The secret is written as a JSON file to `/secrets/workspace-secrets.json` on a shared `emptyDir` volume.
+3. The main container uses the `-env-loader` image variant, whose entrypoint script reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the workspace. The workspace starts with `HASHED_PASSWORD` available directly — no mapping or custom `env` block is needed because the Vault key name matches what the workspace expects.
+
+### Vault Kubernetes Auth: Projected ServiceAccount Tokens
+
+By default, the secret-refresher authenticates to Vault using the pod's default ServiceAccount token (mounted at `/var/run/secrets/kubernetes.io/serviceaccount/token`). Setting `global.externalSecrets.hashicorp.auth.projectedToken.enabled: true` switches to an audience-bound, short-lived projected ServiceAccount token instead, which is the recommended posture for Vault Kubernetes auth. When enabled:
+
+1. A `projected` volume named `vault-projected-token` is added to the pod, with a `serviceAccountToken` source using the configured `audience` (default `"vault"`) and `expirationSeconds` (default `7200`).
+2. The volume is mounted on the secret-refresher container at `/var/run/secrets/projectedtokens`, so the token is available at `/var/run/secrets/projectedtokens/vault-token`.
+3. The secret-refresher's Vault config uses that path as `jwt_path` (the default switches automatically when `projectedToken.enabled` is true), so Vault Kubernetes auth verifies the audience-bound token instead of the default ServiceAccount token.
+
+### Init Container vs Sidecar
+
+- **`type: initcontainer`** — secrets are fetched once at startup. If the Vault secret is rotated, a pod restart is required to pick up the new values.
+- **`type: sidecar`** — the secret refresher runs alongside the workspace and periodically re-fetches secrets (default: every 5 minutes). The workspace's env-loader entrypoint only reads secrets at startup, so a pod restart is still needed for the workspace to pick up refreshed values. The sidecar mode is useful when combined with other consumers of the `/secrets/` volume.
+
 ## Trusting CA certs
 
 If you are using an SSL Certificate under your Control Plane ingresses which is tied to a CA (Certificate Authority) that is only trusted by your company, you
