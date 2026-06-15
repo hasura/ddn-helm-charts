@@ -111,6 +111,135 @@ You can achieve the same configuration from the command line using the following
 --set-file secrets.imagePullSecret.auths.gcr\.io.password=company-sa.json
 ```
 
+## External Secrets (HashiCorp Vault)
+
+When using an external secrets provider such as HashiCorp Vault, the connector can load sensitive environment variables from JSON files written by the `secrets-management-proxy` init container, instead of from Kubernetes Secrets.
+
+**Note:** HashiCorp Vault projected ServiceAccount token (`projectedToken`) support is available starting with chart version `v2026.05.27` (which bumps the `common` dependency to 0.0.19).
+
+### Prerequisites
+
+1. **HashiCorp Vault** must be running and accessible from the cluster.
+2. **Vault Kubernetes auth** must be enabled and configured to trust the cluster's service account issuer.
+3. A **Vault KV v2 secret** must exist at the configured path containing the required keys.
+4. A **Vault role** must be created that binds the connector's Kubernetes ServiceAccount.
+5. The connector image must be the **`-env-loader` variant** (e.g., `ndc-sqlserver-jdbc:v3.0.0-env-loader`).
+
+### Required Vault Secret Keys
+
+Create a secret in Vault at your configured path (e.g., `secret/sqlserver-secrets`) with the following keys:
+
+| Key | Description | Required |
+| --- | ----------- | -------- |
+| `JDBC_URL` | SQL Server JDBC connection string | Yes |
+| `HASURA_SERVICE_TOKEN_SECRET` | Hasura service token secret (from your Supergraph `.env` file) | Optional |
+
+Example using the Vault CLI:
+
+```bash
+vault kv put secret/sqlserver-secrets \
+  JDBC_URL="jdbc:sqlserver://sqlserver.example.com:1433;databaseName=mydb;encrypt=true;trustServerCertificate=false" \
+  HASURA_SERVICE_TOKEN_SECRET="my-service-token-secret"
+```
+
+### Vault Role Setup
+
+Create a Vault role that authorizes the connector's ServiceAccount:
+
+```bash
+vault write auth/kubernetes/role/hasura-secrets \
+  bound_service_account_names=ndc-sqlserver-jdbc \
+  bound_service_account_namespaces=<your-namespace> \
+  policies=hasura-secrets \
+  ttl=1h
+```
+
+### Example Override File
+
+```yaml
+global:
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Disable Kubernetes Secret creation — secrets come from Vault
+  deploySecrets: false
+
+  externalSecrets:
+    enabled: true
+    secretName: "sqlserver-secrets"
+    cloud: hashicorp
+    transform:
+      mode: "transformed_only"
+    hashicorp:
+      vaultAddr: "http://vault.vault.svc.cluster.local:8200"
+      mount: "secret"
+      path: "sqlserver-secrets"
+      auth:
+        method: kubernetes
+        role: "hasura-secrets"
+        mountPath: "kubernetes"
+        # When projectedToken.enabled is true, jwtPath defaults to
+        # /var/run/secrets/projectedtokens/vault-token (set by common).
+        # Use a projected, audience-bound ServiceAccount token instead of the
+        # default SA token for Vault Kubernetes auth.
+        projectedToken:
+          enabled: true
+          audience: "vault"
+          expirationSeconds: 7200
+
+# Use the env-loader variant of the connector image
+image:
+  repository: "gcr.io/hasura-ee/ndc-sqlserver-jdbc"
+  tag: "v1.5.3-env-loader"
+
+# ServiceAccount must match the Vault role's bound_service_account_names
+serviceAccount:
+  enabled: true
+  name: "ndc-sqlserver-jdbc"
+
+externalSecrets:
+  enabled: true
+  type: initcontainer  # use "sidecar" for automatic secret refresh
+  secretRefresher:
+    image:
+      repository: "gcr.io/hasura-ee/secrets-management-proxy"
+      tag: "<secrets-management-proxy-tag>"
+
+# Override the default env block to remove secretKeyRef entries.
+# JDBC_URL and HASURA_SERVICE_TOKEN_SECRET are injected
+# by the env-loader entrypoint from /secrets/*.json at startup.
+env: |
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+  {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  {{- else }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Chart.Name }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.configDirectory }}
+  - name: HASURA_CONFIGURATION_DIRECTORY
+    value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.HASURA_LOG_LEVEL }}
+  - name: HASURA_LOG_LEVEL
+    value: {{ .Values.connectorEnvVars.HASURA_LOG_LEVEL }}
+  {{- end }}
+```
+
+### How It Works
+
+1. The `secrets-management-proxy` init container authenticates to Vault using the pod's ServiceAccount token and fetches the secret.
+2. The secret is written as a JSON file to `/secrets/sqlserver-secrets.json` on a shared `emptyDir` volume.
+3. The main container uses the `-env-loader` image variant, whose entrypoint script reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the connector.
+4. The connector starts with `JDBC_URL` (and any other keys) available as environment variables.
+
+### Init Container vs Sidecar
+
+- **`type: initcontainer`** — secrets are fetched once at startup. If the Vault secret is rotated, a pod restart is required to pick up the new values.
+- **`type: sidecar`** — the secret refresher runs alongside the connector and periodically re-fetches secrets (default: every 5 minutes). The connector's env-loader entrypoint only reads secrets at startup, so a pod restart is still needed for the connector to pick up refreshed values. The sidecar mode is useful when combined with other consumers of the `/secrets/` volume.
+
 ## Container Level Security Context
 
 By default, no container-level `securityContext` values are set.

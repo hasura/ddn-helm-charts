@@ -1,11 +1,11 @@
-# Ndc-snowflake-jdbc Helm Chart
+# Ndc-trino-jdbc Helm Chart
 
-This chart deploys the ndc-snowflake-jdbc connector (For use under PromptQL use cases). Refer to the pre-requisites section [here](../../README.md#get-started)
+This chart deploys the ndc-trino-jdbc connector (For use under PromptQL use cases). Refer to the pre-requisites section [here](../../README.md#get-started)
 
 ## Connector Image
 
 If you're running `docker compose build` within your Supergraph to build a custom connector image, or if you're using
-the **git-sync** option with a Hasura-provided connector image, the base image used in both cases is: `ghcr.io/hasura/ndc-snowflake-jdbc`
+the **git-sync** option with a Hasura-provided connector image, the base image used in both cases is: `ghcr.io/hasura/ndc-trino-jdbc`
 
 To determine the specific version of the image being used, check the `connector-metadata.yaml` file located under your Supergraph at: `app/connector/<connector-name>/.hasura-connector/connector-metadata.yaml`
 
@@ -19,20 +19,20 @@ See all [configuration](#parameters) below.
 # helm template and apply manifests via kubectl (example)
 helm template <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-snowflake-jdbc" \
+  --set image.repository="my_repo/ndc-trino-jdbc" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.JDBC_URL="jdbc_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
-  hasura-ddn/ndc-snowflake-jdbc | kubectl apply -f-
+  hasura-ddn/ndc-trino-jdbc | kubectl apply -f-
 
 # helm upgrade --install (pass configuration via command line)
 helm upgrade --install <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-snowflake-jdbc" \
+  --set image.repository="my_repo/ndc-trino-jdbc" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.JDBC_URL="jdbc_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
-  hasura-ddn/ndc-snowflake-jdbc
+  hasura-ddn/ndc-trino-jdbc
 ```
 
 ## Enabling git-sync
@@ -50,7 +50,7 @@ Example: If your repo is `my-repo` and your connector is `my-connector`, the pat
 ```bash
 helm upgrade --install <release-name> \
   --set namespace="default" \
-  --set image.repository="my_repo/ndc-snowflake-jdbc" \
+  --set image.repository="my_repo/ndc-trino-jdbc" \
   --set image.tag="my_custom_image_tag" \
   --set connectorEnvVars.JDBC_URL="jdbc_url" \
   --set connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET="token" \
@@ -58,7 +58,7 @@ helm upgrade --install <release-name> \
   --set initContainers.gitSync.repo="git@<git_domain>:<org>/<repo>" \
   --set initContainers.gitSync.branch="main" \
   --set connectorEnvVars.configDirectory="/work-dir/<repo>/app/connector/<connector-name>" \
-  hasura-ddn/ndc-snowflake-jdbc
+  hasura-ddn/ndc-trino-jdbc
 ```
 
 ## Committing code to git
@@ -111,135 +111,6 @@ You can achieve the same configuration from the command line using the following
 --set-file secrets.imagePullSecret.auths.gcr\.io.password=company-sa.json
 ```
 
-## External Secrets (HashiCorp Vault)
-
-When using an external secrets provider such as HashiCorp Vault, the connector can load sensitive environment variables from JSON files written by the `secrets-management-proxy` init container, instead of from Kubernetes Secrets.
-
-**Note:** HashiCorp Vault projected ServiceAccount token (`projectedToken`) support is available starting with chart version `v2026.05.27` (which bumps the `common` dependency to 0.0.19).
-
-### Prerequisites
-
-1. **HashiCorp Vault** must be running and accessible from the cluster.
-2. **Vault Kubernetes auth** must be enabled and configured to trust the cluster's service account issuer.
-3. A **Vault KV v2 secret** must exist at the configured path containing the required keys.
-4. A **Vault role** must be created that binds the connector's Kubernetes ServiceAccount.
-5. The connector image must be the **`-env-loader` variant** (e.g., `ndc-snowflake-jdbc:v3.0.0-env-loader`).
-
-### Required Vault Secret Keys
-
-Create a secret in Vault at your configured path (e.g., `secret/snowflake-secrets`) with the following keys:
-
-| Key | Description | Required |
-| --- | ----------- | -------- |
-| `JDBC_URL` | Snowflake JDBC connection string | Yes |
-| `HASURA_SERVICE_TOKEN_SECRET` | Hasura service token secret (from your Supergraph `.env` file) | Optional |
-
-Example using the Vault CLI:
-
-```bash
-vault kv put secret/snowflake-secrets \
-  JDBC_URL="jdbc:snowflake://acme-org.snowflakecomputing.com/?db=MYDB&schema=PUBLIC&warehouse=COMPUTE_WH&role=ANALYST" \
-  HASURA_SERVICE_TOKEN_SECRET="my-service-token-secret"
-```
-
-### Vault Role Setup
-
-Create a Vault role that authorizes the connector's ServiceAccount:
-
-```bash
-vault write auth/kubernetes/role/hasura-secrets \
-  bound_service_account_names=ndc-snowflake-jdbc \
-  bound_service_account_namespaces=<your-namespace> \
-  policies=hasura-secrets \
-  ttl=1h
-```
-
-### Example Override File
-
-```yaml
-global:
-  imagePullSecrets:
-    - hasura-image-pull
-
-  # Disable Kubernetes Secret creation — secrets come from Vault
-  deploySecrets: false
-
-  externalSecrets:
-    enabled: true
-    secretName: "snowflake-secrets"
-    cloud: hashicorp
-    transform:
-      mode: "transformed_only"
-    hashicorp:
-      vaultAddr: "http://vault.vault.svc.cluster.local:8200"
-      mount: "secret"
-      path: "snowflake-secrets"
-      auth:
-        method: kubernetes
-        role: "hasura-secrets"
-        mountPath: "kubernetes"
-        # When projectedToken.enabled is true, jwtPath defaults to
-        # /var/run/secrets/projectedtokens/vault-token (set by common).
-        # Use a projected, audience-bound ServiceAccount token instead of the
-        # default SA token for Vault Kubernetes auth.
-        projectedToken:
-          enabled: true
-          audience: "vault"
-          expirationSeconds: 7200
-
-# Use the env-loader variant of the connector image
-image:
-  repository: "gcr.io/hasura-ee/ndc-snowflake-jdbc"
-  tag: "v1.7.3-env-loader"
-
-# ServiceAccount must match the Vault role's bound_service_account_names
-serviceAccount:
-  enabled: true
-  name: "ndc-snowflake-jdbc"
-
-externalSecrets:
-  enabled: true
-  type: initcontainer  # use "sidecar" for automatic secret refresh
-  secretRefresher:
-    image:
-      repository: "gcr.io/hasura-ee/secrets-management-proxy"
-      tag: "<secrets-management-proxy-tag>"
-
-# Override the default env block to remove secretKeyRef entries.
-# JDBC_URL and HASURA_SERVICE_TOKEN_SECRET are injected
-# by the env-loader entrypoint from /secrets/*.json at startup.
-env: |
-  {{- if .Values.connectorEnvVars.JDBC_SCHEMAS }}
-  - name: JDBC_SCHEMAS
-    value: {{ .Values.connectorEnvVars.JDBC_SCHEMAS | quote }}
-  {{- end }}
-  - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
-  {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
-  - name: OTEL_SERVICE_NAME
-    value: {{ .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
-  {{- else }}
-  - name: OTEL_SERVICE_NAME
-    value: {{ .Chart.Name }}
-  {{- end }}
-  {{- if .Values.connectorEnvVars.configDirectory }}
-  - name: HASURA_CONFIGURATION_DIRECTORY
-    value: {{ .Values.connectorEnvVars.configDirectory }}
-  {{- end }}
-```
-
-### How It Works
-
-1. The `secrets-management-proxy` init container authenticates to Vault using the pod's ServiceAccount token and fetches the secret.
-2. The secret is written as a JSON file to `/secrets/snowflake-secrets.json` on a shared `emptyDir` volume.
-3. The main container uses the `-env-loader` image variant, whose entrypoint script reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the connector.
-4. The connector starts with `JDBC_URL` (and any other keys) available as environment variables.
-
-### Init Container vs Sidecar
-
-- **`type: initcontainer`** — secrets are fetched once at startup. If the Vault secret is rotated, a pod restart is required to pick up the new values.
-- **`type: sidecar`** — the secret refresher runs alongside the connector and periodically re-fetches secrets (default: every 5 minutes). The connector's env-loader entrypoint only reads secrets at startup, so a pod restart is still needed for the connector to pick up refreshed values. The sidecar mode is useful when combined with other consumers of the `/secrets/` volume.
-
 ## Container Level Security Context
 
 By default, no container-level `securityContext` values are set.
@@ -277,17 +148,18 @@ These defaults appear even if you did not explicitly configure every field, beca
 
 | Name                                              | Description                                                                                                | Value                           |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret.  This value comes from your Supergraph’s `.env` file and corresponds to the connector's `HASURA_SERVICE_TOKEN_SECRET` environment variable. (Optional)                                                                     | `""`                            |
-| `connectorEnvVars.JDBC_URL`                       | The JDBC URL to connect to the database (Required)                                                                         | `""`                                 |
+| `connectorEnvVars.HASURA_SERVICE_TOKEN_SECRET`    | Hasura Service Token Secret.  This value comes from your Supergraph's `.env` file and corresponds to the connector's `HASURA_SERVICE_TOKEN_SECRET` environment variable. (Optional)                                                                     | `""`                            |
+| `connectorEnvVars.JDBC_URL`                 | The JDBC URL to connect to the Trino database (Required)                                                                         | `""`                            |
 | `connectorEnvVars.JDBC_SCHEMAS`                   | A comma-separated list of schemas to include in the metadata (Optional)                                                                         | `""`                                 |
+| `connectorEnvVars.HASURA_LOG_LEVEL`               | Log level for the connector (Optional)                                                                     | `""`                                 |
 | `connectorEnvVars.configDirectory`                | Connector config directory (See [Enabling git-sync](README.md#enabling-git-sync) when initContainers.gitSync.enabled is set to true) (Optional) | `""`                   |
 | `connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT`    | OTEL Exporter OTLP Endpoint (Optional)                                                                     | `"http://dp-otel-collector:4317"`                   |
-| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-snowflake-jdbc`                  |
+| `connectorEnvVars.OTEL_SERVICE_NAME`              | OTEL Service Name (Optional)                                                                               | `ndc-trino-jdbc`                  |
 
 ## Additional Parameters
 
-| Name                                              | Description                                                                                                | Value                               |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------|
+| Name                                              | Description                                                                                                | Value                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | `namespace`                                       | Namespace to deploy to                                                                                     | `"default"`                     |
 | `additionalAnnotations.checksum/config`           | Adds a checksum annotation for the `secret.yaml` file to force rollout on changes                          | `{{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}`                     |
 | `additionalAnnotations.app.kubernetes.io/access-group` | Labels resources with an access group for organizational or access control purposes                   | `connector`                     |
@@ -300,23 +172,23 @@ These defaults appear even if you did not explicitly configure every field, beca
 | `secrets.imagePullSecret.auths.gcr\.io.username`  | Username for authenticating to the container registry                                                      | `_json_key`                     |
 | `secrets.imagePullSecret.auths.gcr\.io.password`  | Points to `company-sa.json` file (via `set-file`)                                                          | `company-sa.json`               |
 | `secrets.imagePullSecret.auths.gcr\.io.email`     | Email associated with the registry authentication                                                          | `support@hasura.io`             |
-| `image.repository`                                | Image repository containing custom created ndc-snowflake-jdbc                                                     | `""`                                |
-| `image.tag`                                       | Image tag to use for custom created ndc-snowflake-jdbc                                                            | `""`                                |
-| `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                            |
-| `resources`                                       | Resource requests and limits of ndc-snowflake-jdbc container                                                      | `{}`                                |
-| `env`                                             | Env variable section for ndc-snowflake-jdbc                                                                       | `[]`                                |
-| `replicas`                                        | Replicas setting for pod                                                                                   | `1`                                 |
-| `wsInactiveExpiryMins`                            | To be documented                                                                                           | `1`                                 |
-| `securityContext`                                 | Define privilege and access control settings for a Pod or Container                                        | `{}`                                |
-| `containerSecurityContext`                        | Define privilege and access control settings for a Container                                               | ``                                |
-| `healthChecks.enabled`                            | Enable health check for ndc-snowflake-jdbc container                                                              | `false`                             |
-| `healthChecks.livenessProbePath`                  | Health check liveness Probe path ndc-snowflake-jdbc container                                                     | `"/healthz"`                        |
-| `healthChecks.readinessProbePath`                 | Health check readiness Probe path mongo-connector container                                                | `"/healthz"`                        |
-| `hpa.enabled`                                     | Enable HPA for ndc-snowflake-jdbc.  Ensure metrics cluster is configured when enabling                            | `false`                             |
-| `hpa.minReplicas`                                 | minReplicas setting for HPA                                                                                | `2`                                 |
-| `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                                 |
-| `hpa.metrics.resource.name`                       | Resource name to autoscale on                                                                              | ``                                  |
-| `hpa.metrics.resource.target.averageUtilization`  | Utilization target on specific resource type                                                               | ``                                  |
+| `image.repository`                                | Image repository containing custom created ndc-trino-jdbc                                                    | `""`                            |
+| `image.tag`                                       | Image tag to use for custom created ndc-trino-jdbc                                                           | `""`                            |
+| `image.pullPolicy`                                | Image pull policy                                                                                          | `Always`                        |
+| `resources`                                       | Resource requests and limits of ndc-trino-jdbc container                                                     | `{}`                            |
+| `env`                                             | Env variable section for ndc-trino-jdbc                                                                      | `[]`                            |
+| `replicas`                                        | Replicas setting for pod                                                                                   | `1`                             |
+| `wsInactiveExpiryMins`                            | To be documented                                                                                           | `1`                             |
+| `securityContext`                                 | Define privilege and access control settings for a Pod or Container                                        | `{}`                            |
+| `containerSecurityContext`                        | Define privilege and access control settings for a Container                                               | ``                            |
+| `healthChecks.enabled`                            | Enable health check for ndc-trino-jdbc container                                                             | `false`                         |
+| `healthChecks.livenessProbePath`                  | Health check liveness Probe path ndc-trino-jdbc container                                                    | `"/healthz"`                    |
+| `healthChecks.readinessProbePath`                 | Health check readiness Probe path ndc-trino-jdbc container                                                   | `"/healthz"`                    |
+| `hpa.enabled`                                     | Enable HPA for ndc-trino-jdbc.  Ensure metrics cluster is configured when enabling                           | `false`                         |
+| `hpa.minReplicas`                                 | minReplicas setting for HPA                                                                                | `2`                             |
+| `hpa.maxReplicas`                                 | maxReplicas setting for HPA                                                                                | `4`                             |
+| `hpa.metrics.resource.name`                       | Resource name to autoscale on                                                                              | ``                              |
+| `hpa.metrics.resource.target.averageUtilization`  | Utilization target on specific resource type                                                               | ``                              |
 | `initContainers.gitSync.enabled`                  | Enable reading connector config files from a git repository                                                | `false`                             |
 | `initContainers.gitSync.repo`                     | Git repository to read from (Used when initContainers.gitSync.enabled is set to true)                      | `git@github.com:<org>/<repo>`       |
 | `initContainers.gitSync.branch`                   | Branch to read from (Used when initContainers.gitSync.enabled is set to true)                              | `main`                              |
