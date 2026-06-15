@@ -93,14 +93,29 @@ containerSecurityContext:
   capabilities:
     drop:
     - ALL
-  readOnlyRootFilesystem: true
+  # "auto" => readOnlyRootFilesystem is DERIVED from homePersistence at render
+  # time (see templates/deployment.yaml): it becomes true only when
+  # homePersistence.enabled AND global.persistence.enabled are both true (a
+  # writable PVC is then mounted at /home/hasura, so a read-only rootfs is safe
+  # — hardening). Otherwise it becomes false, because with no writable $HOME
+  # volume a read-only rootfs makes code-server / `ddn auth login` crash with
+  # EROFS errors. Set this to an explicit true or false to override the derived
+  # default regardless of homePersistence (e.g. a hardened cluster whose
+  # admission policy mandates readOnlyRootFilesystem: true).
+  readOnlyRootFilesystem: "auto"
 
 resources: |
   requests:
     cpu: 500m
     memory: 2048Mi
+    # ephemeral-storage caps the container writable layer (where code-server
+    # logs/extensions and other runtime writes land when ROFS is false) so a
+    # runaway write can't trigger node disk-pressure eviction of neighbours.
+    # Starting points — tune per workload.
+    ephemeral-storage: 1Gi
   limits:
     memory: 2048Mi
+    ephemeral-storage: 4Gi
 
 hostAliases:
   - ip: "127.0.0.1"

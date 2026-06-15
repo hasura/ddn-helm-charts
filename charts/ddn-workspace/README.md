@@ -291,6 +291,21 @@ When home persistence is enabled, users gain several important advantages:
 
 When you enable home persistence by setting `homePersistence.enabled=true`, the workspace creates a separate persistent volume specifically for home directory data. An init container runs before the main workspace container starts and handles copying data from the image's `/home/hasura` directory to the persistent volume based on the configured update strategy.
 
+### Read-Only Root Filesystem ⇄ Home Persistence
+
+The main workspace container's `containerSecurityContext.readOnlyRootFilesystem` is **coupled to home persistence**. By default (`containerSecurityContext.readOnlyRootFilesystem: "auto"` in `values.yaml`) the effective value is *derived at render time*:
+
+| `homePersistence.enabled` (with `global.persistence.enabled`) | Derived `readOnlyRootFilesystem` |
+| --- | --- |
+| `true` | `true` |
+| `false` | `false` |
+
+**Why:** When home persistence is enabled, a writable PVC is mounted at `/home/hasura` (seeded by the `copy-home` init container), so `$HOME` is genuinely writable and the container can safely run with a read-only root filesystem (`readOnlyRootFilesystem: true`) for hardening. When home persistence is disabled there is **no** writable volume over `/home/hasura`; with a read-only rootfs, code-server and `ddn auth login` crash with a storm of `EROFS: read-only file system` errors (writes under `~/.local/share/code-server/...`, `~/.cache`, `~/.ddn`). So in the no-persistence case the rootfs must stay writable — runtime writes then go to the container's writable layer with no copy of the baked home (lowest ephemeral footprint). The derivation requires **both** `homePersistence.enabled` and `global.persistence.enabled`, mirroring the condition under which the home PVC actually mounts.
+
+**Overriding:** set `containerSecurityContext.readOnlyRootFilesystem` to an explicit `true` or `false` (in `values.yaml` or an overrides file) to force a value regardless of home persistence — an explicit value always wins over the derived default.
+
+> **Hardened clusters that mandate `readOnlyRootFilesystem: true`** (e.g. an admission policy) must either **enable home persistence** (`homePersistence.enabled=true` + `global.persistence.enabled=true`) **or** provide their own writable home mounts (e.g. an `emptyDir`/`subPath` mounted over `~/.local/share`, `~/.cache`, `~/.ddn`). The no-persistence default leaves the rootfs writable, so simply forcing ROFS true without a writable `$HOME` will break code-server and `ddn auth login`.
+
 ### Update Strategies
 
 The `homePersistence.updateStrategy` parameter controls when and how the home directory is updated:
@@ -479,6 +494,8 @@ The `/home/hasura/.local/lib/hasura` directory receives special treatment during
 - **Hasura Library Exception**: The `/home/hasura/.local/lib/hasura` directory is always overwritten on version changes to ensure Connector plugins compatibility
 - **Init Container**: Uses the same image as the main container to ensure consistency
 - **Storage Requirements**: Home directory typically needs 2-5GB depending on installed tools
+- **Read-Only Root Filesystem Coupling**: With the default `containerSecurityContext.readOnlyRootFilesystem: "auto"`, enabling home persistence also flips the main container to a read-only root filesystem; disabling it keeps the rootfs writable. See [Read-Only Root Filesystem ⇄ Home Persistence](#read-only-root-filesystem--home-persistence). Override with an explicit `true`/`false` if needed.
+- **Ephemeral Storage**: The main container requests `ephemeral-storage: 1Gi` and limits it to `4Gi` (in the `resources` value) so runtime writes to the container writable layer (code-server logs/extensions when the rootfs is writable) can't trigger node disk-pressure eviction of neighbours. These are starting points — tune per workload.
 
 ### Troubleshooting
 
