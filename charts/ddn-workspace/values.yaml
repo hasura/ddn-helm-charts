@@ -293,9 +293,9 @@ initContainers:
         force_sync_hasura_lib() {
           if [ -d "$HASURA_LIB_PATH" ]; then
             echo "Force syncing $HASURA_LIB_PATH to persistent storage (always overwrites)..."
-            mkdir -p "/persistent-home/hasura/.local/lib"
-            rm -rf "/persistent-home/hasura/.local/lib/hasura"
-            cp -a "$HASURA_LIB_PATH" "/persistent-home/hasura/.local/lib/hasura"
+            mkdir -p "/persistent-home/.local/lib"
+            rm -rf "/persistent-home/.local/lib/hasura"
+            cp -a "$HASURA_LIB_PATH" "/persistent-home/.local/lib/hasura"
             echo "Hasura library sync complete"
           else
             echo "Warning: $HASURA_LIB_PATH not found in image"
@@ -313,7 +313,7 @@ initContainers:
             # Copy only once
             if [ ! -f "$INITIALIZED_FILE" ]; then
               echo "First run. Copying /home to persistent storage..."
-              cp -a /home/. /persistent-home/
+              cp -a /home/hasura/. /persistent-home/
               touch "$INITIALIZED_FILE"
               echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
               echo "Copy complete"
@@ -332,7 +332,7 @@ initContainers:
           "always")
             # Copy every time - only add new files, preserve existing
             echo "Always strategy - syncing /home to persistent storage..."
-            cp -a --update=none /home/. /persistent-home/
+            cp -a --update=none /home/hasura/. /persistent-home/
             touch "$INITIALIZED_FILE"
             # Force sync Hasura lib only if version changed
             if [ "$version_changed" = true ]; then
@@ -348,7 +348,7 @@ initContainers:
             # Copy when image version changes - only add new files, preserve existing
             if [ "$version_changed" = true ]; then
               echo "Image version changed or first run. Syncing /home to persistent storage..."
-              cp -a --update=none /home/. /persistent-home/
+              cp -a --update=none /home/hasura/. /persistent-home/
               # Force sync Hasura lib on version change
               force_sync_hasura_lib
               echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
@@ -362,7 +362,7 @@ initContainers:
           *)
             echo "Unknown update strategy: $UPDATE_STRATEGY. Using 'version-aware' as fallback."
             if [ "$version_changed" = true ]; then
-              cp -a --update=none /home/. /persistent-home/
+              cp -a --update=none /home/hasura/. /persistent-home/
               force_sync_hasura_lib
               echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
               touch "$INITIALIZED_FILE"
