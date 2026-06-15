@@ -71,7 +71,7 @@ containerSecurityContext:
   capabilities:
     drop:
     - ALL
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
 
 resources: |
   requests:
@@ -141,13 +141,17 @@ extraVolumes: |
     persistentVolumeClaim:
       claimName: {{ include "common.name" . }}-home
   {{- end }}
+  - name: tmp
+    emptyDir: {}
 
 extraVolumeMounts: |
+  - name: tmp
+    mountPath: "/tmp"
   - name: ddn-workspace-data
     mountPath: "/workspace"
   {{- if and (.Values.homePersistence).enabled (.Values.global.persistence).enabled }}
   - name: ddn-workspace-home
-    mountPath: "/home"
+    mountPath: "/home/hasura"
     subPath: home
   {{- end }}
 
@@ -353,7 +357,7 @@ initContainers:
       resources: {}
       securityContext:
         allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: false
+        readOnlyRootFilesystem: true
         runAsNonRoot: true
       terminationMessagePath: /dev/termination-log
       terminationMessagePolicy: File
@@ -361,4 +365,6 @@ initContainers:
       - mountPath: /persistent-home
         name: ddn-workspace-home
         subPath: home
+      - mountPath: /tmp
+        name: tmp
     {{- end }}
