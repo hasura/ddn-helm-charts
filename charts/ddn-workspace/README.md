@@ -259,7 +259,7 @@ Both methods will immediately invalidate the session cookie and return:
 
 ## Home Persistence
 
-The DDN Workspace supports persistent storage of the container's `/home` directory, which contains pre-installed tools, configurations, and development environment setup. This feature ensures that updates to the workspace image can be automatically applied while preserving user customizations.
+The DDN Workspace supports persistent storage of the container's `/home/hasura` directory, which contains pre-installed tools, configurations, and development environment setup. This feature ensures that updates to the workspace image can be automatically applied while preserving user customizations.
 
 **⚠️ Important: Home Persistence is disabled by default.** You must explicitly enable it by setting `homePersistence.enabled=true` in your configuration.
 
@@ -287,9 +287,9 @@ When home persistence is enabled, users gain several important advantages:
 
 ### How Home Persistence Works
 
-**By default, home persistence is disabled** and the workspace uses the `/home` directory directly from the container image on each restart.
+**By default, home persistence is disabled** and the workspace uses the `/home/hasura` directory directly from the container image on each restart.
 
-When you enable home persistence by setting `homePersistence.enabled=true`, the workspace creates a separate persistent volume specifically for home directory data. An init container runs before the main workspace container starts and handles copying data from the image's `/home` directory to the persistent volume based on the configured update strategy.
+When you enable home persistence by setting `homePersistence.enabled=true`, the workspace creates a separate persistent volume specifically for home directory data. An init container runs before the main workspace container starts and handles copying data from the image's `/home/hasura` directory to the persistent volume based on the configured update strategy.
 
 ### Update Strategies
 
@@ -366,7 +366,7 @@ homePersistence:
 The feature creates two separate persistent volumes:
 
 - **Workspace Volume**: Mounted at `/workspace` (user projects and files)
-- **Home Volume**: Mounted at `/persistent-home` (tools, configs, environment)
+- **Home Volume**: Mounted at `/persistent-home` in the `copy-home` init container (used for seeding) and at `/home/hasura` in the main workspace container (tools, configs, environment)
 
 ### Configuration Examples
 
@@ -408,7 +408,7 @@ homePersistence:
   enabled: false  # This is the default behavior
 ```
 
-When disabled, the workspace uses the `/home` directory directly from the container image on each restart. No persistent storage is created for home directory data.
+When disabled, the workspace uses the `/home/hasura` directory directly from the container image on each restart. No persistent storage is created for home directory data.
 
 ### Configuring Bash History Persistence
 
@@ -489,12 +489,12 @@ kubectl logs <pod-name> -c copy-home
 
 **Check Current Image Version:**
 ```bash
-kubectl exec <pod-name> -- cat /home/.image-version
+kubectl exec <pod-name> -- cat /home/hasura/.image-version
 ```
 
 **Verify Initialization Status:**
 ```bash
-kubectl exec <pod-name> -- ls -la /home/.initialized /home/.image-version
+kubectl exec <pod-name> -- ls -la /home/hasura/.initialized /home/hasura/.image-version
 ```
 
 **Check Hasura Library Directory:**
@@ -733,7 +733,7 @@ To explore the release notes, which include details on connector support and oth
 | `setControlPlaneUrls`                             | Sets necessary Control Plane URLs                                                                          | `true`                          |
 | `persistence.enabled`                             | Create a PVC for persisting `/workspace` directory within the DDN Workspace                                | `true`                          |
 | `persistence.size`                                | PVC size                                                                                                   | `10Gi`                          |
-| `homePersistence.enabled`                         | Create a separate PVC for persisting `/home` directory data from the container image                       | `false`                          |
+| `homePersistence.enabled`                         | Create a separate PVC for persisting `/home/hasura` directory data from the container image                       | `false`                          |
 | `homePersistence.size`                            | Home persistence PVC size                                                                                  | `10Gi`                           |
 | `homePersistence.accessMode`                      | Home persistence PVC access mode                                                                           | `ReadWriteOnce`                 |
 | `homePersistence.storageClassName`                | Home persistence storage class name (optional)                                                            | `""`                            |
