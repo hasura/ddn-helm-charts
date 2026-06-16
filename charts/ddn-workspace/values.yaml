@@ -28,7 +28,6 @@ global:
 
 additionalLabels:
   group: ddn-workspace
-  # ddn-id label will be added automatically when auth-proxy is enabled
 
 networkPolicy:
   ingress:
@@ -61,9 +60,17 @@ image:
 replicas: "1"
 httpPort: 8123
 setControlPlaneUrls: true
+
 persistence:
   enabled: true
   size: 10Gi
+
+homePersistence:
+  enabled: false
+  size: 10Gi
+  accessMode: ReadWriteOnce
+  updateStrategy: "version-aware"
+
 healthChecks:
   enabled: true
   livenessProbe: |
@@ -74,6 +81,7 @@ healthChecks:
     httpGet:
       path: /healthz
       port: 8123
+
 securityContext:
   runAsUser: 10001
   fsGroup: 10001
@@ -85,14 +93,29 @@ containerSecurityContext:
   capabilities:
     drop:
     - ALL
-  readOnlyRootFilesystem: false
+  # "auto" => readOnlyRootFilesystem is DERIVED from homePersistence at render
+  # time (see templates/deployment.yaml): it becomes true only when
+  # homePersistence.enabled AND global.persistence.enabled are both true (a
+  # writable PVC is then mounted at /home/hasura, so a read-only rootfs is safe
+  # — hardening). Otherwise it becomes false, because with no writable $HOME
+  # volume a read-only rootfs makes code-server / `ddn auth login` crash with
+  # EROFS errors. Set this to an explicit true or false to override the derived
+  # default regardless of homePersistence (e.g. a hardened cluster whose
+  # admission policy mandates readOnlyRootFilesystem: true).
+  readOnlyRootFilesystem: "auto"
 
 resources: |
   requests:
     cpu: 500m
     memory: 2048Mi
+    # ephemeral-storage caps the container writable layer (where code-server
+    # logs/extensions and other runtime writes land when ROFS is false) so a
+    # runaway write can't trigger node disk-pressure eviction of neighbours.
+    # Starting points — tune per workload.
+    ephemeral-storage: 1Gi
   limits:
     memory: 2048Mi
+    ephemeral-storage: 4Gi
 
 hostAliases:
   - ip: "127.0.0.1"
@@ -106,7 +129,7 @@ ddnPromptqlEndpoint: ""
 skipTlsVerify: false
 secrets:
   password: ""
-# Additional Container Envs
+
 env: |
   - name: CODE_SERVER_PORT
     value: "8123"
@@ -138,6 +161,7 @@ env: |
     value: {{ required "DDN Console URL (.Values.consoleUrl) is required" .Values.consoleUrl | quote }}
   {{- end }}
   {{- end }}
+
 extraVolumes: |
   {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - name: auth-proxy-config
@@ -151,12 +175,25 @@ extraVolumes: |
   {{- else }}
     emptyDir: {}
   {{- end }}
+  {{- if and (.Values.homePersistence).enabled (.Values.global.persistence).enabled }}
+  - name: ddn-workspace-home
+    persistentVolumeClaim:
+      claimName: {{ include "common.name" . }}-home
+  {{- end }}
+  - name: tmp
+    emptyDir: {}
+
 extraVolumeMounts: |
+  - name: tmp
+    mountPath: "/tmp"
   - name: ddn-workspace-data
     mountPath: "/workspace"
-# Ingress Configs
-# enable ingress / routes only if there is no internal network connectivity
-# between control plane and data planes
+  {{- if and (.Values.homePersistence).enabled (.Values.global.persistence).enabled }}
+  - name: ddn-workspace-home
+    mountPath: "/home/hasura"
+    subPath: home
+  {{- end }}
+
 ingress:
   enabled: true
   ingressClassName: nginx
@@ -166,35 +203,25 @@ ingress:
 
 routes:
   enabled: false
-# Service ports configuration - handled directly in service.yaml template
-# No additional ports needed as conditional logic is in the service template
 
-# Workspace Auth Proxy Configuration
 workspaceAuthProxy:
-  enabled: false  # Set to true to enable auth-proxy (secrets.password will be ignored)
-  ddnId: ""  # DDN ID that identifies the data plane this workspace belongs to (required when auth-proxy is enabled)
+  enabled: false
+  ddnId: ""
   debug:
     enabled: false
-  # Image Configuration
   image:
     repository: "ddn-workspace-auth-proxy"
     tag: "a61c52b"
     pullPolicy: IfNotPresent
-  # Cookie Configuration
   cookie:
     name: "workspace-session"
-    maxAge: 3600  # Session expiry in seconds (1 hour = 3600 seconds)
-    # domain, path, and secure will be configured automatically based on global settings
-  # Authentication Methods Configuration
+    maxAge: 3600
   auth:
-    # Comma-separated list of enabled auth methods: pat,oidc-access-token,oidc-id-token
     enabledMethods: "pat,oidc-access-token,oidc-id-token"
     ui:
       title: "DDN Workspace | Login"
-  # Service Configuration (used by configmap and ingress)
   service:
-    port: 8080      # Auth-proxy HTTP port
-  # Resource Configuration
+    port: 8080
   resources:
     limits:
       cpu: 200m
@@ -202,7 +229,7 @@ workspaceAuthProxy:
     requests:
       cpu: 100m
       memory: 128Mi
-# Extra containers (sidecars) - Auth Proxy (only when enabled)
+
 extraContainers: |
   {{- if include "ddn-workspace.workspaceAuthProxy.enabled" . }}
   - name: auth-proxy
@@ -263,3 +290,120 @@ extraContainers: |
     command: ["/usr/local/bin/envoy"]
     args: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "{{ if .Values.workspaceAuthProxy.debug.enabled }}debug{{ else }}info{{ end }}"]
   {{- end }}
+
+initContainers:
+  extraInitContainers: |
+    {{- if and (.Values.homePersistence).enabled (.Values.global.persistence).enabled }}
+    - args:
+      - |
+        UPDATE_STRATEGY="{{ .Values.homePersistence.updateStrategy | default "version-aware" }}"
+        IMAGE_VERSION="{{ .Values.image.tag }}"
+        INITIALIZED_FILE="/persistent-home/.initialized"
+        INITIALIZED_VERSION_FILE="/persistent-home/.image-version"
+        HASURA_LIB_PATH="/home/hasura/.local/lib/hasura"
+
+        echo "Home persistence update strategy: $UPDATE_STRATEGY"
+
+        # Function to force sync Hasura library directory
+        force_sync_hasura_lib() {
+          if [ -d "$HASURA_LIB_PATH" ]; then
+            echo "Force syncing $HASURA_LIB_PATH to persistent storage (always overwrites)..."
+            mkdir -p "/persistent-home/.local/lib"
+            rm -rf "/persistent-home/.local/lib/hasura"
+            cp -a "$HASURA_LIB_PATH" "/persistent-home/.local/lib/hasura"
+            echo "Hasura library sync complete"
+          else
+            echo "Warning: $HASURA_LIB_PATH not found in image"
+          fi
+        }
+
+        # Check if version changed
+        version_changed=false
+        if [ ! -f "$INITIALIZED_VERSION_FILE" ] || [ "$(cat $INITIALIZED_VERSION_FILE 2>/dev/null)" != "$IMAGE_VERSION" ]; then
+          version_changed=true
+        fi
+
+        case "$UPDATE_STRATEGY" in
+          "once")
+            # Copy only once
+            if [ ! -f "$INITIALIZED_FILE" ]; then
+              echo "First run. Copying /home to persistent storage..."
+              cp -a /home/hasura/. /persistent-home/
+              touch "$INITIALIZED_FILE"
+              echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
+              echo "Copy complete"
+            else
+              echo "Persistent home already initialized (once strategy)"
+              # Force sync Hasura lib only if version changed
+              if [ "$version_changed" = true ]; then
+                echo "Image version changed - force syncing Hasura library..."
+                force_sync_hasura_lib
+                echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
+              else
+                echo "Image version unchanged - skipping Hasura library sync"
+              fi
+            fi
+            ;;
+          "always")
+            # Copy every time - only add new files, preserve existing
+            echo "Always strategy - syncing /home to persistent storage..."
+            cp -a --update=none /home/hasura/. /persistent-home/
+            touch "$INITIALIZED_FILE"
+            # Force sync Hasura lib only if version changed
+            if [ "$version_changed" = true ]; then
+              echo "Image version changed - force syncing Hasura library..."
+              force_sync_hasura_lib
+              echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
+            else
+              echo "Image version unchanged - skipping Hasura library sync"
+            fi
+            echo "Sync complete (always strategy)"
+            ;;
+          "version-aware")
+            # Copy when image version changes - only add new files, preserve existing
+            if [ "$version_changed" = true ]; then
+              echo "Image version changed or first run. Syncing /home to persistent storage..."
+              cp -a --update=none /home/hasura/. /persistent-home/
+              # Force sync Hasura lib on version change
+              force_sync_hasura_lib
+              echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
+              touch "$INITIALIZED_FILE"
+              echo "Sync complete for version $IMAGE_VERSION"
+            else
+              echo "Persistent home already up-to-date for version $IMAGE_VERSION"
+              echo "Skipping Hasura library sync (version unchanged)"
+            fi
+            ;;
+          *)
+            echo "Unknown update strategy: $UPDATE_STRATEGY. Using 'version-aware' as fallback."
+            if [ "$version_changed" = true ]; then
+              cp -a --update=none /home/hasura/. /persistent-home/
+              force_sync_hasura_lib
+              echo "$IMAGE_VERSION" > "$INITIALIZED_VERSION_FILE"
+              touch "$INITIALIZED_FILE"
+              echo "Sync complete (fallback to version-aware strategy)"
+            else
+              echo "Version unchanged - no sync needed"
+            fi
+            ;;
+        esac
+      command:
+      - sh
+      - -c
+      image: "{{ .Values.global.containerRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+      imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+      name: copy-home
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /persistent-home
+        name: ddn-workspace-home
+        subPath: home
+      - mountPath: /tmp
+        name: tmp
+    {{- end }}

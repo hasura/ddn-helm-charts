@@ -1,0 +1,17 @@
+{{- if and .Values.homePersistence.enabled (.Values.global.persistence).enabled (not .Values.homePersistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "common.name" . }}-home
+  namespace: {{ template "common.namespace" . }}
+spec:
+  accessModes:
+   - {{ default "ReadWriteOnce" .Values.homePersistence.accessMode | quote }}
+  resources:
+    requests:
+        storage: {{ .Values.homePersistence.size | quote }}
+{{- with .Values.homePersistence.storageClassName }}
+  storageClassName: {{ . | quote }}
+{{- end }}
+{{- end }}
+

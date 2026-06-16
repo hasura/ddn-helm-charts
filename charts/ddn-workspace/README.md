@@ -257,6 +257,275 @@ Both methods will immediately invalidate the session cookie and return:
 - Auth-proxy admin port (9901) is never exposed externally for security
 - **Logout endpoint** (`/logout`) immediately invalidates sessions for enhanced security
 
+## Home Persistence
+
+The DDN Workspace supports persistent storage of the container's `/home/hasura` directory, which contains pre-installed tools, configurations, and development environment setup. This feature ensures that updates to the workspace image can be automatically applied while preserving user customizations.
+
+**⚠️ Important: Home Persistence is disabled by default.** You must explicitly enable it by setting `homePersistence.enabled=true` in your configuration.
+
+### Benefits of Home Persistence
+
+When home persistence is enabled, users gain several important advantages:
+
+**Development Continuity:**
+- **DDN CLI version persistence**: The DDN CLI version remains static during pod reboots, ensuring consistent tooling
+- **Authentication persistence**: Users stay logged in via `ddn auth login` - no need to re-authenticate after pod restarts
+- **Command history persistence**: Shell command history is preserved across pod restarts for improved productivity
+
+**Configuration & Customization:**
+- **Custom tool installations persist**: Additional CLI tools, packages, or utilities installed by users remain available
+- **SSH keys and credentials persist**: SSH keys, Git credentials, and authentication tokens are preserved
+- **IDE/Editor configurations persist**: VS Code settings, extensions, and workspace configurations are maintained
+- **Environment variables persist**: Custom `.bashrc`, `.zshrc`, `.profile` settings and environment customizations are retained
+- **Git configuration persists**: User's Git config (name, email, aliases, signing keys) remains configured
+
+**Performance & Efficiency:**
+- **Project dependencies cache persist**: Node modules cache, Python virtual environments, and dependency caches speed up builds
+- **Custom scripts and aliases persist**: User-defined scripts, shell aliases, and automation tools are preserved
+- **Faster pod startup times**: After initial setup, pods start faster since tools and configurations are already in place
+- **Consistent development environment**: Ensures the same development environment across pod restarts and team members
+
+### How Home Persistence Works
+
+**By default, home persistence is disabled** and the workspace uses the `/home/hasura` directory directly from the container image on each restart.
+
+When you enable home persistence by setting `homePersistence.enabled=true`, the workspace creates a separate persistent volume specifically for home directory data. An init container runs before the main workspace container starts and handles copying data from the image's `/home/hasura` directory to the persistent volume based on the configured update strategy.
+
+### Read-Only Root Filesystem ⇄ Home Persistence
+
+The main workspace container's `containerSecurityContext.readOnlyRootFilesystem` is **coupled to home persistence**. By default (`containerSecurityContext.readOnlyRootFilesystem: "auto"` in `values.yaml`) the effective value is *derived at render time*:
+
+| `homePersistence.enabled` (with `global.persistence.enabled`) | Derived `readOnlyRootFilesystem` |
+| --- | --- |
+| `true` | `true` |
+| `false` | `false` |
+
+**Why:** When home persistence is enabled, a writable PVC is mounted at `/home/hasura` (seeded by the `copy-home` init container), so `$HOME` is genuinely writable and the container can safely run with a read-only root filesystem (`readOnlyRootFilesystem: true`) for hardening. When home persistence is disabled there is **no** writable volume over `/home/hasura`; with a read-only rootfs, code-server and `ddn auth login` crash with a storm of `EROFS: read-only file system` errors (writes under `~/.local/share/code-server/...`, `~/.cache`, `~/.ddn`). So in the no-persistence case the rootfs must stay writable — runtime writes then go to the container's writable layer with no copy of the baked home (lowest ephemeral footprint). The derivation requires **both** `homePersistence.enabled` and `global.persistence.enabled`, mirroring the condition under which the home PVC actually mounts.
+
+**Overriding:** set `containerSecurityContext.readOnlyRootFilesystem` to an explicit `true` or `false` (in `values.yaml` or an overrides file) to force a value regardless of home persistence — an explicit value always wins over the derived default.
+
+> **Hardened clusters that mandate `readOnlyRootFilesystem: true`** (e.g. an admission policy) must either **enable home persistence** (`homePersistence.enabled=true` + `global.persistence.enabled=true`) **or** provide their own writable home mounts (e.g. an `emptyDir`/`subPath` mounted over `~/.local/share`, `~/.cache`, `~/.ddn`). The no-persistence default leaves the rootfs writable, so simply forcing ROFS true without a writable `$HOME` will break code-server and `ddn auth login`.
+
+### Update Strategies
+
+The `homePersistence.updateStrategy` parameter controls when and how the home directory is updated:
+
+#### 1. `version-aware` (Default - Recommended for All Environments)
+- **When it updates**: Only when the image tag changes
+- **Behavior**: Syncs new files from `/home` in the image to persistent storage, preserving existing user files
+- **User data**: Existing files are preserved (not overwritten)
+- **Special handling**: The `/home/hasura/.local/lib/hasura` directory is always force-synced (overwritten) when the image version changes to ensure Connector plugins compatibility
+- **Use case**: Ideal for both development and production environments - provides automatic updates while preserving user customizations
+
+```yaml
+homePersistence:
+  updateStrategy: "version-aware"
+```
+
+**Example workflow:**
+1. First deployment with `image.tag: "v1.0.0"` → Copies `/home` to persistent volume
+2. User customizes tools and configs in `/home` (e.g., `.bashrc`, SSH keys)
+3. Upgrade to `image.tag: "v1.1.0"` → Syncs new files from image, preserves user customizations
+4. User customizations remain intact, new tools/configs from the image are added
+5. The `/home/hasura/.local/lib/hasura` directory is overwritten with the new version to ensure Connector splugins compatibility
+
+#### 2. `once` (Conservative - Legacy Approach)
+- **When it updates**: Only on the very first pod start
+- **Behavior**: Never updates after initial copy (except for Hasura library directory)
+- **User data**: Always preserved (no overwrites)
+- **Special handling**: The `/home/hasura/.local/lib/hasura` directory is still force-synced when the image version changes, even with this strategy
+- **Use case**: Legacy environments where you prefer manual control over updates
+
+```yaml
+homePersistence:
+  updateStrategy: "once"
+```
+
+**Example workflow:**
+1. First deployment → Copies `/home` to persistent volume, creates `.initialized` marker
+2. All subsequent deployments → Skips copy entirely, even with new image versions
+3. User gets initial tools but **misses important updates, security fixes, and new features**
+4. Exception: `/home/hasura/.local/lib/hasura` is still updated when image version changes
+
+#### 3. `always` (Aggressive)
+- **When it updates**: Every pod restart
+- **Behavior**: Syncs files from `/home` in the image to persistent storage, preserving existing user files
+- **Special handling**: The `/home/hasura/.local/lib/hasura` directory is force-synced when the image version changes
+- **Use case**: Testing environments where you want to ensure all new files from the image are present
+
+```yaml
+homePersistence:
+  updateStrategy: "always"
+```
+
+### Storage Configuration
+
+Home persistence uses a separate PVC from the main workspace storage:
+
+```yaml
+# Workspace data (user projects, files)
+persistence:
+  enabled: true
+  size: 10Gi
+
+# Home directory data (tools, configs, environment)
+homePersistence:
+  enabled: true
+  size: 10Gi                    # Usually smaller than workspace data
+  accessMode: ReadWriteOnce
+  storageClassName: "fast-ssd" # Optional: specify storage class
+```
+
+### Volume Mounts
+
+The feature creates two separate persistent volumes:
+
+- **Workspace Volume**: Mounted at `/workspace` (user projects and files)
+- **Home Volume**: Mounted at `/persistent-home` in the `copy-home` init container (used for seeding) and at `/home/hasura` in the main workspace container (tools, configs, environment)
+
+### Configuration Examples
+
+**Production Environment (Recommended):**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "version-aware"
+```
+
+**Development Environment:**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "version-aware"
+```
+
+**Legacy Environment (Conservative - Not Recommended):**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "once"
+```
+
+**Testing Environment (Always Fresh):**
+```yaml
+homePersistence:
+  enabled: true
+  size: 10Gi
+  updateStrategy: "always"
+```
+
+**Disabled (Default - No Home Persistence):**
+```yaml
+homePersistence:
+  enabled: false  # This is the default behavior
+```
+
+When disabled, the workspace uses the `/home/hasura` directory directly from the container image on each restart. No persistent storage is created for home directory data.
+
+### Configuring Bash History Persistence
+
+To ensure your command history is properly persisted across pod restarts when home persistence is enabled, you need to configure bash to use a persistent history file. This configuration ensures that your shell history is saved immediately and survives pod restarts.
+
+**Setup Instructions:**
+
+1. Create or update your `~/.bashrc` file with the following configuration:
+
+```bash
+cat > ~/.bashrc <<'EOF'
+# ---- Bash history persistence ----
+export HISTFILE="$HOME/.bash_history"
+export HISTSIZE=100000
+export HISTFILESIZE=200000
+
+shopt -s histappend
+PROMPT_COMMAND='history -a; history -n'
+
+# mise
+eval "$(mise activate bash)"
+EOF
+```
+
+2. Apply the configuration to your current session:
+
+```bash
+source ~/.bashrc
+```
+
+**Configuration Explanation:**
+
+- `HISTFILE="$HOME/.bash_history"`: Explicitly sets the history file location in the home directory
+- `HISTSIZE=100000`: Sets the number of commands to remember in the current session
+- `HISTFILESIZE=200000`: Sets the maximum number of lines in the history file
+- `shopt -s histappend`: Appends to the history file instead of overwriting it
+- `PROMPT_COMMAND='history -a; history -n'`: Saves history after each command and reloads it
+  - `history -a`: Appends current session history to the history file
+  - `history -n`: Reads new history entries from the history file
+
+**Note:** This configuration is only effective when home persistence is enabled (`homePersistence.enabled=true`). Without home persistence, the `~/.bashrc` file and `~/.bash_history` will be lost on pod restarts.
+
+### Special Handling: DDN CLI Library Directory
+
+The `/home/hasura/.local/lib/hasura` directory receives special treatment during updates to ensure DDN CLI compatibility:
+
+**Behavior:**
+- This directory is **always force-synced** (completely overwritten) when the image version changes
+- This happens regardless of the `updateStrategy` setting (`once`, `always`, or `version-aware`)
+- The force-sync ensures that the DDN CLI libraries match the version expected by the workspace image
+
+**Why this is necessary:**
+- The DDN CLI relies on specific library versions that must match the workspace environment
+- Preserving old library versions could cause compatibility issues or runtime errors
+- This ensures users always have the correct DDN CLI version after image updates
+
+**What this means for users:**
+- Custom modifications to `/home/hasura/.local/lib/hasura` will be lost on image version changes
+- DDN CLI customizations should be done through configuration files, not by modifying library files
+- All other directories in `/home` preserve user customizations according to the update strategy
+
+### Important Notes
+
+- **Disabled by Default**: Home persistence must be explicitly enabled with `homePersistence.enabled=true`
+- **Separate from Workspace Data**: Home persistence is independent of the main workspace persistence
+- **Image Updates**: Only `version-aware` strategy automatically applies image updates
+- **No Backups Created**: The sync process preserves existing files rather than creating backups. Files are only added, not overwritten (except for the Hasura library directory)
+- **Hasura Library Exception**: The `/home/hasura/.local/lib/hasura` directory is always overwritten on version changes to ensure Connector plugins compatibility
+- **Init Container**: Uses the same image as the main container to ensure consistency
+- **Storage Requirements**: Home directory typically needs 2-5GB depending on installed tools
+- **Read-Only Root Filesystem Coupling**: With the default `containerSecurityContext.readOnlyRootFilesystem: "auto"`, enabling home persistence also flips the main container to a read-only root filesystem; disabling it keeps the rootfs writable. See [Read-Only Root Filesystem ⇄ Home Persistence](#read-only-root-filesystem--home-persistence). Override with an explicit `true`/`false` if needed.
+- **Ephemeral Storage**: The main container requests `ephemeral-storage: 1Gi` and limits it to `4Gi` (in the `resources` value) so runtime writes to the container writable layer (code-server logs/extensions when the rootfs is writable) can't trigger node disk-pressure eviction of neighbours. These are starting points — tune per workload.
+
+### Troubleshooting
+
+**Check Init Container Logs:**
+```bash
+kubectl logs <pod-name> -c copy-home
+```
+
+**Check Current Image Version:**
+```bash
+kubectl exec <pod-name> -- cat /home/hasura/.image-version
+```
+
+**Verify Initialization Status:**
+```bash
+kubectl exec <pod-name> -- ls -la /home/hasura/.initialized /home/hasura/.image-version
+```
+
+**Check Hasura Library Directory:**
+```bash
+kubectl exec <pod-name> -- ls -la /home/hasura/.local/lib/hasura
+```
+
+**Manually Trigger Home Directory Refresh:**
+If you need to force a refresh of the home directory content, you can delete the pod to trigger a restart:
+```bash
+kubectl delete pod <pod-name>
+```
+The init container will run again and sync files according to the configured update strategy.
+
 ## External Secrets (HashiCorp Vault)
 
 When using an external secrets provider such as HashiCorp Vault, the workspace can load the `HASHED_PASSWORD` environment variable from JSON files written by the `secrets-management-proxy` init container, instead of from a Kubernetes Secret. This is an alternative to setting `secrets.password` directly when `workspaceAuthProxy` is disabled.
@@ -481,6 +750,12 @@ To explore the release notes, which include details on connector support and oth
 | `setControlPlaneUrls`                             | Sets necessary Control Plane URLs                                                                          | `true`                          |
 | `persistence.enabled`                             | Create a PVC for persisting `/workspace` directory within the DDN Workspace                                | `true`                          |
 | `persistence.size`                                | PVC size                                                                                                   | `10Gi`                          |
+| `homePersistence.enabled`                         | Create a separate PVC for persisting `/home/hasura` directory data from the container image                       | `false`                          |
+| `homePersistence.size`                            | Home persistence PVC size                                                                                  | `10Gi`                           |
+| `homePersistence.accessMode`                      | Home persistence PVC access mode                                                                           | `ReadWriteOnce`                 |
+| `homePersistence.storageClassName`                | Home persistence storage class name (optional)                                                            | `""`                            |
+| `homePersistence.existingClaim`                   | Use existing PVC for home persistence (optional)                                                          | `""`                            |
+| `homePersistence.updateStrategy`                  | Strategy for updating home directory: `once`, `always`, `version-aware`                                   | `version-aware`                 |
 | `healthChecks.enabled`                            | Enable Health checks                                                                                       | `true`                          |
 | `healthChecks.livenessProbe`                      | Health check liveness probe                                                                                | `httpGet:\n  path: /healthz\n  port: 8123\n` |
 | `healthChecks.readinessProbe`                     | Health check readiness probe                                                                               | `httpGet:\n  path: /healthz\n  port: 8123\n` |

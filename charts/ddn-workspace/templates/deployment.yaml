@@ -1,3 +1,20 @@
 # deployment.yaml
 {{- $_ := set .Values "additionalLabels" (include "ddn-workspace.additionalLabels" . | fromYaml) -}}
+{{/*
+Resolve the derived default of containerSecurityContext.readOnlyRootFilesystem.
+values.yaml ships the sentinel "auto"; only then do we derive the value from
+homePersistence. A writable $HOME (PVC at /home/hasura) requires BOTH
+homePersistence.enabled and global.persistence.enabled, so ROFS derives to true
+only when both hold (read-only rootfs is then safe); otherwise false (no
+writable $HOME => code-server / `ddn auth login` would hit EROFS). An explicit
+true/false in values or overrides is NOT "auto", so it is kept verbatim and
+wins. A string sentinel (not a missing key) is used because the common subchart
+coalesces its own readOnlyRootFilesystem default into .Values, which would make
+a hasKey-based check unreliable. This runs before common.deployment reads
+.Values.containerSecurityContext, in the same render scope, and is idempotent
+(once resolved to a bool the value is no longer "auto").
+*/}}
+{{- if eq (toString .Values.containerSecurityContext.readOnlyRootFilesystem) "auto" -}}
+{{- $_ := set .Values.containerSecurityContext "readOnlyRootFilesystem" (and (.Values.homePersistence).enabled (.Values.global.persistence).enabled) -}}
+{{- end -}}
 {{- template "common.deployment" . -}}
