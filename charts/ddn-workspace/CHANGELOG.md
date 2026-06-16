@@ -1,8 +1,11 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ddn-workspace@v2026.06.15"></a>
+## [ddn-workspace@v2026.06.15] - 2026-06-15
+
 <a name="ddn-workspace@v2026.05.28"></a>
-## [ddn-workspace@v2026.05.28] - 2026-05-28
+## [ddn-workspace@v2026.05.28] - 2026-05-29
 
 <a name="ddn-workspace@v2025.11.13"></a>
 ## [ddn-workspace@v2025.11.13] - 2025-11-13
