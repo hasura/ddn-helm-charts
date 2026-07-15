@@ -1,7 +1,11 @@
 # MinIO Helm Chart
 
-A standalone MinIO chart for Hasura DDN self-hosted deployments. This chart deploys a single-node MinIO server with a
-post-install job that creates the default bucket and (optionally) a console user.
+A standalone MinIO chart for Hasura DDN self-hosted deployments. This chart is customized to work with the "native"
+external secrets provider approach, where credentials are managed via Kubernetes-native secret management tools such as
+Sealed Secrets, SOPS, or plain Kubernetes Secrets — no external vault infrastructure required.
+
+It deploys a single-node MinIO server with a post-install job that creates the default bucket and (optionally) a console
+user.
 
 ## Prerequisites
 
