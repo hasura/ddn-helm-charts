@@ -526,11 +526,18 @@ kubectl delete pod <pod-name>
 ```
 The init container will run again and sync files according to the configured update strategy.
 
-## External Secrets (HashiCorp Vault)
+## External Secrets
 
-When using an external secrets provider such as HashiCorp Vault, the workspace can load the `HASHED_PASSWORD` environment variable from JSON files written by the `secrets-management-proxy` init container, instead of from a Kubernetes Secret. This is an alternative to setting `secrets.password` directly when `workspaceAuthProxy` is disabled.
+The chart supports loading the `HASHED_PASSWORD` environment variable from external secrets providers instead of from a Kubernetes Secret. This is an alternative to setting `secrets.password` directly when `workspaceAuthProxy` is disabled. Supported providers:
+
+- **HashiCorp Vault** — fetches secrets from a Vault KV v2 store via the `secrets-management-proxy` init container.
+- **Native Kubernetes Secret** — reads secrets from a pre-existing Kubernetes Secret containing a `secrets.json` key with a JSON blob. Ideal for customers using Sealed Secrets, SOPS, or other K8s-native secret management tooling who want to avoid external vault infrastructure.
 
 **Note:** External secrets support is available starting with release 2.7.9.
+
+### HashiCorp Vault
+
+When using HashiCorp Vault, the workspace loads the `HASHED_PASSWORD` environment variable from JSON files written by the `secrets-management-proxy` init container.
 
 ### Prerequisites
 
@@ -644,6 +651,88 @@ By default, the secret-refresher authenticates to Vault using the pod's default 
 
 - **`type: initcontainer`** — secrets are fetched once at startup. If the Vault secret is rotated, a pod restart is required to pick up the new values.
 - **`type: sidecar`** — the secret refresher runs alongside the workspace and periodically re-fetches secrets (default: every 5 minutes). The workspace's env-loader entrypoint only reads secrets at startup, so a pod restart is still needed for the workspace to pick up refreshed values. The sidecar mode is useful when combined with other consumers of the `/secrets/` volume.
+
+### Native Kubernetes Secret
+
+The native provider lets you use a plain Kubernetes Secret as the source for the external secrets workflow — no external vault infrastructure required. This is ideal for customers using Sealed Secrets, SOPS, or similar K8s-native secret management tooling.
+
+#### Prerequisites
+
+1. A pre-existing Kubernetes Secret containing a `secrets.json` key with a JSON blob of all secret values.
+2. The workspace image must be the **`-env-loader` variant**. When `global.externalSecrets.enabled` and `externalSecrets.enabled` are both true, the chart appends `-env-loader` to the configured `image.tag` automatically.
+
+#### Creating the Kubernetes Secret
+
+Create a Secret with a single `secrets.json` key containing the workspace password:
+
+```bash
+kubectl create secret generic workspace-secrets \
+  --from-literal=secrets.json='{"HASHED_PASSWORD":"$argon2id$v=19$m=16,t=2,p=1$TGY1cnNQblpGNmlCSnV4VQ$1/DpAKkaZhEtHDyVBqpF9A"}' \
+  -n <namespace>
+```
+
+Or as a YAML manifest:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: workspace-secrets
+type: Opaque
+stringData:
+  secrets.json: |
+    {
+      "HASHED_PASSWORD": "$argon2id$v=19$m=16,t=2,p=1$TGY1cnNQblpGNmlCSnV4VQ$1/DpAKkaZhEtHDyVBqpF9A"
+    }
+```
+
+#### Example Override File
+
+```yaml
+global:
+  domain: "hasura-dp.domain.com"
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Disable Kubernetes Secret creation — secrets come from the native Secret
+  deploySecrets: false
+
+  externalSecrets:
+    enabled: true
+    secretName: "workspace-secrets"
+    cloud: native
+    native:
+      secretName: "workspace-secrets"
+    transform:
+      mode: "transformed_only"
+
+consoleUrl: "https://console.my-cp.domain.com"
+
+# The chart will append `-env-loader` to image.tag automatically when
+# global.externalSecrets.enabled and externalSecrets.enabled are both true.
+image:
+  tag: "2.7.13"
+
+externalSecrets:
+  enabled: true
+  type: initcontainer
+  secretRefresher:
+    image:
+      repository: "gcr.io/hasura-ee/secrets-management-proxy"
+      tag: "<secrets-management-proxy-tag>"
+
+# No env override needed: HASHED_PASSWORD is injected automatically by the
+# env-loader entrypoint from /secrets/*.json at startup, matching the key
+# name the workspace already expects.
+```
+
+#### How It Works
+
+1. A Kubernetes Secret containing `secrets.json` is mounted into the pod as a read-only volume.
+2. An init container (reusing the `secrets-management-proxy` image) reads the JSON, applies any key_mappings, and writes the result to `/secrets/<serviceName>.json` on a shared `emptyDir` volume.
+3. The main container uses the `-env-loader` image variant, whose entrypoint reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the workspace. The workspace starts with `HASHED_PASSWORD` available directly — no mapping or custom `env` block is needed because the key name matches what the workspace expects.
+
+**Note:** Unlike HashiCorp Vault, the native provider does not support sidecar mode. Secrets are read once at pod startup. To update secrets, update the Kubernetes Secret and restart the pod.
 
 ## Trusting CA certs
 
