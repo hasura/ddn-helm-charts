@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: RELEASE.2025-03-12T18-04-18Z
+description: MinIO object storage for Hasura DDN
+name: minio
+type: application
+version: 0.2.0

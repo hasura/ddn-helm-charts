@@ -1,0 +1,62 @@
+## MinIO server image
+image:
+  repository: gcr.io/hasura-ee/minio
+  tag: "RELEASE.2025-03-12T18-04-18Z"
+  pullPolicy: IfNotPresent
+
+## MinIO mc (client) image — used in post-install job
+mcImage:
+  repository: gcr.io/hasura-ee/mc
+  tag: "RELEASE.2025-03-12T17-29-24Z"
+  pullPolicy: IfNotPresent
+
+## Registry auth — set to [] to disable
+imagePullSecrets:
+  - name: hasura-image-pull
+
+## Pre-existing K8s Secret containing MinIO config
+## The Secret must have a key (default: "config.env") with KEY=VALUE lines, e.g.:
+##   MINIO_ROOT_USER=minio-user
+##   MINIO_ROOT_PASSWORD=supersecret
+existingSecret:
+  name: "minio"
+  key: "config.env"
+
+## Console user created by the post-install job (optional — omit to skip)
+# consoleUser:
+#   accessKey: "console"
+#   secretKey: "console123"
+#   policy: "consoleAdmin"
+
+## Service account
+serviceAccount:
+  name: minio-sa
+
+## Persistence
+persistence:
+  size: 20Gi
+  accessMode: ReadWriteOnce
+  ## Set to "-" to use the default storageClass, or specify a class name
+  # storageClass: ""
+
+## Bucket created by the post-install job
+bucket:
+  name: v3-metadata-blob-store
+  policy: "none"
+
+## Pod security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+
+## Server container resources
+resources:
+  requests:
+    memory: 200Mi
+
+## Post-install job container resources
+jobResources:
+  requests:
+    memory: 128Mi
