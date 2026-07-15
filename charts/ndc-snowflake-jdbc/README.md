@@ -111,9 +111,16 @@ You can achieve the same configuration from the command line using the following
 --set-file secrets.imagePullSecret.auths.gcr\.io.password=company-sa.json
 ```
 
-## External Secrets (HashiCorp Vault)
+## External Secrets
 
-When using an external secrets provider such as HashiCorp Vault, the connector can load sensitive environment variables from JSON files written by the `secrets-management-proxy` init container, instead of from Kubernetes Secrets.
+The chart supports loading sensitive environment variables from external secrets providers instead of from Kubernetes Secrets. Supported providers:
+
+- **HashiCorp Vault** — fetches secrets from a Vault KV v2 store via the `secrets-management-proxy` init container.
+- **Native Kubernetes Secret** — reads secrets from a pre-existing Kubernetes Secret containing a `secrets.json` key with a JSON blob. Ideal for customers using Sealed Secrets, SOPS, or other K8s-native secret management tooling who want to avoid external vault infrastructure.
+
+### HashiCorp Vault
+
+When using HashiCorp Vault, the connector loads sensitive environment variables from JSON files written by the `secrets-management-proxy` init container.
 
 **Note:** HashiCorp Vault projected ServiceAccount token (`projectedToken`) support is available starting with chart version `v2026.05.27` (which bumps the `common` dependency to 0.0.19).
 
@@ -239,6 +246,105 @@ env: |
 
 - **`type: initcontainer`** — secrets are fetched once at startup. If the Vault secret is rotated, a pod restart is required to pick up the new values.
 - **`type: sidecar`** — the secret refresher runs alongside the connector and periodically re-fetches secrets (default: every 5 minutes). The connector's env-loader entrypoint only reads secrets at startup, so a pod restart is still needed for the connector to pick up refreshed values. The sidecar mode is useful when combined with other consumers of the `/secrets/` volume.
+
+### Native Kubernetes Secret
+
+The native provider lets you use a plain Kubernetes Secret as the source for the external secrets workflow — no external vault infrastructure required. This is ideal for customers using Sealed Secrets, SOPS, or similar K8s-native secret management tooling.
+
+#### Prerequisites
+
+1. A pre-existing Kubernetes Secret containing a `secrets.json` key with a JSON blob of all secret values.
+2. The connector image must be the **`-env-loader` variant** (e.g., `ndc-snowflake-jdbc:v1.7.3-env-loader`).
+
+#### Creating the Kubernetes Secret
+
+Create a Secret with a single `secrets.json` key containing all required values as a JSON object:
+
+```bash
+kubectl create secret generic snowflake-secrets \
+  --from-literal=secrets.json='{"JDBC_URL":"jdbc:snowflake://acme-org.snowflakecomputing.com/?db=MYDB&schema=PUBLIC&warehouse=COMPUTE_WH&role=ANALYST","HASURA_SERVICE_TOKEN_SECRET":"my-service-token-secret"}' \
+  -n <namespace>
+```
+
+Or as a YAML manifest:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: snowflake-secrets
+type: Opaque
+stringData:
+  secrets.json: |
+    {
+      "JDBC_URL": "jdbc:snowflake://acme-org.snowflakecomputing.com/?db=MYDB&schema=PUBLIC&warehouse=COMPUTE_WH&role=ANALYST",
+      "HASURA_SERVICE_TOKEN_SECRET": "my-service-token-secret"
+    }
+```
+
+#### Example Override File
+
+```yaml
+global:
+  imagePullSecrets:
+    - hasura-image-pull
+
+  # Disable Kubernetes Secret creation — secrets come from the native Secret
+  deploySecrets: false
+
+  externalSecrets:
+    enabled: true
+    secretName: "snowflake-secrets"
+    cloud: native
+    native:
+      secretName: "snowflake-secrets"
+    transform:
+      mode: "transformed_only"
+
+# Use the env-loader variant of the connector image
+image:
+  repository: "gcr.io/hasura-ee/ndc-snowflake-jdbc"
+  tag: "v1.7.3-env-loader"
+
+externalSecrets:
+  enabled: true
+  type: initcontainer
+  secretRefresher:
+    image:
+      repository: "gcr.io/hasura-ee/secrets-management-proxy"
+      tag: "<secrets-management-proxy-tag>"
+
+# Override the default env block to remove secretKeyRef entries.
+# JDBC_URL and HASURA_SERVICE_TOKEN_SECRET are injected
+# by the env-loader entrypoint from /secrets/*.json at startup.
+env: |
+  {{- if .Values.connectorEnvVars.JDBC_SCHEMAS }}
+  - name: JDBC_SCHEMAS
+    value: {{ .Values.connectorEnvVars.JDBC_SCHEMAS | quote }}
+  {{- end }}
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: {{ .Values.connectorEnvVars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+  {{- if .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Values.connectorEnvVars.OTEL_SERVICE_NAME }}
+  {{- else }}
+  - name: OTEL_SERVICE_NAME
+    value: {{ .Chart.Name }}
+  {{- end }}
+  {{- if .Values.connectorEnvVars.configDirectory }}
+  - name: HASURA_CONFIGURATION_DIRECTORY
+    value: {{ .Values.connectorEnvVars.configDirectory }}
+  {{- end }}
+```
+
+#### How It Works
+
+1. A Kubernetes Secret containing `secrets.json` is mounted into the pod as a read-only volume.
+2. An init container (reusing the `secrets-management-proxy` image) reads the JSON, applies any key_mappings, and writes the result to `/secrets/<serviceName>.json` on a shared `emptyDir` volume.
+3. The main container uses the `-env-loader` image variant, whose entrypoint reads every JSON file in `/secrets/`, exports each key/value pair as an environment variable, then execs the connector.
+4. The connector starts with `JDBC_URL` (and any other keys) available as environment variables.
+
+**Note:** Unlike HashiCorp Vault, the native provider does not support sidecar mode. Secrets are read once at pod startup. To update secrets, update the Kubernetes Secret and restart the pod.
 
 ## Container Level Security Context
 
