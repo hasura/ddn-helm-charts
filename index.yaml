@@ -167,6 +167,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2026-07-15T14:20:34.581013212Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.21
+    description: A Helm chart for DDN Workspace (Native Runtime)
+    digest: 4167fc55edb1014ec13a546c5fdc13e85d708f640cad4dbf384b2c13e030123b
+    name: ddn-workspace
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ddn-workspace@v2026.07.15/ddn-workspace-v2026.07.15.tgz
+    version: v2026.07.15
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2026-06-16T14:25:06.410740419Z"
     dependencies:
     - name: common
@@ -1758,6 +1774,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2026-07-15T14:20:35.098088706Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.21
+    description: (DDN) A Helm chart for deploying ndc-mongodb
+    digest: 2d064667f940c559b47aed3ef8fbae2737ae6b086430b0d3ee8dcc47ff94a1c2
+    name: ndc-mongodb
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-mongodb@v2026.07.15/ndc-mongodb-v2026.07.15.tgz
+    version: v2026.07.15
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2026-05-29T18:07:10.408627284Z"
     dependencies:
     - name: common
@@ -3016,6 +3048,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2026-07-15T14:20:35.322285412Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.21
+    description: (DDN) A Helm chart for deploying ndc-snowflake-jdbc
+    digest: ed801cde526569bd1df0d8f7f6613fbf491c5c17e5abd8d597330ee53f13d365
+    name: ndc-snowflake-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-snowflake-jdbc@v2026.07.15/ndc-snowflake-jdbc-v2026.07.15.tgz
+    version: v2026.07.15
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2026-05-29T18:07:10.685106945Z"
     dependencies:
     - name: common
@@ -3175,6 +3223,22 @@ entries:
       artifacthub.io/changes: ""
     apiVersion: v2
     appVersion: 3.0.0
+    created: "2026-07-15T14:20:35.579642855Z"
+    dependencies:
+    - name: common
+      repository: oci://us-west1-docker.pkg.dev/hasura-ee/helm-charts
+      version: 0.0.21
+    description: (DDN) A Helm chart for deploying ndc-sqlserver-jdbc
+    digest: d6be1568758c91b0dabba9b553fa4b883e5f307a84505b9e26cb639a87ab4c81
+    name: ndc-sqlserver-jdbc
+    type: application
+    urls:
+    - https://github.com/hasura/ddn-helm-charts/releases/download/ndc-sqlserver-jdbc@v2026.07.15/ndc-sqlserver-jdbc-v2026.07.15.tgz
+    version: v2026.07.15
+  - annotations:
+      artifacthub.io/changes: ""
+    apiVersion: v2
+    appVersion: 3.0.0
     created: "2026-05-29T18:07:10.901045752Z"
     dependencies:
     - name: common
@@ -3285,4 +3349,4 @@ entries:
     urls:
     - https://github.com/hasura/ddn-helm-charts/releases/download/v3-engine@0.3.0/v3-engine-0.3.0.tgz
     version: 0.3.0
-generated: "2026-07-15T14:15:01.263373978Z"
+generated: "2026-07-15T14:20:35.58008615Z"
