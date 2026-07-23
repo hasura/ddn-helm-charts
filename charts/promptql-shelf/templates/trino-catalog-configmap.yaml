@@ -1,0 +1,39 @@
+{{ $name := "trino-catalog" }}
+{{ $namespace := .Release.Namespace }}
+{{ $labels := include "common.labels" . }}
+---
+{{- if .Values.trino.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- $labels | nindent 4 }}
+data:
+  iceberg.properties: |
+    connector.name=iceberg
+    iceberg.catalog.type=rest
+    iceberg.rest-catalog.uri=http://lakekeeper.promptql.svc.cluster.local:8181/catalog
+    iceberg.rest-catalog.warehouse=iceberg
+    iceberg.compression-codec=ZSTD
+    iceberg.register-table-procedure.enabled=true
+    iceberg.target-max-file-size=512MB
+    iceberg.max-partitions-per-writer=500
+    {{- if eq .Values.trino.cloud "aws" }}
+    fs.native-s3.enabled=true
+    {{- else if eq .Values.trino.cloud "gcp" }}
+    fs.native-gcs.enabled=true
+    gcs.auth-type=APPLICATION_DEFAULT
+    {{- else if eq .Values.trino.cloud "azure" }}
+    fs.native-azure.enabled=true
+    {{- end }}
+
+  tpcds.properties: |
+    connector.name=tpcds
+    tpcds.splits-per-node=4
+
+  tpch.properties: |
+    connector.name=tpch
+    tpch.splits-per-node=4
+{{- end }}
