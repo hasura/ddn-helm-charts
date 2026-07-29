@@ -1,6 +1,11 @@
 The changelog is automatically generated using [git-chglog](https://github.com/git-chglog/git-chglog) and it follows [Keep a Changelog](https://keepachangelog.com) format.
 
 
+<a name="ddn-cli-api@v2026.03.12"></a>
+## [ddn-cli-api@v2026.03.12] - 2026-03-12
+- document DDN_ALLOWED_COMMANDS as an optional additional env var for overriding the CLI command allowlist
+- update pre-installed DDN CLI version to v3.5.1
+
 <a name="ddn-cli-api@v2025.09.23"></a>
 ## [ddn-cli-api@v2025.09.23] - 2025-09-24
 - remove env vars that are no longer needed

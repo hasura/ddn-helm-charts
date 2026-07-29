@@ -16,7 +16,7 @@ helm template <release-name> \
   --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.1-a4f050b.1" \
+  --set image.tag="v0.1.3" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api | kubectl apply -f-
@@ -28,7 +28,7 @@ helm upgrade --install <release-name> \
   --set global.subDomain="false" \
   --set global.containerRegistry="gcr.io/hasura-ee" \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.1-a4f050b.1" \
+  --set image.tag="v0.1.3" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api
@@ -42,7 +42,7 @@ helm template v1 \
   --set global.imagePullSecrets[0]="hasura-image-pull" \
   --set serviceAccount.enabled="true " \
   --set image.repository="ddn-cli-api" \
-  --set image.tag="v0.1.1-a4f050b.1" \
+  --set image.tag="v0.1.3" \
   --set ddnCliApiEnvVars.CP_GRAPHQL_ENDPOINT="<data_graphql_endpoint>" \
   --set ddnCliApiEnvVars.HASURA_DDN_CONSOLE_HOST="<console_host>" \
   hasura-ddn/ddn-cli-api
@@ -57,13 +57,21 @@ contact the Hasura engineering team in order to obtain alternate methods for fet
 
 Contact Hasura engineering team for this information.
 
-## Custom Environment variables (For Custom CLI Hooks)
+## Custom Environment variables
 
-Let's assume you want to add custom validation hooks per instructions [here](https://https://ddn-cp-docs.hasura.io//control-plane/guides/cli-wrapper/#custom-cli-hooks).  When running either `helm template` or `helm upgrade` command, you will also need to pass these as installation parameters:
+Additional optional environment variables can be passed via `additionalEnv` when running `helm template` or `helm upgrade`.
+
+**Custom CLI Hooks** — see instructions [here](https://ddn-cp-docs.hasura.io//control-plane/guides/cli-wrapper/#custom-cli-hooks):
 
 ```yaml
 --set additionalEnv[0].name="ENABLE_CUSTOM_HOOK" --set additionalEnv[0].value=true \
 --set additionalEnv[1].name="CUSTOM_HOOK_ENDPOINT_URL" --set additionalEnv[1].value="custom_hook_endpoint_url"
+```
+
+**Allowed DDN CLI commands** — override the default allowlist (`ddn supergraph build create,ddn supergraph build apply`):
+
+```yaml
+--set additionalEnv[0].name="DDN_ALLOWED_COMMANDS" --set additionalEnv[0].value="ddn supergraph build create,ddn supergraph build apply"
 ```
 
 ## Post-Install
@@ -82,7 +90,7 @@ See Hasura's documentation for more information.  Link will be provided here in 
 | `labels.app`                                   | Application label for K8s resources                | `ddn-cli-api`                                                               |                |
 | `additionalAnnotations`                        | Custom annotations like config checksums           | \`checksum/config: {{ include (print \$.Template.BasePath "/secret.yaml") . | sha256sum }}\` |
 | `image.repository`                             | Container image name                               | `ddn-cli-api`                                                               |                |
-| `image.tag`                                    | Container image version tag                        | `v0.1.1-a4f050b.1`                                                                    |                |
+| `image.tag`                                    | Container image version tag                        | `v0.1.3`                                                                    |                |
 | `image.pullPolicy`                             | Image pull policy                                  | `IfNotPresent`                                                              |                |
 | `replicas`                                     | Number of pod replicas                             | `"1"`                                                                       |                |
 | `httpPort`                                     | HTTP port exposed by the container                 | `3000`                                                                      |                |
