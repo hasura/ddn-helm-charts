@@ -1,5 +1,57 @@
 # MinIO Helm Chart
 
+> **Deprecated (v0.2.0):** This standalone MinIO chart is deprecated and will no longer be maintained. Starting with
+> DDN Self-Hosted release **2.7.14**, MinIO is managed as a subchart of the `v3-control-plane` Helm chart with native
+> secret support via the `nativeSecret` configuration. New installations should use the `v3-control-plane` chart
+> directly.
+
+## Migrating to v3-control-plane (2.7.14+)
+
+If you previously installed MinIO using this standalone chart, you can migrate to the `v3-control-plane` chart by
+transferring Helm resource ownership. This avoids downtime by re-using the existing MinIO resources.
+
+**1. Re-annotate existing MinIO resources** to transfer ownership to the control plane release:
+
+```bash
+# Replace <namespace> and <cp-release-name> with your values
+for resource in $(kubectl get all,secret,configmap,serviceaccount,ingress,pvc,job -n <namespace> \
+  -o json | jq -r '.items[] | select(.metadata.annotations["meta.helm.sh/release-name"] == "minio") | "\(.kind)/\(.metadata.name)"'); do
+  kubectl annotate "$resource" -n <namespace> \
+    meta.helm.sh/release-name=<cp-release-name> \
+    meta.helm.sh/release-namespace=<namespace> \
+    --overwrite
+done
+```
+
+**2. Remove the old Helm release tracking** (without deleting the actual resources):
+
+```bash
+# Do NOT use "helm uninstall minio" — that would delete the resources.
+# Instead, remove Helm's internal release secret directly:
+kubectl delete secret -n <namespace> -l owner=helm,name=minio
+```
+
+**3. Install the control plane chart** with `nativeSecret` enabled in your overrides:
+
+```yaml
+# In your v3-control-plane overrides file
+minio:
+  nativeSecret:
+    enabled: true
+    name: "minio"        # name of your existing Secret with config.env
+    key: "config.env"
+```
+
+```bash
+helm upgrade --install <cp-release-name> -n <namespace> \
+  -f v3-control-plane-overrides.yaml \
+  v3-control-plane-2.7.14.tgz
+```
+
+---
+
+## Legacy Documentation (v0.2.0)
+
 A standalone MinIO chart for Hasura DDN self-hosted deployments. This chart is customized to work with the "native"
 external secrets provider approach, where credentials are managed via Kubernetes-native secret management tools such as
 Sealed Secrets, SOPS, or plain Kubernetes Secrets — no external vault infrastructure required.
