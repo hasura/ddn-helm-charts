@@ -1,0 +1,162 @@
+{{ $name := "lakekeeper-bootstrap" }}
+{{ $namespace := .Release.Namespace }}
+{{ $labels := include "common.labels" . }}
+---
+{{- if .Values.lakekeeper.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- $labels | nindent 4 }}
+  annotations: {{- toYaml .Values.lakekeeper.bootstrap.annotations | nindent 4 }}
+{{- end }}
+---
+{{- if .Values.lakekeeper.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- $labels | nindent 4 }}
+  annotations: {{- toYaml .Values.lakekeeper.bootstrap.annotations | nindent 4 }}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ $name }}
+      {{- if .Values.lakekeeper.catalog.nodeSelector }}
+      nodeSelector: {{- toYaml .Values.lakekeeper.catalog.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.lakekeeper.catalog.affinity }}
+      affinity: {{- toYaml .Values.lakekeeper.catalog.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.lakekeeper.catalog.tolerations }}
+      tolerations: {{- toYaml .Values.lakekeeper.catalog.tolerations | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: provision-warehouse
+          image: nicolaka/netshoot:v0.14
+          env:
+            - name: API_URL
+              value: {{ .Values.lakekeeper.bootstrap.apiUrl }}
+            - name: WAREHOUSE_NAME
+              value: {{ .Values.lakekeeper.bootstrap.warehouseName }}
+            {{- if eq .Values.lakekeeper.bootstrap.cloud "aws" }}
+            - name: S3_BUCKET
+              value: {{ .Values.lakekeeper.bootstrap.s3Bucket }}
+            - name: S3_REGION
+              value: {{ .Values.lakekeeper.bootstrap.s3Region }}
+            {{- else if eq .Values.lakekeeper.bootstrap.cloud "gcp" }}
+            - name: GCS_BUCKET
+              value: {{ .Values.lakekeeper.bootstrap.gcsBucket }}
+            {{- else if eq .Values.lakekeeper.bootstrap.cloud "azure" }}
+            - name: AZDLS_FILESYSTEM
+              value: {{ .Values.lakekeeper.bootstrap.azdlsFilesystem }}
+            - name: AZDLS_STORAGE_ACCOUNT
+              value: {{ .Values.lakekeeper.bootstrap.azdlsStorageAccount }}
+            {{- end }}
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+
+              check_error() {
+                local response="$1"
+                local operation="$2"
+                if echo "$response" | jq -e '.error' > /dev/null 2>&1; then
+                  echo "ERROR: $operation failed:"
+                  echo "$response" | jq .
+                  exit 1
+                fi
+              }
+
+              INFO_RESPONSE=$(curl -s -X GET "$API_URL/management/v1/info")
+              check_error "$INFO_RESPONSE" "Get info"
+              BOOTSTRAPPED=$(echo "$INFO_RESPONSE" | jq -r ".bootstrapped")
+
+              if [ "$BOOTSTRAPPED" = "false" ]; then
+                echo "System not bootstrapped. Bootstrapping..."
+                BOOTSTRAP_RESPONSE=$(curl -s -X POST "$API_URL/management/v1/bootstrap" \
+                  -H "Content-Type: application/json" \
+                  -d '{"accept-terms-of-use": true}')
+                echo "Bootstrap response: $BOOTSTRAP_RESPONSE"
+                check_error "$BOOTSTRAP_RESPONSE" "Bootstrap"
+              else
+                echo "System already bootstrapped."
+              fi
+
+              WAREHOUSE_CHECK=$(curl -s -X GET "$API_URL/management/v1/warehouse")
+              echo "Warehouse check response: $WAREHOUSE_CHECK"
+              check_error "$WAREHOUSE_CHECK" "List warehouses"
+              if echo "$WAREHOUSE_CHECK" | jq -e ".warehouses[] | select(.name == \"$WAREHOUSE_NAME\")" > /dev/null; then
+                echo "Warehouse $WAREHOUSE_NAME already exists. Skipping creation."
+              else
+                echo "Creating warehouse $WAREHOUSE_NAME..."
+                {{- if eq .Values.lakekeeper.bootstrap.cloud "aws" }}
+                CREATE_RESPONSE=$(curl -s -X POST "$API_URL/management/v1/warehouse" \
+                  -H "x-project-id: 00000000-0000-0000-0000-000000000000" \
+                  -H "Content-Type: application/json" \
+                  -d "{
+                    \"delete-profile\": {\"type\": \"hard\"},
+                    \"warehouse-name\": \"${WAREHOUSE_NAME}\",
+                    \"project-id\": \"00000000-0000-0000-0000-000000000000\",
+                    \"storage-credential\": {
+                      \"type\": \"s3\",
+                      \"credential-type\": \"aws-system-identity\",
+                      \"external-id\": \"lakekeeper\"
+                    },
+                    \"storage-profile\": {
+                      \"type\": \"s3\",
+                      \"bucket\": \"${S3_BUCKET}\",
+                      \"region\": \"${S3_REGION}\",
+                      \"sts-enabled\": false,
+                      \"flavor\": \"aws\",
+                      \"key-prefix\": \"iceberg\"
+                    }
+                  }")
+                {{- else if eq .Values.lakekeeper.bootstrap.cloud "gcp" }}
+                CREATE_RESPONSE=$(curl -s -X POST "$API_URL/management/v1/warehouse" \
+                  -H "x-project-id: 00000000-0000-0000-0000-000000000000" \
+                  -H "Content-Type: application/json" \
+                  -d "{
+                    \"delete-profile\": {\"type\": \"hard\"},
+                    \"warehouse-name\": \"${WAREHOUSE_NAME}\",
+                    \"project-id\": \"00000000-0000-0000-0000-000000000000\",
+                    \"storage-credential\": {
+                      \"credential-type\": \"gcp-system-identity\",
+                      \"type\": \"gcs\"
+                    },
+                    \"storage-profile\": {
+                      \"type\": \"gcs\",
+                      \"bucket\": \"${GCS_BUCKET}\",
+                      \"key-prefix\": \"iceberg\"
+                    }
+                  }")
+                {{- else if eq .Values.lakekeeper.bootstrap.cloud "azure" }}
+                CREATE_RESPONSE=$(curl -s -X POST "$API_URL/management/v1/warehouse" \
+                  -H "x-project-id: 00000000-0000-0000-0000-000000000000" \
+                  -H "Content-Type: application/json" \
+                  -d "{
+                    \"delete-profile\": {\"type\": \"hard\"},
+                    \"warehouse-name\": \"${WAREHOUSE_NAME}\",
+                    \"project-id\": \"00000000-0000-0000-0000-000000000000\",
+                    \"storage-credential\": {
+                      \"credential-type\": \"azure-system-identity\",
+                      \"type\": \"az\"
+                    },
+                    \"storage-profile\": {
+                      \"type\": \"adls\",
+                      \"filesystem\": \"${AZDLS_FILESYSTEM}\",
+                      \"account-name\": \"${AZDLS_STORAGE_ACCOUNT}\",
+                      \"key-prefix\": \"iceberg\"
+                    }
+                  }")
+                {{- end }}
+                echo "Create warehouse response: $CREATE_RESPONSE"
+                check_error "$CREATE_RESPONSE" "Create warehouse"
+                echo "Warehouse $WAREHOUSE_NAME created successfully."
+              fi
+{{- end }}

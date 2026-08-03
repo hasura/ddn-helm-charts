@@ -1,0 +1,153 @@
+lakekeeper:
+  # -- Enable or disable the lakekeeper subchart
+  enabled: true
+  # -- PostgreSQL encryption key (leave empty to use secret)
+  pgEncryptionKey: ""
+  # -- Override the fullname of lakekeeper resources
+  fullnameOverride: "lakekeeper"
+  preInstallMigration:
+    # -- Annotations for the pre-install migration job
+    annotations:
+      helm.sh/hook: pre-install
+      helm.sh/hook-delete-policy: before-hook-creation
+  bootstrap:
+    # -- Cloud provider for bootstrap (aws, gcp, azure)
+    cloud: "aws"
+    # -- API URL for lakekeeper bootstrap
+    apiUrl: "http://lakekeeper.promptql.svc.cluster.local:8181"
+    # -- Warehouse name for Iceberg catalog
+    warehouseName: "iceberg"
+    # -- S3 bucket name for storage (AWS)
+    s3Bucket: ""
+    # -- S3 region for storage (AWS)
+    s3Region: ""
+    # -- GCS bucket name for storage (GCP)
+    gcsBucket: ""
+    # -- Azure Data Lake Storage filesystem name (Azure)
+    azdlsFilesystem: ""
+    # -- Azure Data Lake Storage account name (Azure)
+    azdlsStorageAccount: ""
+    # -- Annotations for the bootstrap job
+    annotations:
+      helm.sh/hook: post-install
+      helm.sh/hook-delete-policy: before-hook-creation
+  catalog:
+    # -- Number of replicas to deploy. Replicas are stateless.
+    replicas: 2
+    # -- Resource limits and requests for the catalog container
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    # -- Catalog configuration environment variables
+    config:
+      LAKEKEEPER__ENABLE_AWS_SYSTEM_CREDENTIALS: "true"
+      LAKEKEEPER__ENABLE_GCP_SYSTEM_CREDENTIALS: "true"
+      LAKEKEEPER__ENABLE_AZURE_SYSTEM_CREDENTIALS: "true"
+
+  secretBackend:
+    # -- the type of secret store to use.
+    # Available values: "Postgres", "KV2"
+    type: "Postgres"
+
+    # postgres specific configurations.
+    postgres:
+      # -- Name of the secret containing the encryption key. (Mandatory)
+      encryptionKeySecret: "lakekeeper-pg-encryption"
+      # -- Name of the key within `encryptionKeySecret` containing the encryption key string
+      encryptionKeySecretKey: "encryptionKey"
+
+  postgresql:
+    # -- Enable built-in PostgreSQL (set to false when using external database)
+    enabled: false
+
+  externalDatabase:
+    # -- the type of external database.
+    # allowed values: "postgres"
+    type: postgres
+
+    # -- hostname to use for read instances of the external database
+    host_read: ""
+
+    # -- hostname to use for write instances of the external database.
+    # For single read/write instances, this should be the same as `host_read`
+    host_write: ""
+
+    # -- Port of the external database
+    port: 5432
+
+    # -- The database/schema to use within the external database
+    database: lakekeeper
+
+    # -- The username for the external database
+    user: ""
+
+    # -- The password for the external database.
+    password: ""
+
+  authz:
+    # -- Authorization backend type
+    backend: "allowall"
+
+  serviceAccount:
+    # -- Specifies whether a service account should be created.
+    # If `false`, you must create the service account outside this chart with name: `serviceAccount.name`
+    create: true
+
+trino:
+  # -- Enable or disable the trino subchart
+  enabled: true
+  # -- Cloud provider for trino (aws, gcp, azure)
+  cloud: "aws"
+  # -- Override the fullname of trino resources
+  fullnameOverride: "trino"
+  # -- Trino catalogs configuration
+  catalogs: ""
+
+  coordinator:
+    # -- Resource limits and requests for the coordinator container
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    # -- Additional volumes for the coordinator pod
+    additionalVolumes:
+      - name: trino-catalog
+        configMap:
+          name: trino-catalog
+    # -- Additional volume mounts for the coordinator container
+    additionalVolumeMounts:
+      - name: trino-catalog
+        mountPath: /etc/trino/catalog
+
+  worker:
+    # -- Resource limits and requests for the worker containers
+    resources:
+      requests:
+        cpu: 2000m
+        memory: 4Gi
+      limits:
+        cpu: 4000m
+        memory: 8Gi
+    # -- Additional volumes for the worker pods
+    additionalVolumes:
+      - name: trino-catalog
+        configMap:
+          name: trino-catalog
+    # -- Additional volume mounts for the worker containers
+    additionalVolumeMounts:
+      - name: trino-catalog
+        mountPath: /etc/trino/catalog
+
+  serviceAccount:
+    # -- Specifies whether a service account should be created
+    create: true
+    # -- The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: "trino"

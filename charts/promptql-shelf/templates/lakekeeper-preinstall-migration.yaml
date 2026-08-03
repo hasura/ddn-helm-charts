@@ -1,0 +1,51 @@
+{{ $name := "lakekeeper-preinstall-migration" }}
+{{ $namespace := .Release.Namespace }}
+{{ $labels := include "common.labels" . }}
+---
+{{- if .Values.lakekeeper.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- $labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.lakekeeper.preInstallMigration.annotations | nindent 4 }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: check-create-db
+          image: postgres:16.4
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Checking if 'lakekeeper' database exists..."
+              if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "SELECT 1 FROM pg_database WHERE datname = 'lakekeeper'" | grep -q 1; then
+              echo "'lakekeeper' database already exists."
+              else
+              echo "'lakekeeper' database does not exist. Creating..."
+              PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "CREATE DATABASE lakekeeper"
+              echo "'lakekeeper' database created."
+              fi
+          env:
+            - name: DB_HOST
+              value: {{ .Values.lakekeeper.externalDatabase.host_write }}
+            - name: DB_PORT
+              value: {{ .Values.lakekeeper.externalDatabase.port | quote }}
+            - name: DB_USER
+              value: {{ .Values.lakekeeper.externalDatabase.user }}
+            - name: DB_PASSWORD
+              value: {{ .Values.lakekeeper.externalDatabase.password }}
+      restartPolicy: OnFailure
+      {{- if .Values.lakekeeper.catalog.nodeSelector }}
+      nodeSelector: {{- toYaml .Values.lakekeeper.catalog.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.lakekeeper.catalog.affinity }}
+      affinity: {{- toYaml .Values.lakekeeper.catalog.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.lakekeeper.catalog.tolerations }}
+      tolerations: {{- toYaml .Values.lakekeeper.catalog.tolerations | nindent 8 }}
+      {{- end }}
+{{- end }}
